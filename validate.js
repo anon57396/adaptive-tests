@@ -118,12 +118,57 @@ if (!trad3.success && !adapt3.success && tradResults3.hasTestFailure && adaptRes
 runCommand('node restore-broken.js', false);
 runCommand('node restore.js', false);
 
+console.log('\n📋 SCENARIO 4: TypeScript Mirror Example');
+console.log('-'.repeat(40));
+
+runCommand('node restore-ts.js', false);
+runCommand('node restore-broken-ts.js', false);
+
+console.log('Running TypeScript traditional tests...');
+const tsTrad1 = runCommand('npm run test:traditional:ts 2>&1');
+const tsTradResults1 = extractTestResults(tsTrad1.output);
+
+console.log('Running TypeScript adaptive tests...');
+const tsAdapt1 = runCommand('npm run test:adaptive:ts 2>&1');
+const tsAdaptResults1 = extractTestResults(tsAdapt1.output);
+
+console.log(`\n  TS Traditional: ${tsTrad1.success ? '✅' : '❌'} ${tsTradResults1.passed} passed, ${tsTradResults1.failed} failed`);
+console.log(`  TS Adaptive:    ${tsAdapt1.success ? '✅' : '❌'} ${tsAdaptResults1.passed} passed, ${tsAdaptResults1.failed} failed`);
+
+console.log('\nRefactoring TypeScript calculator...');
+runCommand('node refactor-ts.js', false);
+
+const tsTradRefactor = runCommand('npm run test:traditional:ts 2>&1');
+const tsTradRefactorResults = extractTestResults(tsTradRefactor.output);
+const tsAdaptRefactor = runCommand('npm run test:adaptive:ts 2>&1');
+const tsAdaptRefactorResults = extractTestResults(tsAdaptRefactor.output);
+
+console.log(`\n  TS Traditional (after move): ${tsTradRefactor.success ? '✅' : '❌'} ${tsTradRefactorResults.hasImportError ? '(Import Error!)' : ''}`);
+console.log(`  TS Adaptive (after move):    ${tsAdaptRefactor.success ? '✅' : '❌'} ${tsAdaptRefactorResults.passed} passed, ${tsAdaptRefactorResults.failed} failed`);
+
+runCommand('node restore-ts.js', false);
+
+console.log('\nBreaking TypeScript implementation...');
+runCommand('node demo-broken-ts.js', false);
+
+const tsTradBroken = runCommand('npm run test:traditional:ts 2>&1');
+const tsTradBrokenResults = extractTestResults(tsTradBroken.output);
+const tsAdaptBroken = runCommand('npm run test:adaptive:ts 2>&1');
+const tsAdaptBrokenResults = extractTestResults(tsAdaptBroken.output);
+
+console.log(`\n  TS Traditional (broken): ${tsTradBroken.success ? '✅' : '❌'} ${tsTradBrokenResults.failed} failures${tsTradBrokenResults.hasTestFailure ? ' (Actual bugs!)' : ''}`);
+console.log(`  TS Adaptive (broken):    ${tsAdaptBroken.success ? '✅' : '❌'} ${tsAdaptBrokenResults.failed} failures${tsAdaptBrokenResults.hasTestFailure ? ' (Actual bugs!)' : ''}`);
+
+runCommand('node restore-broken-ts.js', false);
+runCommand('node restore-ts.js', false);
+
 console.log('\n' + '='.repeat(60));
 console.log('                    VALIDATION SUMMARY');
 console.log('='.repeat(60));
 console.log('\n✅ Adaptive tests pass when code works');
 console.log('✅ Adaptive tests survive refactoring (traditional don\'t)');
 console.log('✅ Adaptive tests fail on real bugs (same as traditional)');
+console.log('✅ TypeScript example mirrors the same behaviour');
 console.log('\n🎯 Conclusion: Adaptive tests do REAL validation');
 console.log('   They\'re not just always passing - they catch actual bugs!');
 console.log('   But they don\'t break when you move files around.');

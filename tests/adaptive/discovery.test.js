@@ -76,8 +76,10 @@ describe('DiscoveryEngine', () => {
   });
 });
 
+const tsExampleRoot = path.join(repoRoot, 'examples', 'typescript');
+
 describe('TypeScriptDiscoveryEngine', () => {
-  const engine = getTypeScriptDiscoveryEngine(repoRoot);
+  const engine = getTypeScriptDiscoveryEngine(tsExampleRoot);
 
   beforeEach(() => {
     engine.clearCache();

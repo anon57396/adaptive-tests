@@ -9,6 +9,8 @@ npm install
 npm run validate
 # Full suite: adaptive discovery + calculator demos
 npm test
+# Mirror the same behaviour for TypeScript
+npm run test:typescript
 ```
 
 Watch as:

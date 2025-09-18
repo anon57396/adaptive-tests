@@ -1,6 +1,28 @@
 # Adaptive Tests - Tests That Don't Break When You Refactor
 
+<!-- LOGO PLACEHOLDER -->
+<p align="center">
+  <a href="https://github.com/adaptive-tests/adaptive-tests">
+    <!-- <img src="path/to/your/logo.svg" alt="Adaptive Tests Logo" width="200" /> -->
+  </a>
+</p>
+<!-- END LOGO PLACEHOLDER -->
+
+<p align="center">
+  <a href="https://github.com/adaptive-tests/adaptive-tests/actions/workflows/validate.yml"><img src="https://github.com/adaptive-tests/adaptive-tests/actions/workflows/validate.yml/badge.svg" alt="Build Status"></a>
+  <a href="https://www.npmjs.com/package/adaptive-tests-demo"><img src="https://img.shields.io/npm/v/adaptive-tests-demo.svg" alt="npm version"></a>
+  <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT"></a>
+</p>
+
 Stop fixing test imports. Start testing what matters.
+
+<!-- DEMO GIF PLACEHOLDER -->
+<p align="center">
+  <a href="https://github.com/adaptive-tests/adaptive-tests">
+    <!-- <img src="path/to/your/demo.gif" alt="Adaptive Tests Demo" /> -->
+  </a>
+</p>
+<!-- END DEMO GIF PLACEHOLDER -->
 
 ## The Problem
 
@@ -74,6 +96,15 @@ npm run test:adaptive     # ✅ Still works!
 npm run restore && npm run demo:broken
 npm run test:traditional  # ❌ Expected 5, Received 2
 npm run test:adaptive     # ❌ Expected 5, Received 2 (Same failure!)
+
+# TypeScript mirror - same guarantees
+npm run test:typescript
+npm run refactor:ts
+npm run test:traditional:ts  # ❌ Import error
+npm run test:adaptive:ts     # ✅ Still green
+npm run restore:ts && npm run demo:broken:ts
+npm run test:traditional:ts  # ❌ Real assertion failures
+npm run test:adaptive:ts     # ❌ Same assertion failures
 ```
 
 **This is the key insight**: Adaptive tests fail for the RIGHT reasons (actual bugs), not the WRONG reasons (moved files).
@@ -148,6 +179,7 @@ Move files. Rename folders. Refactor architecture. Your tests keep working.
 The `examples/` directory contains:
 
 - **calculator/** - Simple calculator with traditional vs adaptive tests
+- **typescript/** - TypeScript edition powered by TypeScriptDiscoveryEngine
 - **todo-app/** - Todo application showing real-world patterns
 - **api-service/** - REST API service with dynamic discovery
 

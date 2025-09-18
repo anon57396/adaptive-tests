@@ -74,3 +74,5 @@ Adaptive tests are **real tests** that happen to be smart about finding their ta
 
 They don't eliminate test failures - they eliminate the WRONG KIND of test failures (broken imports) while preserving the RIGHT KIND (actual bugs).
 Need a quick regression check? Run `npm test` to execute both the JavaScript and TypeScript adaptive suites in one shot.
+
+Both suites now have a TypeScript mirror as well—run `npm run test:typescript` (and the refactor/broken variants) to see adaptive discovery survive identical scenarios in `.ts` land.

@@ -44,3 +44,21 @@ npx jest examples/typescript/tests --runInBand
 4. Write your adaptive tests exactly as you would in JavaScript.
 
 The discovery engine analyses TypeScript syntax via the compiler API, verifies that exported classes actually expose the methods you care about, and loads them through `ts-node` so you don’t need a build step.
+
+## Handy scripts
+
+```bash
+# Run the TS suites
+npm run test:typescript
+
+# Prove imports break but adaptive survives
+npm run refactor:ts
+npm run test:traditional:ts  # ❌
+npm run test:adaptive:ts     # ✅
+
+# Swap in the broken implementation
+npm run demo:broken:ts
+npm run test:adaptive:ts     # ❌ real failures
+npm run restore:broken:ts
+```
+
