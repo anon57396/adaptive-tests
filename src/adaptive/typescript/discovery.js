@@ -4,10 +4,11 @@
  * MIT License - Use this anywhere
  */
 
-const { DiscoveryEngine } = require('../discovery');
+const path = require('path');
+const { DiscoveryEngine } = require('../discovery-engine');
 
 /**
- * @typedef {import('../discovery').DiscoveryOptions} DiscoveryOptions
+ * @typedef {import('../discovery-engine').DiscoveryOptions} DiscoveryOptions
  */
 
 /**

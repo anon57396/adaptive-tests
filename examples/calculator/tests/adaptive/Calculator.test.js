@@ -4,7 +4,7 @@
 
 const path = require('path');
 const { AdaptiveTest } = require('../../../../src/adaptive/test-base');
-const { getDiscoveryEngine } = require('../../../../src/adaptive/discovery');
+const { getDiscoveryEngine } = require('../../../../src/adaptive/discovery-engine');
 
 class CalculatorAdaptiveTest extends AdaptiveTest {
   getTargetSignature() {

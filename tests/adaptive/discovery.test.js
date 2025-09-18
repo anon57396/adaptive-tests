@@ -2,7 +2,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 
-const { getDiscoveryEngine, DiscoveryEngine } = require('../../src/adaptive/discovery');
+const { getDiscoveryEngine, DiscoveryEngine } = require('../../src/adaptive/discovery-engine');
 const { getTypeScriptDiscoveryEngine } = require('../../src/adaptive/typescript/discovery');
 
 const repoRoot = path.resolve(__dirname, '..', '..');

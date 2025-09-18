@@ -6,7 +6,7 @@
 const path = require('path');
 const fs = require('fs');
 const { execSync } = require('child_process');
-const { getDiscoveryEngine } = require('../../src/adaptive/discovery');
+const { getDiscoveryEngine } = require('../../src/adaptive/discovery-engine');
 
 const engine = getDiscoveryEngine(path.resolve(__dirname, '../..'));
 const fixturesRoot = path.resolve(__dirname, '../../fixtures');

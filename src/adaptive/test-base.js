@@ -4,11 +4,11 @@
  * MIT License - Use this anywhere
  */
 
-const { getDiscoveryEngine } = require('./discovery');
+const { getDiscoveryEngine } = require('./discovery-engine');
 
 /**
- * @typedef {import('./discovery').DiscoverySignature} DiscoverySignature
- * @typedef {import('./discovery').DiscoveryEngine} DiscoveryEngine
+ * @typedef {import('./discovery-engine').DiscoverySignature} DiscoverySignature
+ * @typedef {import('./discovery-engine').DiscoveryEngine} DiscoveryEngine
  */
 
 /**

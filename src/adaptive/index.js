@@ -4,14 +4,16 @@
  * MIT License - Use this anywhere
  */
 
-const { DiscoveryEngine, getDiscoveryEngine } = require('./discovery');
+const { DiscoveryEngine, getDiscoveryEngine } = require('./discovery-engine');
 const { TypeScriptDiscoveryEngine, getTypeScriptDiscoveryEngine } = require('./typescript/discovery');
 const { AdaptiveTest, adaptiveTest } = require('./test-base');
+const { ConfigLoader, DEFAULT_CONFIG } = require('./config-loader');
+const { ScoringEngine } = require('./scoring-engine');
 
 /**
- * @typedef {import('./discovery').DiscoverySignature} DiscoverySignature
- * @typedef {import('./discovery').TargetType} TargetType
- * @typedef {import('./discovery').DiscoveryOptions} DiscoveryOptions
+ * @typedef {import('./discovery-engine').DiscoverySignature} DiscoverySignature
+ * @typedef {import('./discovery-engine').TargetType} TargetType
+ * @typedef {import('./discovery-engine').DiscoveryOptions} DiscoveryOptions
  */
 
 /**
@@ -37,4 +39,9 @@ module.exports = {
   getTypeScriptDiscoveryEngine,
   adaptiveTest,
   discover,
+
+  // Configuration utilities
+  ConfigLoader,
+  ScoringEngine,
+  DEFAULT_CONFIG,
 };

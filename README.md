@@ -225,7 +225,7 @@ Need TypeScript? Import `getTypeScriptDiscoveryEngine` from `src/adaptive/typesc
 ### 1. Copy the discovery engine
 
 ```javascript
-// tests/adaptive/discovery.js
+// tests/adaptive/discovery-engine.js
 export class DiscoveryEngine {
   async discoverTarget(signature) {
     // Scans codebase for matching components
@@ -285,7 +285,7 @@ Each example includes working code, a traditional suite that intentionally break
 
 ```javascript
 // tests/components/Button.adaptive.test.jsx
-import { getDiscoveryEngine } from '../../src/adaptive/discovery';
+import { getDiscoveryEngine } from '../../src/adaptive/discovery-engine';
 
 test('Button component renders', async () => {
   const engine = getDiscoveryEngine();

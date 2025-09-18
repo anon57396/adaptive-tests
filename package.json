@@ -71,7 +71,7 @@
     "restoreMocks": true,
     "verbose": false,
     "transform": {
-      "^.+\.tsx?$": [
+      "^.+\\.tsx?$": [
         "ts-jest",
         {
           "diagnostics": false,

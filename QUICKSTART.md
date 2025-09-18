@@ -36,13 +36,13 @@ npm test
 ## 3. Use It In Your Project (2 minutes)
 
 Copy these two files to your project:
-- `src/adaptive/discovery.js` - Finds your components
+- `src/adaptive/discovery-engine.js` - Finds your components
 - `src/adaptive/test-base.js` - Base test class
 
 Write your first adaptive test:
 
 ```javascript
-const { getDiscoveryEngine } = require('./adaptive/discovery');
+const { getDiscoveryEngine } = require('./adaptive/discovery-engine');
 
 describe('My Component', () => {
   let MyComponent;
