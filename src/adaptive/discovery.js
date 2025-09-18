@@ -144,7 +144,20 @@ class DiscoveryEngine {
     }
 
     if (!bestMatch) {
-      throw new Error(`Could not discover target matching: ${JSON.stringify(serializeSignatureForError(signature.original))}`);
+      const sig = serializeSignatureForError(signature.original);
+      const errorMsg = [
+        `Could not discover target matching: ${JSON.stringify(sig)}`,
+        '',
+        'Troubleshooting tips:',
+        '1. Check that the target file exists and exports the expected name',
+        '2. Ensure the file is in a discoverable location (not in node_modules, tests, etc.)',
+        '3. Try a simpler signature first: { name: "YourClass" }',
+        '4. Clear cache if you just created the file: engine.clearCache()',
+        `5. Make sure the file extension is supported: ${this.extensions.join(', ')}`,
+        '',
+        'See docs/COMMON_ISSUES.md for more help.'
+      ].join('\n');
+      throw new Error(errorMsg);
     }
 
     const cacheEntry = this.createCacheEntry(bestMatch);
@@ -477,7 +490,11 @@ class DiscoveryEngine {
 
   normalizeSignature(signature) {
     if (!signature || typeof signature !== 'object') {
-      throw new Error('discoverTarget requires a signature object');
+      throw new Error(
+        'discoverTarget requires a signature object.\n' +
+        'Example: { name: "Calculator", type: "class" }\n' +
+        'See docs/QUICK_START.md for examples.'
+      );
     }
 
     const normalized = { ...signature };
