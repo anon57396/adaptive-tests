@@ -30,7 +30,7 @@ const POSITIVE_PATH_SCORES = [
   { keyword: '/lib/', score: 4 },
   { keyword: '/core/', score: 4 }
 ];
-const SKIP_DIRECTORIES = new Set(['node_modules', '.git', '.svn', '.hg', 'coverage', 'dist', 'build']);
+const SKIP_DIRECTORIES = new Set(['node_modules', '.git', '.svn', '.hg', 'coverage', 'dist', 'build', 'scripts']);
 
 function normalizeRoot(rootPath) {
   return path.resolve(rootPath || process.cwd());
@@ -188,6 +188,11 @@ class DiscoveryEngine {
       }
 
       if (ext === '.ts' && entry.name.endsWith('.d.ts')) {
+        continue;
+      }
+
+      // Skip test files to avoid executing test suites during discovery
+      if (entry.name.includes('.test.') || entry.name.includes('.spec.')) {
         continue;
       }
 

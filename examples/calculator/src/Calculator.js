@@ -1,6 +1,6 @@
 /**
- * Broken Calculator Class - Intentionally buggy to prove tests catch real errors
- * This demonstrates that adaptive tests fail for legitimate reasons
+ * Calculator Class - Canonical Implementation
+ * A simple calculator with history tracking
  */
 
 class Calculator {
@@ -9,8 +9,7 @@ class Calculator {
   }
 
   add(a, b) {
-    // BUG: Should be a + b, not a - b
-    const result = a - b;
+    const result = a + b;
     this.history.push(`${a} + ${b} = ${result}`);
     return result;
   }
@@ -22,41 +21,42 @@ class Calculator {
   }
 
   multiply(a, b) {
-    // BUG: Should be a * b, not a + b
-    const result = a + b;
+    const result = a * b;
     this.history.push(`${a} * ${b} = ${result}`);
     return result;
   }
 
   divide(a, b) {
-    // BUG: Missing zero check
+    if (b === 0) {
+      throw new Error('Division by zero');
+    }
     const result = a / b;
     this.history.push(`${a} / ${b} = ${result}`);
     return result;
   }
 
   power(base, exponent) {
-    // BUG: Should use Math.pow, not multiplication
-    const result = base * exponent;
+    const result = Math.pow(base, exponent);
     this.history.push(`${base} ^ ${exponent} = ${result}`);
     return result;
   }
 
   sqrt(n) {
-    // BUG: Missing negative check
+    if (n < 0) {
+      throw new Error('Cannot take square root of negative number');
+    }
     const result = Math.sqrt(n);
     this.history.push(`√${n} = ${result}`);
     return result;
   }
 
   getHistory() {
-    return [...this.history];
+    return this.history;
   }
 
   clearHistory() {
-    // BUG: Doesn't actually clear history
-    // this.history = [];
+    this.history = [];
   }
 }
 
-module.exports = Calculator;
+module.exports = { Calculator };
