@@ -5,6 +5,7 @@
 - Fixed npm package.json bin path warning
 - Added demo.gif to package for visual documentation
 - Enhanced README with animated demonstration
+- Hardened function detection regex to avoid ReDoS on untrusted input
 
 ## [0.2.0] - 2024-09-18
 

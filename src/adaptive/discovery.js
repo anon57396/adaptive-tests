@@ -642,7 +642,9 @@ class DiscoveryEngine {
     }
 
     if (signature.type === 'function') {
-      return /function\s+\w+|const\s+\w+\s*=\s*(?:async\s+)?(?:\([^)]*\)|[^=]*)=>/.test(content) ? 12 : 0;
+      const fnDeclaration = /\bfunction\s+[\w$]+\s*\(/.test(content);
+      const arrow = /\b(?:const|let|var)\s+[\w$]+\s*=\s*(?:async\s*)?\([^)]*\)\s*=>/.test(content);
+      return fnDeclaration || arrow ? 12 : 0;
     }
 
     if (signature.type === 'module') {

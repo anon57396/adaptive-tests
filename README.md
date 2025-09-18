@@ -16,6 +16,7 @@
   <a href="https://github.com/anon57396/adaptive-tests/actions/workflows/validate.yml"><img src="https://github.com/anon57396/adaptive-tests/actions/workflows/validate.yml/badge.svg" alt="Build Status"></a>
   <a href="https://www.npmjs.com/package/adaptive-tests"><img src="https://img.shields.io/npm/v/adaptive-tests.svg?cache=300" alt="npm version"></a>
   <a href="https://www.npmjs.com/package/adaptive-tests"><img src="https://img.shields.io/npm/dt/adaptive-tests.svg?cache=300" alt="npm downloads"></a>
+  <a href="https://codecov.io/gh/anon57396/adaptive-tests"><img src="https://codecov.io/gh/anon57396/adaptive-tests/graph/badge.svg" alt="Code Coverage"></a>
   <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT"></a>
   <a href="https://github.com/anon57396/adaptive-tests/stargazers"><img src="https://img.shields.io/github/stars/anon57396/adaptive-tests?style=social" alt="GitHub Stars"></a>
 </p>
