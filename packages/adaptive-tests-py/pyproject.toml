@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "adaptive-tests-py"
+version = "0.1.0"
+description = "Adaptive test discovery for Python projects"
+readme = "README.md"
+authors = [{ name = "Jason Kempf", email = "jasonkempf@gmail.com" }]
+license = { text = "MIT" }
+requires-python = ">=3.8"
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Topic :: Software Development :: Testing"
+]
+
+[project.urls]
+Homepage = "https://github.com/anon57396/adaptive-tests"
+Repository = "https://github.com/anon57396/adaptive-tests"
+Issues = "https://github.com/anon57396/adaptive-tests/issues"
