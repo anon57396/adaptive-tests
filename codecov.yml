@@ -1,0 +1,45 @@
+codecov:
+  require_ci_to_pass: true
+
+coverage:
+  precision: 2
+  round: down
+  range: "70...100"
+
+  status:
+    project:
+      default:
+        target: 80%
+        threshold: 2%
+    patch:
+      default:
+        target: 80%
+        threshold: 2%
+
+parsers:
+  gcov:
+    branch_detection:
+      conditional: yes
+      loop: yes
+      method: no
+      macro: no
+
+comment:
+  layout: "reach, diff, flags, files"
+  behavior: default
+  require_changes: false
+  require_base: false
+  require_head: true
+
+ignore:
+  - "examples/**/*"
+  - "tests/**/*"
+  - "**/*.test.js"
+  - "**/*.test.ts"
+  - "**/test-*.js"
+  - "**/demo*.js"
+  - "**/refactor*.js"
+  - "**/restore*.js"
+  - "**/validate.js"
+  - "**/compare.js"
+  - "**/benchmark.js"

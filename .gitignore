@@ -6,3 +6,5 @@ coverage/
 .vscode/
 .idea/
 *.backup
+.coverage
+coverage/

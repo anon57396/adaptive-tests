@@ -8,6 +8,7 @@
   },
   "scripts": {
     "test": "jest",
+    "test:coverage": "jest --coverage",
     "test:traditional": "jest examples/calculator/tests/traditional",
     "test:adaptive": "jest examples/calculator/tests/adaptive",
     "test:both": "npm run test:traditional && npm run test:adaptive",
@@ -53,6 +54,13 @@
     "testMatch": [
       "**/tests/**/*.test.(js|ts)"
     ],
+    "collectCoverageFrom": [
+      "src/**/*.{js,ts}",
+      "!src/**/*.d.ts",
+      "!src/**/index.js"
+    ],
+    "coverageDirectory": "coverage",
+    "coverageReporters": ["text", "lcov", "html"],
     "clearMocks": true,
     "resetMocks": true,
     "restoreMocks": true,
