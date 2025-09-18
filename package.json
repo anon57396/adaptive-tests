@@ -1,6 +1,6 @@
 {
   "name": "adaptive-tests",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Adaptive test discovery that survives refactors without losing real bug coverage.",
   "main": "src/adaptive/index.js",
   "scripts": {
@@ -73,12 +73,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/adaptive-tests/adaptive-tests.git"
+    "url": "git+https://github.com/anon57396/adaptive-tests.git"
   },
   "bugs": {
-    "url": "https://github.com/adaptive-tests/adaptive-tests/issues"
+    "url": "https://github.com/anon57396/adaptive-tests/issues"
   },
-  "homepage": "https://github.com/adaptive-tests/adaptive-tests#readme",
+  "homepage": "https://github.com/anon57396/adaptive-tests#readme",
   "types": "types/index.d.ts",
   "sideEffects": false,
   "files": [

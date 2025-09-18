@@ -1,9 +1,9 @@
 # Changelog
 
 
-## [0.1.2] - 2025-09-18
-- Fix npm metadata links (repository/homepage/author)
-- Adjust README badges to GitHub username namespace
+## [0.1.3] - 2025-09-18
+- Point repository/homepage metadata to github.com/anon57396/adaptive-tests
+- Update npm README clone instructions to the same namespace
 
 All notable changes to this project will be documented in this file.
 

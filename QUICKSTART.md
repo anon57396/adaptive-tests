@@ -3,7 +3,7 @@
 ## 1. See It Work (30 seconds)
 
 ```bash
-git clone https://github.com/adaptive-tests/adaptive-tests.git
+git clone https://github.com/anon57396/adaptive-tests.git
 cd adaptive-tests
 npm install
 npm run validate
