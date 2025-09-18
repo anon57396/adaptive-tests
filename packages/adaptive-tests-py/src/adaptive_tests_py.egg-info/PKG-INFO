@@ -4,9 +4,9 @@ Version: 0.1.1
 Summary: Adaptive test discovery for Python projects
 Author-email: Jason Kempf <jasonkempf@gmail.com>
 License-Expression: MIT
-Project-URL: Homepage, https://github.com/anon57396/adaptive-tests
-Project-URL: Repository, https://github.com/anon57396/adaptive-tests
-Project-URL: Issues, https://github.com/anon57396/adaptive-tests/issues
+Project-URL: Homepage, <https://github.com/anon57396/adaptive-tests>
+Project-URL: Repository, <https://github.com/anon57396/adaptive-tests>
+Project-URL: Issues, <https://github.com/anon57396/adaptive-tests/issues>
 Classifier: Development Status :: 3 - Alpha
 Classifier: Programming Language :: Python :: 3
 Classifier: Topic :: Software Development :: Testing
