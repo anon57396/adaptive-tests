@@ -78,6 +78,12 @@ Adaptive discovery works out of the box for JavaScript projects. If you want the
 npm install -D ts-node
 ```
 
+Working in Python too? Install the companion package and reuse the same adaptive patterns:
+
+```bash
+pip install adaptive-tests-py
+```
+
 ## Usage
 
 ```javascript
@@ -100,13 +106,13 @@ const { discover } = require('adaptive-tests');
 - `adaptiveTest`/`AdaptiveTest` provide Jest helpers for resilient suites.
 - `getTypeScriptDiscoveryEngine` offers the same API while understanding `.ts/.tsx` files via the TypeScript compiler.
 
-<!-- DEMO GIF PLACEHOLDER -->
+<!-- DEMO -->
 <p align="center">
   <a href="https://github.com/anon57396/adaptive-tests">
-    <!-- <img src="path/to/your/demo.gif" alt="Adaptive Tests Demo" /> -->
+    <img src="demo.gif" alt="Adaptive Tests Demo - See traditional tests fail while adaptive tests survive refactoring" width="100%" />
   </a>
 </p>
-<!-- END DEMO GIF PLACEHOLDER -->
+<!-- END DEMO -->
 
 ## The Problem
 

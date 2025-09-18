@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.2.0] - 2025-09-18
+- Added Python example (`examples/python/`) and companion `adaptive-tests-py` package scaffold for PyPI
+- Documented cross-language recipes (React components, Node microservices, Prisma/TypeORM repositories)
+- Added troubleshooting tips for signature debugging and cache management
 
 ## [0.1.3] - 2025-09-18
 - Point repository/homepage metadata to github.com/anon57396/adaptive-tests
