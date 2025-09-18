@@ -1,0 +1,52 @@
+{
+  "name": "adaptive-tests-demo",
+  "version": "1.0.0",
+  "description": "Tests that don't break when you refactor",
+  "main": "src/adaptive/index.js",
+  "scripts": {
+    "test": "jest",
+    "test:traditional": "jest examples/calculator/tests/traditional",
+    "test:adaptive": "jest examples/calculator/tests/adaptive",
+    "test:both": "npm run test:traditional && npm run test:adaptive",
+    "refactor": "node refactor.js",
+    "restore": "node restore.js",
+    "demo:broken": "node demo-broken.js",
+    "restore:broken": "node restore-broken.js",
+    "validate": "node validate.js",
+    "demo": "npm run restore && npm run test:both && echo '\\n🔧 REFACTORING...\\n' && npm run refactor && echo '\\n📝 TRADITIONAL TESTS:\\n' && npm run test:traditional || true && echo '\\n✅ ADAPTIVE TESTS:\\n' && npm run test:adaptive",
+    "demo:full": "npm run validate",
+    "compare": "node compare.js"
+  },
+  "keywords": [
+    "testing",
+    "adaptive",
+    "refactoring",
+    "jest",
+    "mocha",
+    "test-automation",
+    "dynamic-discovery"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "jest": "^29.7.0"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "testMatch": [
+      "**/tests/**/*.test.js"
+    ],
+    "clearMocks": true,
+    "resetMocks": true,
+    "restoreMocks": true,
+    "verbose": false
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/adaptive-tests/adaptive-tests"
+  },
+  "bugs": {
+    "url": "https://github.com/adaptive-tests/adaptive-tests/issues"
+  },
+  "homepage": "https://github.com/adaptive-tests/adaptive-tests#readme"
+}

@@ -1,0 +1,7 @@
+node_modules/
+.test-discovery-cache.json
+*.log
+.DS_Store
+coverage/
+.vscode/
+.idea/
