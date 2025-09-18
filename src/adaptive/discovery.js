@@ -7,221 +7,583 @@
 const fs = require('fs');
 const path = require('path');
 
+const MAX_SCAN_DEPTH = 10;
+const NEGATIVE_PATH_SCORES = [
+  { keyword: '/__tests__/', score: -50 },
+  { keyword: '/__mocks__/', score: -45 },
+  { keyword: '/tests/', score: -40 },
+  { keyword: '/mock', score: -30 },
+  { keyword: '/mocks/', score: -30 },
+  { keyword: '/fake', score: -25 },
+  { keyword: '/stub', score: -25 },
+  { keyword: '/temp/', score: -15 },
+  { keyword: '/tmp/', score: -15 },
+  { keyword: '/sandbox/', score: -15 },
+  { keyword: '/fixture', score: -15 },
+  { keyword: '/deprecated/', score: -20 },
+  { keyword: '/broken', score: -60 }
+];
+const POSITIVE_PATH_SCORES = [
+  { keyword: '/src/', score: 12 },
+  { keyword: '/app/', score: 6 },
+  { keyword: '/lib/', score: 4 },
+  { keyword: '/core/', score: 4 }
+];
+const SKIP_DIRECTORIES = new Set(['node_modules', '.git', '.svn', '.hg', 'coverage', 'dist', 'build']);
+
+function normalizeRoot(rootPath) {
+  return path.resolve(rootPath || process.cwd());
+}
+
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function freshRequire(modulePath) {
+  const resolved = require.resolve(modulePath);
+  delete require.cache[resolved];
+  return require(resolved);
+}
+
+function serializeSignatureForError(signature) {
+  return {
+    name: signature.name instanceof RegExp ? signature.name.toString() : signature.name || null,
+    type: signature.type || null,
+    exports: signature.exports || null,
+    methods: signature.methods || []
+  };
+}
+
 class DiscoveryEngine {
   constructor(rootPath = process.cwd()) {
-    this.rootPath = rootPath;
+    this.rootPath = normalizeRoot(rootPath);
+    this.cacheFile = path.join(this.rootPath, '.test-discovery-cache.json');
     this.cache = new Map();
-    this.discoveryCache = null;
-    this.cacheFile = path.join(rootPath, '.test-discovery-cache.json');
+    this.discoveryCache = {};
+    this.cacheLoaded = false;
   }
 
-  /**
-   * Discover a target module by its signature
-   * @param {Object} signature - What to look for
-   * @param {RegExp|String} signature.name - Name pattern to match
-   * @param {String} signature.type - 'class', 'function', or 'module'
-   * @param {Array<String>} signature.methods - Required methods (for classes)
-   * @param {String} signature.exports - Export name to look for
-   * @returns {Object} The discovered module or null
-   */
-  async discoverTarget(signature) {
-    // Check memory cache first
-    const cacheKey = JSON.stringify(signature);
+  async discoverTarget(signatureInput) {
+    const signature = this.normalizeSignature(signatureInput);
+    const cacheKey = signature.cacheKey;
+
     if (this.cache.has(cacheKey)) {
-      const cachedPath = this.cache.get(cacheKey);
       try {
-        // Clear require cache to get fresh module
-        delete require.cache[require.resolve(cachedPath)];
-        return require(cachedPath);
-      } catch (e) {
-        // Cached path is stale, continue with discovery
+        return this.loadModule(this.cache.get(cacheKey), signature);
+      } catch (error) {
         this.cache.delete(cacheKey);
       }
     }
 
-    // Load file cache if not loaded
-    if (!this.discoveryCache) {
+    if (!this.cacheLoaded) {
       this.loadCache();
     }
 
-    // Try cached discoveries
     if (this.discoveryCache[cacheKey]) {
-      const cachedPath = this.discoveryCache[cacheKey];
       try {
-        delete require.cache[require.resolve(cachedPath)];
-        const module = require(cachedPath);
-        this.cache.set(cacheKey, cachedPath);
-        return module;
-      } catch (e) {
-        // Cached path is stale
+        const cachedTarget = this.loadModule(this.discoveryCache[cacheKey], signature);
+        this.cache.set(cacheKey, this.discoveryCache[cacheKey]);
+        return cachedTarget;
+      } catch (error) {
         delete this.discoveryCache[cacheKey];
+        this.saveCache();
       }
     }
 
-    // Perform fresh discovery
-    const discovered = await this.scanDirectory(this.rootPath, signature);
+    const candidates = [];
+    this.collectCandidates(this.rootPath, signature, candidates, 0);
 
-    if (discovered) {
-      // Update caches
-      this.cache.set(cacheKey, discovered.path);
-      this.discoveryCache[cacheKey] = discovered.path;
-      this.saveCache();
-
-      // Return the module
-      delete require.cache[require.resolve(discovered.path)];
-      return require(discovered.path);
+    if (candidates.length === 0) {
+      throw new Error(`Could not discover target matching: ${JSON.stringify(serializeSignatureForError(signature.original))}`);
     }
 
-    throw new Error(`Could not discover target matching: ${JSON.stringify(signature)}`);
+    candidates.sort((a, b) => b.score - a.score || a.path.localeCompare(b.path));
+    const best = candidates[0];
+
+    const cacheEntry = this.createCacheEntry(best);
+    this.cache.set(cacheKey, cacheEntry);
+    this.discoveryCache[cacheKey] = cacheEntry;
+    this.saveCache();
+
+    return best.target;
   }
 
-  /**
-   * Scan directory recursively for matching modules
-   */
-  async scanDirectory(dir, signature, depth = 0) {
-    // Don't go too deep or into node_modules
-    if (depth > 10 || dir.includes('node_modules') || dir.includes('.git')) {
+  collectCandidates(dir, signature, matches, depth) {
+    if (depth > MAX_SCAN_DEPTH) {
+      return;
+    }
+
+    let entries;
+    try {
+      entries = fs.readdirSync(dir, { withFileTypes: true });
+    } catch (error) {
+      return;
+    }
+
+    for (const entry of entries) {
+      const fullPath = path.join(dir, entry.name);
+
+      if (entry.isDirectory()) {
+        if (SKIP_DIRECTORIES.has(entry.name) || entry.name.startsWith('.')) {
+          continue;
+        }
+        this.collectCandidates(fullPath, signature, matches, depth + 1);
+        continue;
+      }
+
+      if (!entry.isFile() || !entry.name.endsWith('.js')) {
+        continue;
+      }
+
+      const candidate = this.evaluateCandidate(fullPath, signature);
+      if (candidate) {
+        matches.push(candidate);
+      }
+    }
+  }
+
+  evaluateCandidate(filePath, signature) {
+    const fileName = path.basename(filePath, '.js');
+    const fileContent = this.safeReadFile(filePath);
+    if (fileContent == null) {
       return null;
     }
 
+    if (!this.quickNameCheck(fileName, fileContent, signature)) {
+      return null;
+    }
+
+    let moduleExports;
     try {
-      const entries = fs.readdirSync(dir, { withFileTypes: true });
-
-      for (const entry of entries) {
-        const fullPath = path.join(dir, entry.name);
-
-        if (entry.isDirectory()) {
-          // Recursively scan subdirectories
-          const found = await this.scanDirectory(fullPath, signature, depth + 1);
-          if (found) return found;
-        } else if (entry.isFile() && entry.name.endsWith('.js')) {
-          // Check if this file matches our signature
-          const matches = await this.checkFile(fullPath, signature);
-          if (matches) {
-            return { path: fullPath, module: matches };
-          }
-        }
-      }
+      moduleExports = freshRequire(filePath);
     } catch (error) {
-      // Directory not readable, skip it
+      return null;
+    }
+
+    const match = this.resolveTargetFromModule(moduleExports, signature, fileName);
+    if (!match) {
+      return null;
+    }
+
+    if (!this.validateType(match.target, signature.type)) {
+      return null;
+    }
+
+    const methodScore = this.validateMethods(match.target, signature.methods);
+    if (methodScore == null) {
+      return null;
+    }
+
+    const score =
+      match.baseScore +
+      this.scoreFileName(fileName, signature) +
+      this.scoreTargetName(match.targetName, signature) +
+      this.scorePath(filePath) +
+      methodScore;
+
+    return {
+      path: filePath,
+      access: match.access,
+      target: match.target,
+      targetName: match.targetName,
+      score
+    };
+  }
+
+  quickNameCheck(fileName, content, signature) {
+    if (!signature.name && !signature.exports) {
+      return true;
+    }
+
+    if (signature.name) {
+      if (this.nameMatches(signature, fileName)) {
+        return true;
+      }
+
+      const nameRegex = signature.name instanceof RegExp
+        ? signature.name
+        : new RegExp(`\\b${escapeRegExp(signature.name)}\\b`);
+
+      if (nameRegex.test(content)) {
+        return true;
+      }
+    }
+
+    if (signature.exports) {
+      const exportRegex = new RegExp(`\\b${escapeRegExp(signature.exports)}\\b`);
+      if (exportRegex.test(content)) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  resolveTargetFromModule(moduleExports, signature, fileName) {
+    const candidates = [];
+
+    const addCandidate = (target, access, baseScore = 0) => {
+      if (!target) {
+        return;
+      }
+
+      const exportName = access && access.name ? access.name : null;
+      const targetName = this.getTargetName(target);
+      const matchesExport = !signature.exports || this.exportMatches(signature.exports, access, targetName);
+      if (!matchesExport) {
+        return;
+      }
+
+      const matchesName = !signature.name || this.matchesAnyName(signature, exportName, targetName, fileName);
+      if (!matchesName) {
+        return;
+      }
+
+      candidates.push({ target, access, baseScore, targetName });
+    };
+
+    if (typeof moduleExports === 'function') {
+      addCandidate(moduleExports, { type: 'direct' }, 30);
+    }
+
+    if (moduleExports && typeof moduleExports === 'object') {
+      if ('default' in moduleExports && moduleExports.default) {
+        addCandidate(moduleExports.default, { type: 'default' }, 22);
+      }
+
+      for (const key of Object.keys(moduleExports)) {
+        if (key === 'default') continue;
+        addCandidate(moduleExports[key], { type: 'named', name: key }, key === signature.exports ? 28 : 15);
+      }
+
+      if (!signature.type || signature.type === 'module') {
+        addCandidate(moduleExports, { type: 'module' }, 10);
+      }
+    }
+
+    if (candidates.length === 0) {
+      return null;
+    }
+
+    candidates.sort((a, b) => b.baseScore - a.baseScore);
+    return candidates[0];
+  }
+
+  loadModule(entry, signature) {
+    const normalized = this.normalizeCacheEntry(entry);
+    if (!normalized) {
+      throw new Error('Invalid cache entry');
+    }
+
+    let moduleExports;
+    try {
+      moduleExports = freshRequire(normalized.path);
+    } catch (error) {
+      throw new Error('Cached discovery target no longer exists');
+    }
+
+    const target = this.applyAccess(moduleExports, normalized.access);
+    if (!target) {
+      throw new Error('Cached discovery target no longer exports the requested symbol');
+    }
+
+    if (!this.validateType(target, signature.type)) {
+      throw new Error('Cached discovery target no longer matches requested type');
+    }
+
+    if (this.validateMethods(target, signature.methods) == null) {
+      throw new Error('Cached discovery target no longer exposes required methods');
+    }
+
+    if (!this.matchesAnyName(signature, normalized.access.name, this.getTargetName(target), path.basename(normalized.path, '.js'))) {
+      throw new Error('Cached discovery target no longer matches requested name');
+    }
+
+    return target;
+  }
+
+  normalizeCacheEntry(entry) {
+    if (!entry) return null;
+
+    if (typeof entry === 'string') {
+      return { path: entry, access: { type: 'direct' } };
+    }
+
+    if (entry.path) {
+      const access = entry.access && entry.access.type ? entry.access : { type: 'direct' };
+      return { path: entry.path, access };
     }
 
     return null;
   }
 
-  /**
-   * Check if a file matches the signature
-   */
-  async checkFile(filePath, signature) {
-    try {
-      // Read file content for analysis
-      const content = fs.readFileSync(filePath, 'utf8');
-
-      // Check name pattern
-      const fileName = path.basename(filePath, '.js');
-      const nameMatches = signature.name instanceof RegExp
-        ? signature.name.test(fileName)
-        : fileName.includes(signature.name);
-
-      if (!nameMatches) {
-        // Also check for class/function names in content
-        const classMatch = content.match(/class\s+(\w+)/g);
-        const functionMatch = content.match(/function\s+(\w+)/g);
-        const names = [
-          ...(classMatch || []).map(m => m.replace('class ', '')),
-          ...(functionMatch || []).map(m => m.replace('function ', ''))
-        ];
-
-        const contentNameMatch = names.some(name =>
-          signature.name instanceof RegExp
-            ? signature.name.test(name)
-            : name.includes(signature.name)
-        );
-
-        if (!contentNameMatch) return false;
-      }
-
-      // Check type
-      if (signature.type === 'class' && !content.includes('class ')) {
-        return false;
-      }
-      if (signature.type === 'function' && !content.match(/function\s+\w+|const\s+\w+\s*=\s*(?:async\s+)?(?:\([^)]*\)|[^=]*)=>/)) {
-        return false;
-      }
-
-      // Check required methods (for classes)
-      if (signature.methods && signature.methods.length > 0) {
-        const hasAllMethods = signature.methods.every(method =>
-          content.includes(method)
-        );
-        if (!hasAllMethods) return false;
-      }
-
-      // Check exports
-      if (signature.exports) {
-        const hasExport =
-          content.includes(`module.exports = ${signature.exports}`) ||
-          content.includes(`module.exports.${signature.exports}`) ||
-          content.includes(`exports.${signature.exports}`) ||
-          content.includes(`export default ${signature.exports}`) ||
-          content.includes(`export { ${signature.exports}`) ||
-          content.includes(`export class ${signature.exports}`) ||
-          content.includes(`export function ${signature.exports}`);
-
-        if (!hasExport) return false;
-      }
-
-      return true;
-    } catch (error) {
-      return false;
+  applyAccess(moduleExports, access) {
+    if (!access || access.type === 'direct') {
+      return moduleExports;
     }
+
+    if (access.type === 'default') {
+      return moduleExports && moduleExports.default;
+    }
+
+    if (access.type === 'named') {
+      return moduleExports && moduleExports[access.name];
+    }
+
+    if (access.type === 'module') {
+      return moduleExports;
+    }
+
+    return moduleExports;
   }
 
-  /**
-   * Load discovery cache from disk
-   */
+  createCacheEntry(candidate) {
+    return {
+      path: candidate.path,
+      access: candidate.access
+    };
+  }
+
   loadCache() {
+    if (this.cacheLoaded) {
+      return;
+    }
+
     try {
-      const cacheContent = fs.readFileSync(this.cacheFile, 'utf8');
-      this.discoveryCache = JSON.parse(cacheContent);
-    } catch (e) {
+      const raw = fs.readFileSync(this.cacheFile, 'utf8');
+      const parsed = JSON.parse(raw);
+      this.discoveryCache = {};
+      for (const [key, value] of Object.entries(parsed || {})) {
+        this.discoveryCache[key] = this.normalizeCacheEntry(value);
+      }
+    } catch (error) {
       this.discoveryCache = {};
     }
+
+    this.cacheLoaded = true;
   }
 
-  /**
-   * Save discovery cache to disk
-   */
   saveCache() {
+    if (!this.cacheLoaded) {
+      return;
+    }
+
     try {
-      fs.writeFileSync(this.cacheFile, JSON.stringify(this.discoveryCache, null, 2));
-    } catch (e) {
-      // Cache save failed, not critical
+      const serializable = {};
+      for (const [key, value] of Object.entries(this.discoveryCache)) {
+        serializable[key] = value;
+      }
+      fs.writeFileSync(this.cacheFile, JSON.stringify(serializable, null, 2));
+    } catch (error) {
+      // Caching is a convenience - ignore write failures
     }
   }
 
-  /**
-   * Clear all caches (useful for testing)
-   */
   clearCache() {
     this.cache.clear();
     this.discoveryCache = {};
+    this.cacheLoaded = true;
     try {
       fs.unlinkSync(this.cacheFile);
-    } catch (e) {
-      // File might not exist
+    } catch (error) {
+      // File may not exist - ignore
     }
+  }
+
+  safeReadFile(filePath) {
+    try {
+      return fs.readFileSync(filePath, 'utf8');
+    } catch (error) {
+      return null;
+    }
+  }
+
+  normalizeSignature(signature) {
+    if (!signature || typeof signature !== 'object') {
+      throw new Error('discoverTarget requires a signature object');
+    }
+
+    const normalized = { ...signature };
+    normalized.original = { ...signature };
+    normalized.methods = Array.isArray(signature.methods)
+      ? Array.from(new Set(signature.methods.map(method => String(method)))).sort()
+      : [];
+
+    normalized.cacheKey = JSON.stringify({
+      name: signature.name instanceof RegExp ? signature.name.toString() : signature.name || null,
+      type: signature.type || null,
+      exports: signature.exports || null,
+      methods: normalized.methods
+    });
+
+    normalized.nameMatcher = this.createNameMatcher(signature.name);
+
+    return normalized;
+  }
+
+  createNameMatcher(name) {
+    if (!name) {
+      return () => true;
+    }
+
+    if (name instanceof RegExp) {
+      return value => typeof value === 'string' && name.test(value);
+    }
+
+    const expected = String(name);
+    const regex = new RegExp(`^${escapeRegExp(expected)}$`, 'i');
+    return value => typeof value === 'string' && regex.test(value);
+  }
+
+  nameMatches(signature, value) {
+    return signature.nameMatcher(value);
+  }
+
+  matchesAnyName(signature, exportName, targetName, fileName) {
+    if (!signature.name) {
+      return true;
+    }
+
+    return (
+      this.nameMatches(signature, exportName) ||
+      this.nameMatches(signature, targetName) ||
+      this.nameMatches(signature, fileName)
+    );
+  }
+
+  exportMatches(expectedExport, access, targetName) {
+    if (!expectedExport) {
+      return true;
+    }
+
+    if (access && access.type === 'named') {
+      return access.name === expectedExport;
+    }
+
+    if (targetName) {
+      return this.createNameMatcher(expectedExport)(targetName);
+    }
+
+    return false;
+  }
+
+  getTargetName(target) {
+    if (!target) {
+      return null;
+    }
+
+    if (typeof target === 'function' && target.name) {
+      return target.name;
+    }
+
+    if (typeof target === 'object' && target.constructor && target.constructor.name) {
+      return target.constructor.name;
+    }
+
+    return null;
+  }
+
+  validateType(target, expectedType) {
+    if (!expectedType) {
+      return true;
+    }
+
+    if (expectedType === 'class') {
+      return typeof target === 'function' && target.prototype;
+    }
+
+    if (expectedType === 'function') {
+      return typeof target === 'function';
+    }
+
+    if (expectedType === 'module') {
+      return target && typeof target === 'object';
+    }
+
+    return true;
+  }
+
+  validateMethods(target, methods) {
+    if (!methods || methods.length === 0) {
+      return 0;
+    }
+
+    const host = typeof target === 'function' && target.prototype
+      ? target.prototype
+      : target;
+
+    if (!host || typeof host !== 'object') {
+      return null;
+    }
+
+    for (const method of methods) {
+      if (typeof host[method] !== 'function') {
+        return null;
+      }
+    }
+
+    return methods.length * 5;
+  }
+
+  scoreFileName(fileName, signature) {
+    if (!signature.name) {
+      return 0;
+    }
+
+    if (signature.name instanceof RegExp) {
+      return signature.name.test(fileName) ? 12 : 0;
+    }
+
+    const expected = String(signature.name);
+    if (fileName === expected) {
+      return 45;
+    }
+    if (fileName.toLowerCase() === expected.toLowerCase()) {
+      return 30;
+    }
+    if (fileName.toLowerCase().includes(expected.toLowerCase())) {
+      return 8;
+    }
+
+    return 0;
+  }
+
+  scoreTargetName(targetName, signature) {
+    if (!signature.name || !targetName) {
+      return 0;
+    }
+
+    return this.nameMatches(signature, targetName) ? 35 : 0;
+  }
+
+  scorePath(filePath) {
+    const normalized = filePath.split(path.sep).join('/').toLowerCase();
+    let score = 0;
+
+    for (const { keyword, score: value } of POSITIVE_PATH_SCORES) {
+      if (normalized.includes(keyword)) {
+        score += value;
+      }
+    }
+
+    for (const { keyword, score: value } of NEGATIVE_PATH_SCORES) {
+      if (normalized.includes(keyword)) {
+        score += value;
+      }
+    }
+
+    return score;
   }
 }
 
-// Singleton instance
-let discoveryEngine = null;
+const enginesByRoot = new Map();
 
-function getDiscoveryEngine(rootPath) {
-  if (!discoveryEngine) {
-    discoveryEngine = new DiscoveryEngine(rootPath);
+function getDiscoveryEngine(rootPath = process.cwd()) {
+  const normalizedRoot = normalizeRoot(rootPath);
+  if (!enginesByRoot.has(normalizedRoot)) {
+    enginesByRoot.set(normalizedRoot, new DiscoveryEngine(normalizedRoot));
   }
-  return discoveryEngine;
+  return enginesByRoot.get(normalizedRoot);
 }
 
 module.exports = { DiscoveryEngine, getDiscoveryEngine };
