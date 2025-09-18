@@ -30,14 +30,33 @@ const POSITIVE_PATH_SCORES = [
   { keyword: '/lib/', score: 4 },
   { keyword: '/core/', score: 4 }
 ];
-const SKIP_DIRECTORIES = new Set(['node_modules', '.git', '.svn', '.hg', 'coverage', 'dist', 'build', 'scripts', 'tests']);
+const SKIP_DIRECTORIES = new Set(['node_modules', '.git', '.svn', '.hg', 'coverage', 'dist', 'build', 'scripts']);
+
+// JSDoc type definitions
+
+/**
+ * @typedef {'class' | 'function' | 'module'} TargetType
+ */
+
+/**
+ * @typedef {object} DiscoverySignature
+ * @property {string | RegExp} [name] - The name of the target to discover (e.g., 'Calculator'). Can be a regex.
+ * @property {TargetType} [type] - The type of the target ('class', 'function', or 'module').
+ * @property {string[]} [methods] - A list of method names that the target must have.
+ * @property {string} [exports] - The specific named export to look for.
+ */
+
+/**
+ * @typedef {object} DiscoveryOptions
+ * @property {string[]} [extensions] - File extensions to scan (e.g., ['.js', '.ts']).
+ */
 
 function normalizeRoot(rootPath) {
   return path.resolve(rootPath || process.cwd());
 }
 
 function escapeRegExp(value) {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return value.replace(/[.*+?^${}()|[\]/g, '\$&');
 }
 
 let tsNodeRegistered = false;
@@ -86,9 +105,17 @@ function serializeSignatureForError(signature) {
   };
 }
 
+/**
+ * The core engine for discovering test targets dynamically.
+ */
 class DiscoveryEngine {
+  /**
+   * @param {string} [rootPath=process.cwd()] - The root directory to start scanning from.
+   * @param {DiscoveryOptions} [options={}] - Configuration options for the engine.
+   */
   constructor(rootPath = process.cwd(), options = {}) {
     this.rootPath = normalizeRoot(rootPath);
+    /** @type {string[]} */
     this.extensions = Array.isArray(options.extensions) && options.extensions.length > 0
       ? [...new Set(options.extensions.map(ext => ext.startsWith('.') ? ext : `.${ext}`))]
       : DEFAULT_EXTENSIONS;
@@ -98,6 +125,12 @@ class DiscoveryEngine {
     this.cacheLoaded = false;
   }
 
+  /**
+   * Discovers a test target based on a signature.
+   * @template T
+   * @param {DiscoverySignature} signatureInput - The signature describing the target to find.
+   * @returns {Promise<T>} A promise that resolves with the discovered target module or export.
+   */
   async discoverTarget(signatureInput) {
     const signature = this.normalizeSignature(signatureInput);
     const cacheKey = signature.cacheKey;
@@ -292,7 +325,7 @@ class DiscoveryEngine {
 
       const nameRegex = signature.name instanceof RegExp
         ? signature.name
-        : new RegExp(`\\b${escapeRegExp(signature.name)}\\b`);
+        : new RegExp(`\b${escapeRegExp(signature.name)}\b`);
 
       if (nameRegex.test(content)) {
         return true;
@@ -300,7 +333,7 @@ class DiscoveryEngine {
     }
 
     if (signature.exports) {
-      const exportRegex = new RegExp(`\\b${escapeRegExp(signature.exports)}\\b`);
+      const exportRegex = new RegExp(`\b${escapeRegExp(signature.exports)}\b`);
       if (exportRegex.test(content)) {
         return true;
       }
@@ -469,6 +502,10 @@ class DiscoveryEngine {
     }
   }
 
+  /**
+   * Clears the discovery cache from memory and deletes the .test-discovery-cache.json file.
+   * @returns {void}
+   */
   clearCache() {
     this.cache.clear();
     this.discoveryCache = {};
@@ -626,7 +663,7 @@ class DiscoveryEngine {
 
     const regex = signature.name instanceof RegExp
       ? new RegExp(signature.name.source, signature.name.flags.includes('g') ? signature.name.flags : `${signature.name.flags}g`)
-      : new RegExp(`\\b${escapeRegExp(signature.name)}\\b`, 'gi');
+      : new RegExp(`\b${escapeRegExp(signature.name)}\b`, 'gi');
 
     const matches = content.match(regex);
     if (!matches) {
@@ -643,12 +680,12 @@ class DiscoveryEngine {
 
     const exportName = signature.exports;
     const patterns = [
-      new RegExp(`module\\.exports\\s*=\\s*${escapeRegExp(exportName)}`),
-      new RegExp(`module\\.exports\\.${escapeRegExp(exportName)}\\s*=`),
-      new RegExp(`exports\\.${escapeRegExp(exportName)}\\s*=`),
-      new RegExp(`export\\s+(?:default\\s+)?class\\s+${escapeRegExp(exportName)}`),
-      new RegExp(`export\\s+(?:default\\s+)?function\\s+${escapeRegExp(exportName)}`),
-      new RegExp(`export\\s*{[^}]*${escapeRegExp(exportName)}[^}]*}`)
+      new RegExp(`module\.exports\s*=\s*${escapeRegExp(exportName)}`),
+      new RegExp(`module\.exports\.${escapeRegExp(exportName)}\s*=\s*`),
+      new RegExp(`exports\.${escapeRegExp(exportName)}\s*=\s*`),
+      new RegExp(`export\s+(?:default\s+)?class\s+${escapeRegExp(exportName)}`),
+      new RegExp(`export\s+(?:default\s+)?function\s+${escapeRegExp(exportName)}`),
+      new RegExp(`export\s*{[^}]*${escapeRegExp(exportName)}[^}]*}`)
     ];
 
     return patterns.some(pattern => pattern.test(content)) ? 30 : 0;
@@ -683,7 +720,7 @@ class DiscoveryEngine {
 
     let score = 0;
     for (const method of methods) {
-      const regex = new RegExp(`\\b${escapeRegExp(method)}\\s*\\(`);
+      const regex = new RegExp(`\b${escapeRegExp(method)}\s*\(`);
       if (regex.test(content)) {
         score += 3;
       }
@@ -759,6 +796,11 @@ class DiscoveryEngine {
 
 const enginesByRoot = new Map();
 
+/**
+ * Gets a singleton instance of the DiscoveryEngine for a given root path.
+ * @param {string} [rootPath=process.cwd()] - The root directory for the engine instance.
+ * @returns {DiscoveryEngine} The singleton DiscoveryEngine instance.
+ */
 function getDiscoveryEngine(rootPath = process.cwd()) {
   const normalizedRoot = normalizeRoot(rootPath);
   if (!enginesByRoot.has(normalizedRoot)) {

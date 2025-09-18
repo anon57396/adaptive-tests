@@ -24,11 +24,12 @@
     "demo:broken:ts": "node scripts/demo/demo-broken-ts.js",
     "restore:broken:ts": "node scripts/demo/restore-broken-ts.js",
     "validate": "node scripts/demo/validate.js",
-    "demo": "npm run restore && npm run test:both && echo '\\n🔧 REFACTORING...\\n' && npm run refactor && echo '\\n📝 TRADITIONAL TESTS:\\n' && npm run test:traditional || true && echo '\\n✅ ADAPTIVE TESTS:\\n' && npm run test:adaptive",
+    "demo": "npm run restore && npm run test:both && echo '\n🔧 REFACTORING...\n' && npm run refactor && echo '\n📝 TRADITIONAL TESTS:\n' && npm run test:traditional || true && echo '\n✅ ADAPTIVE TESTS:\n' && npm run test:adaptive",
     "demo:full": "npm run validate",
     "compare": "node scripts/demo/compare.js",
     "benchmark": "node scripts/demo/benchmark.js",
-    "prepublishOnly": "npm run test && npm run validate"
+    "build:types": "tsc",
+    "prepublishOnly": "npm run build:types && npm run test && npm run validate"
   },
   "keywords": [
     "testing",
@@ -70,7 +71,7 @@
     "restoreMocks": true,
     "verbose": false,
     "transform": {
-      "^.+\\.tsx?$": [
+      "^.+\.tsx?$": [
         "ts-jest",
         {
           "diagnostics": false,
@@ -95,7 +96,7 @@
     "url": "https://github.com/anon57396/adaptive-tests/issues"
   },
   "homepage": "https://github.com/anon57396/adaptive-tests#readme",
-  "types": "types/index.d.ts",
+  "types": "types/src/adaptive/index.d.ts",
   "sideEffects": false,
   "files": [
     "src",

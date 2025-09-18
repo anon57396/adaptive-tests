@@ -6,30 +6,47 @@
 
 const { getDiscoveryEngine } = require('./discovery');
 
+/**
+ * @typedef {import('./discovery').DiscoverySignature} DiscoverySignature
+ * @typedef {import('./discovery').DiscoveryEngine} DiscoveryEngine
+ */
+
+/**
+ * An abstract base class for creating adaptive tests.
+ * @abstract
+ */
 class AdaptiveTest {
   constructor() {
+    /** @type {DiscoveryEngine} */
     this.discoveryEngine = getDiscoveryEngine();
+    /** @type {any} */
     this.target = null;
   }
 
   /**
-   * Define what you're looking for
-   * Override this in your test
+   * Defines the signature of the target module to be discovered.
+   * This method must be implemented by the subclass.
+   * @abstract
+   * @returns {DiscoverySignature}
    */
   getTargetSignature() {
     throw new Error('getTargetSignature() must be implemented by test class');
   }
 
   /**
-   * Run your actual tests
-   * Override this in your test
+   * Contains the actual test logic (e.g., using Jest or Mocha).
+   * This method must be implemented by the subclass.
+   * @abstract
+   * @param {any} target - The discovered target module or export.
+   * @returns {Promise<void> | void}
    */
   async runTests(target) {
     throw new Error('runTests() must be implemented by test class');
   }
 
   /**
-   * Execute the adaptive test
+   * Executes the adaptive test lifecycle: discovery and execution.
+   * @returns {Promise<void>}
    */
   async execute() {
     const signature = this.getTargetSignature();
@@ -52,7 +69,11 @@ class AdaptiveTest {
   }
 
   /**
-   * Helper method to get specific export from module
+   * Helper method to get a specific export from a discovered module.
+   * @template T
+   * @param {any} module - The discovered module.
+   * @param {string} name - The name of the export to retrieve.
+   * @returns {T}
    */
   getExport(module, name) {
     // Handle different export styles
@@ -71,7 +92,10 @@ class AdaptiveTest {
 }
 
 /**
- * Jest/Mocha compatible test runner for adaptive tests
+ * A Jest/Mocha compatible test runner for adaptive tests.
+ * @template {new () => AdaptiveTest} T
+ * @param {T} TestClass - The AdaptiveTest class to run.
+ * @returns {void}
  */
 function adaptiveTest(TestClass) {
   const testInstance = new TestClass();
