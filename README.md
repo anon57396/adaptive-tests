@@ -214,7 +214,7 @@ The discovery engine now scores every candidate module before it ever gets requi
 - **Path heuristics** – Production directories (`/src`, `/lib`, `/app`) are rewarded, while `/tests`, `/mock`, `/broken`, etc. tank the score.
 - **Structure checks** – Required methods must be real callables, not strings in comments. We only accept candidates with the right type signature.
 - **Safe requiring** – Only the top ranked candidate is required, so command-line helpers like `compare.js` never run accidentally during discovery.
-- **Per-root cache** – `getDiscoveryEngine(root)` keeps discoveries scoped to that tree. Call `engine.clearCache()` if you reshuffle files on disk.
+- **Per-root cache** – `getDiscoveryEngine(root)` keeps discoveries scoped to that tree. Call `await engine.clearCache()` if you reshuffle files on disk.
 
 Unit coverage (`tests/adaptive/discovery.test.js`) locks these guarantees in so regressions are caught before release.
 
@@ -334,7 +334,7 @@ Required methods make sure you pull in the right repository even after it moves 
 ## Troubleshooting
 
 - **Signature misses** – Start with a simple signature (name only), then add method checks one by one to see which property is missing.
-- **Cache confusion** – Delete `.test-discovery-cache.json` or call `engine.clearCache()` if you rename files during the test run.
+- **Cache confusion** – Delete `.test-discovery-cache.json` or call `await engine.clearCache()` if you rename files during the test run.
 - **Multiple matches** – Add more context (methods, exports, regex names) or prefer path heuristics by adjusting the `NEGATIVE_PATH_SCORES` / `POSITIVE_PATH_SCORES` in `discovery.js`.
 - **Slow discovery** – Run the suite once to warm the cache; subsequent runs should be <10ms. For huge repos, seed the cache in a `beforeAll` hook or scope discovery to the package using `getDiscoveryEngine(path.resolve(__dirname, '..'))`.
 
@@ -431,18 +431,21 @@ MIT - Use it anywhere, for anything.
 ## 📈 Roadmap
 
 ### Near Term (v0.2)
+
 - [ ] VS Code extension
 - [ ] GitHub Actions integration
 - [ ] Performance optimizations
 - [ ] Better error messages
 
 ### Medium Term (v0.3)
+
 - [ ] React/Vue/Angular adapters
 - [ ] Python version
 - [ ] Interactive documentation
 - [ ] AI-powered test generation
 
 ### Long Term (v1.0)
+
 - [ ] Multi-language support
 - [ ] IDE plugins (IntelliJ, Sublime)
 - [ ] Enterprise features

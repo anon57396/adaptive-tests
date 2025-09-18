@@ -34,7 +34,7 @@ describe('Adaptive Testing Resilience Demo', () => {
   });
 
   test('should find StringUtils in original location', async () => {
-    engine.clearCache();
+    await engine.clearCache();
     const StringUtils = await engine.discoverTarget({
       name: 'StringUtils',
       type: 'class'
@@ -50,7 +50,7 @@ describe('Adaptive Testing Resilience Demo', () => {
     fs.renameSync(originalPath, movedPath1);
 
     // Clear cache to force re-discovery
-    engine.clearCache();
+    await engine.clearCache();
 
     // Try to discover StringUtils - should still find it!
     const StringUtils = await engine.discoverTarget({
@@ -77,7 +77,7 @@ describe('Adaptive Testing Resilience Demo', () => {
     fs.renameSync(originalPath, movedPath2);
 
     // Clear cache
-    engine.clearCache();
+    await engine.clearCache();
 
     // Discover StringUtils - should find it in new location!
     const StringUtils = await engine.discoverTarget({
@@ -95,7 +95,7 @@ describe('Adaptive Testing Resilience Demo', () => {
   });
 
   test('should find class by method signature alone', async () => {
-    engine.clearCache();
+    await engine.clearCache();
 
     // Don't even specify the name - just the methods!
     const SomeClass = await engine.discoverTarget({
@@ -110,7 +110,7 @@ describe('Adaptive Testing Resilience Demo', () => {
   });
 
   test('should handle simultaneous discovery of multiple targets', async () => {
-    engine.clearCache();
+    await engine.clearCache();
 
     // Discover multiple targets in parallel
     const [StringClass, EventClass] = await Promise.all([
@@ -136,7 +136,7 @@ describe('Adaptive Testing Resilience Demo', () => {
       // ❌ This breaks when file is moved!
 
       // Adaptive approach always works:
-      engine.clearCache();
+      await engine.clearCache();
       const start = Date.now();
       const StringUtils = await engine.discoverTarget({
         name: 'StringUtils',

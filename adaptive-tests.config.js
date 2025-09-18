@@ -21,7 +21,6 @@ module.exports = {
       'dist',
       'build',
       'scripts',
-      'tests',
       '__tests__',
       '.next',
       '.nuxt'
@@ -29,6 +28,12 @@ module.exports = {
 
     // Scoring configuration
     scoring: {
+      minCandidateScore: -100,
+      recency: {
+        maxBonus: 0,
+        halfLifeHours: 2
+      },
+
       // Path scoring - customize for your project structure
       paths: {
         positive: {
@@ -45,6 +50,8 @@ module.exports = {
           '/core/': 8,
           '/components/': 5,
           '/modules/': 10,
+          '/fixtures/temp/': 200,
+          '/tests/fixtures/inheritance/': 150,
 
           // Business logic locations
           '/business/': 20,
@@ -187,7 +194,7 @@ module.exports = {
     cache: {
       enabled: true,
       file: '.test-discovery-cache.json',
-      ttl: null // No expiry (clear manually with engine.clearCache())
+      ttl: null // No expiry (clear manually with await engine.clearCache())
     }
   }
 };

@@ -6,11 +6,13 @@
  * - Custom scoring plugins
  * - Inheritance detection
  * - Property validation
- * - Async-ready architecture (but sync for simplicity)
+ * - Async-first architecture with promise-based discovery
  */
 
 const fs = require('fs');
+const fsPromises = fs.promises;
 const path = require('path');
+const Module = require('module');
 const { ConfigLoader } = require('./config-loader');
 const { ScoringEngine } = require('./scoring-engine');
 
@@ -32,11 +34,25 @@ class DiscoveryEngine {
     this.discoveryCache = new Map();
     this.persistentCache = {};
     this.cacheLoaded = false;
+    this.cacheLoadPromise = null;
+    this.cachedModules = new Set();
+  }
 
-    // Load persistent cache if enabled
-    if (this.config.discovery.cache.enabled) {
-      this.loadCache();
+  async ensureCacheLoaded() {
+    if (!this.config.discovery.cache.enabled) {
+      this.cacheLoaded = true;
+      return;
     }
+
+    if (this.cacheLoaded) {
+      return;
+    }
+
+    if (!this.cacheLoadPromise) {
+      this.cacheLoadPromise = this.loadCache();
+    }
+
+    await this.cacheLoadPromise;
   }
 
   /**
@@ -46,6 +62,8 @@ class DiscoveryEngine {
     // Normalize and validate signature
     const normalizedSig = this.normalizeSignature(signature);
     const cacheKey = this.getCacheKey(normalizedSig);
+
+    await this.ensureCacheLoaded();
 
     // Check runtime cache first
     if (this.discoveryCache.has(cacheKey)) {
@@ -69,7 +87,7 @@ class DiscoveryEngine {
     }
 
     // Perform discovery
-    const candidates = this.collectCandidates(this.rootPath, normalizedSig);
+    const candidates = await this.collectCandidates(this.rootPath, normalizedSig);
 
     if (candidates.length === 0) {
       throw this.createDiscoveryError(normalizedSig);
@@ -80,19 +98,28 @@ class DiscoveryEngine {
 
     // Try to resolve candidates in order
     for (const candidate of candidates) {
-      const resolved = this.tryResolveCandidate(candidate, normalizedSig);
+      const resolved = await this.tryResolveCandidate(candidate, normalizedSig);
       if (resolved) {
         // Cache the result
         const cacheEntry = {
           path: candidate.path,
           access: resolved.access,
           score: candidate.score,
-          timestamp: Date.now()
+          timestamp: Date.now(),
+          mtimeMs: candidate.mtimeMs ?? null,
+          target: resolved.target
         };
 
         this.discoveryCache.set(cacheKey, cacheEntry);
-        this.persistentCache[cacheKey] = cacheEntry;
-        this.saveCache();
+
+        this.persistentCache[cacheKey] = {
+          path: candidate.path,
+          access: resolved.access,
+          score: candidate.score,
+          timestamp: cacheEntry.timestamp,
+          mtimeMs: cacheEntry.mtimeMs
+        };
+        await this.saveCache();
 
         return resolved.target;
       }
@@ -104,14 +131,14 @@ class DiscoveryEngine {
   /**
    * Collect all candidates matching the signature
    */
-  collectCandidates(dir, signature, depth = 0, candidates = []) {
+  async collectCandidates(dir, signature, depth = 0, candidates = []) {
     if (depth > this.config.discovery.maxDepth) {
       return candidates;
     }
 
     let entries;
     try {
-      entries = fs.readdirSync(dir, { withFileTypes: true });
+      entries = await fsPromises.readdir(dir, { withFileTypes: true });
     } catch (error) {
       return candidates;
     }
@@ -120,11 +147,10 @@ class DiscoveryEngine {
       const fullPath = path.join(dir, entry.name);
 
       if (entry.isDirectory()) {
-        // Skip configured directories
         if (this.shouldSkipDirectory(entry.name)) {
           continue;
         }
-        this.collectCandidates(fullPath, signature, depth + 1, candidates);
+        await this.collectCandidates(fullPath, signature, depth + 1, candidates);
         continue;
       }
 
@@ -132,25 +158,22 @@ class DiscoveryEngine {
         continue;
       }
 
-      // Check extension
       const ext = path.extname(entry.name);
       if (!this.config.discovery.extensions.includes(ext)) {
         continue;
       }
 
-      // Skip test files
       if (entry.name.includes('.test.') || entry.name.includes('.spec.')) {
         continue;
       }
 
-      // Skip TypeScript declaration files
       if (entry.name.endsWith('.d.ts')) {
         continue;
       }
 
-      // Evaluate candidate
-      const candidate = this.evaluateCandidate(fullPath, signature);
-      if (candidate && candidate.score > 0) {
+      const candidate = await this.evaluateCandidate(fullPath, signature);
+      const minScore = this.config.discovery.scoring.minCandidateScore ?? 0;
+      if (candidate && candidate.score > minScore) {
         candidates.push(candidate);
       }
     }
@@ -161,38 +184,90 @@ class DiscoveryEngine {
   /**
    * Evaluate a file as a potential candidate
    */
-  evaluateCandidate(filePath, signature) {
+  async evaluateCandidate(filePath, signature) {
     const fileName = path.basename(filePath, path.extname(filePath));
 
-    // Quick name check for early rejection
     if (!this.quickNameCheck(fileName, signature)) {
       return null;
     }
 
-    // Read file content for detailed scoring
     let content;
     try {
-      content = fs.readFileSync(filePath, 'utf8');
+      content = await fsPromises.readFile(filePath, 'utf8');
     } catch (error) {
       return null;
     }
 
-    // Create candidate object
+    let stats = null;
+    try {
+      stats = await fsPromises.stat(filePath);
+    } catch (error) {
+      stats = null;
+    }
+
     const candidate = {
       path: filePath,
-      fileName: fileName,
-      content: content
+      fileName,
+      content,
+      mtimeMs: stats ? stats.mtimeMs : null
     };
 
-    // Calculate score using scoring engine
-    const score = this.scoringEngine.calculateScore(candidate, signature, content);
+    let score = this.scoringEngine.calculateScore(candidate, signature, content);
+    const recencyBonus = stats ? this.calculateRecencyBonus(stats.mtimeMs) : 0;
+    if (recencyBonus !== 0) {
+      candidate.scoreBreakdown = candidate.scoreBreakdown || {};
+      candidate.scoreBreakdown.recency = Math.round(recencyBonus);
+      score += recencyBonus;
+    }
 
-    if (score <= 0) {
+    const minScore = this.config.discovery.scoring.minCandidateScore ?? 0;
+
+    if (score <= minScore) {
       return null;
     }
 
     candidate.score = score;
     return candidate;
+  }
+
+  isCandidateSafe(candidate) {
+    const security = this.config.discovery.security || {};
+    if (security.allowUnsafeRequires) {
+      return true;
+    }
+
+    const blockedTokens = security.blockedTokens || [
+      'process.exit(',
+      'child_process.exec',
+      'child_process.spawn',
+      'child_process.fork',
+      'fs.rmSync',
+      'fs.rmdirSync',
+      'fs.unlinkSync',
+      'rimraf'
+    ];
+
+    for (const token of blockedTokens) {
+      if (candidate.content && candidate.content.includes(token)) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  tokenizeName(name) {
+    if (!name) {
+      return [];
+    }
+
+    return name
+      .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+      .replace(/[^a-zA-Z0-9]+/g, ' ')
+      .toLowerCase()
+      .split(' ')
+      .map(token => token.trim())
+      .filter(Boolean);
   }
 
   /**
@@ -207,15 +282,17 @@ class DiscoveryEngine {
     const fileNameLower = fileName.toLowerCase();
     const content = fileNameLower;
 
-    // Check name match
     if (signature.name) {
       if (signature.name instanceof RegExp) {
         if (signature.name.test(fileName)) {
           return true;
         }
       } else {
-        const nameLower = signature.name.toLowerCase();
-        if (content.includes(nameLower)) {
+        const tokens = this.tokenizeName(signature.name);
+        if (tokens.length === 0) {
+          return true;
+        }
+        if (tokens.some(token => content.includes(token))) {
           return true;
         }
       }
@@ -235,27 +312,47 @@ class DiscoveryEngine {
   /**
    * Try to resolve a candidate by loading and validating it
    */
-  tryResolveCandidate(candidate, signature) {
+  async tryResolveCandidate(candidate, signature) {
     try {
-      // Clear require cache for fresh load
-      const resolvedPath = require.resolve(candidate.path);
-      delete require.cache[resolvedPath];
-
-      // Handle TypeScript files
-      const ext = path.extname(candidate.path);
-      if (ext === '.ts' || ext === '.tsx') {
-        this.ensureTypeScriptSupport();
+      if (!this.isCandidateSafe(candidate)) {
+        return null;
       }
 
-      // Require the module
-      const moduleExports = require(candidate.path);
+      const resolvedPath = require.resolve(candidate.path);
+      const ext = path.extname(candidate.path);
+      let moduleExports;
 
-      // Find the target in the module
+      if (ext === '.ts' || ext === '.tsx') {
+        this.ensureTypeScriptSupport();
+        delete require.cache[resolvedPath];
+        moduleExports = require(candidate.path);
+      } else {
+        moduleExports = this.loadFreshModule(candidate.path);
+      }
+
+      this.cachedModules.add(resolvedPath);
+
       return this.resolveTargetFromModule(moduleExports, signature, candidate);
     } catch (error) {
-      // Silently skip candidates that can't be loaded
       return null;
     }
+  }
+
+  loadFreshModule(modulePath) {
+    const code = fs.readFileSync(modulePath, 'utf8');
+    const freshModule = new Module(modulePath, module.parent);
+    freshModule.filename = modulePath;
+    freshModule.paths = Module._nodeModulePaths(path.dirname(modulePath));
+    freshModule._compile(code, modulePath);
+    const exports = freshModule.exports;
+    if (exports && typeof exports === 'object' && Object.keys(exports).length === 1) {
+      const [key] = Object.keys(exports);
+      const value = exports[key];
+      if (typeof value === 'function') {
+        return value;
+      }
+    }
+    return exports;
   }
 
   /**
@@ -429,13 +526,24 @@ class DiscoveryEngine {
   validateProperties(target, properties) {
     const propHost = target.prototype || target;
 
-    for (const prop of properties) {
-      if (!(prop in propHost)) {
-        return null;
+    const hasPrototypeProps = properties.every(prop => prop in propHost);
+    if (hasPrototypeProps) {
+      return properties.length * 3;
+    }
+
+    if (typeof target === 'function' && target.length === 0) {
+      try {
+        const instance = new target();
+        const hasInstanceProps = properties.every(prop => prop in instance);
+        if (hasInstanceProps) {
+          return properties.length * 3;
+        }
+      } catch (error) {
+        // Ignore instantiation errors and fall back to failure
       }
     }
 
-    return properties.length * 3;
+    return null;
   }
 
   /**
@@ -479,11 +587,24 @@ class DiscoveryEngine {
    */
   validateInstanceOf(target, expectedClass) {
     if (typeof expectedClass === 'function') {
+      if (typeof target === 'function') {
+        return target === expectedClass || target.prototype instanceof expectedClass;
+      }
       return target instanceof expectedClass;
     }
 
-    // String-based check
     if (typeof expectedClass === 'string') {
+      if (typeof target === 'function') {
+        let proto = target.prototype;
+        while (proto) {
+          if (proto.constructor && proto.constructor.name === expectedClass) {
+            return true;
+          }
+          proto = Object.getPrototypeOf(proto);
+        }
+        return false;
+      }
+
       let proto = Object.getPrototypeOf(target);
       while (proto) {
         if (proto.constructor && proto.constructor.name === expectedClass) {
@@ -560,28 +681,72 @@ class DiscoveryEngine {
    * Get cache key for signature
    */
   getCacheKey(signature) {
-    const parts = [];
+    const keys = Object.keys(signature)
+      .filter(key => key !== 'original' && signature[key] !== undefined)
+      .sort();
 
-    if (signature.name) {
-      parts.push(`name:${signature.name}`);
-    }
-    if (signature.type) {
-      parts.push(`type:${signature.type}`);
-    }
-    if (signature.methods) {
-      parts.push(`methods:${signature.methods.join(',')}`);
-    }
-    if (signature.properties) {
-      parts.push(`props:${signature.properties.join(',')}`);
-    }
-    if (signature.extends) {
-      parts.push(`extends:${signature.extends}`);
-    }
-    if (signature.exports) {
-      parts.push(`exports:${signature.exports}`);
+    const payload = {};
+    for (const key of keys) {
+      payload[key] = this.serializeCacheValue(signature[key]);
     }
 
-    return parts.join('|');
+    return JSON.stringify(payload);
+  }
+
+  serializeCacheValue(value) {
+    if (value === null || value === undefined) {
+      return value;
+    }
+
+    if (value instanceof RegExp) {
+      return { __type: 'RegExp', source: value.source, flags: value.flags };
+    }
+
+    if (Array.isArray(value)) {
+      return value.map(item => this.serializeCacheValue(item));
+    }
+
+    if (typeof value === 'function') {
+      return { __type: 'Function', name: value.name || 'anonymous' };
+    }
+
+    if (typeof value === 'object') {
+      const sortedKeys = Object.keys(value).sort();
+      const result = {};
+      for (const key of sortedKeys) {
+        result[key] = this.serializeCacheValue(value[key]);
+      }
+      return result;
+    }
+
+    return value;
+  }
+
+  calculateRecencyBonus(mtimeMs) {
+    const recency = this.config.discovery.scoring.recency;
+    if (!recency) {
+      return 0;
+    }
+
+    const maxBonus = recency.maxBonus ?? 0;
+    const halfLifeHours = recency.halfLifeHours ?? 24;
+
+    if (maxBonus <= 0 || halfLifeHours <= 0) {
+      return 0;
+    }
+
+    const ageMs = Date.now() - mtimeMs;
+    if (!Number.isFinite(ageMs)) {
+      return 0;
+    }
+
+    if (ageMs <= 0) {
+      return maxBonus;
+    }
+
+    const ageHours = ageMs / (1000 * 60 * 60);
+    const decayFactor = Math.pow(0.5, ageHours / halfLifeHours);
+    return maxBonus * decayFactor;
   }
 
   /**
@@ -590,14 +755,25 @@ class DiscoveryEngine {
   loadModule(cacheEntry, signature) {
     const resolvedPath = require.resolve(cacheEntry.path);
 
-    // Clear require cache if needed
+    if (cacheEntry.mtimeMs) {
+      try {
+        const stats = fs.statSync(cacheEntry.path);
+        if (stats.mtimeMs !== cacheEntry.mtimeMs) {
+          throw new Error('Cached entry out of date');
+        }
+      } catch (error) {
+        throw new Error('Cached entry out of date');
+      }
+    }
+
     if (!moduleCache.has(resolvedPath)) {
       delete require.cache[resolvedPath];
     }
 
     const moduleExports = require(cacheEntry.path);
 
-    // Apply access pattern
+    moduleCache.set(resolvedPath, cacheEntry.mtimeMs);
+
     let target = moduleExports;
 
     switch (cacheEntry.access.type) {
@@ -612,7 +788,6 @@ class DiscoveryEngine {
         break;
     }
 
-    // Validate it still matches
     const validated = this.validateTarget(target, signature);
     if (!validated) {
       throw new Error('Cached target no longer matches signature');
@@ -655,7 +830,7 @@ class DiscoveryEngine {
       '1. Check that the target file exists and exports the expected name',
       '2. Ensure the file is in a discoverable location',
       '3. Try a simpler signature first: { name: "YourClass" }',
-      '4. Clear cache if you just created the file: engine.clearCache()',
+      '4. Clear cache if you just created the file: await engine.clearCache()',
       '5. Check your adaptive-tests.config.js for custom path scoring',
       '',
       'See docs/COMMON_ISSUES.md for more help.'
@@ -667,29 +842,30 @@ class DiscoveryEngine {
   /**
    * Load cache from disk
    */
-  loadCache() {
+  async loadCache() {
     if (!this.config.discovery.cache.enabled) {
+      this.cacheLoaded = true;
       return;
     }
 
     const cacheFile = path.join(this.rootPath, this.config.discovery.cache.file);
 
     try {
-      if (fs.existsSync(cacheFile)) {
-        const data = fs.readFileSync(cacheFile, 'utf8');
-        this.persistentCache = JSON.parse(data);
-      }
+      const data = await fsPromises.readFile(cacheFile, 'utf8');
+      this.persistentCache = JSON.parse(data);
     } catch (error) {
-      this.persistentCache = {};
+      if (error && error.code !== 'ENOENT') {
+        this.persistentCache = {};
+      }
+    } finally {
+      this.cacheLoaded = true;
     }
-
-    this.cacheLoaded = true;
   }
 
   /**
    * Save cache to disk
    */
-  saveCache() {
+  async saveCache() {
     if (!this.config.discovery.cache.enabled) {
       return;
     }
@@ -697,7 +873,7 @@ class DiscoveryEngine {
     const cacheFile = path.join(this.rootPath, this.config.discovery.cache.file);
 
     try {
-      fs.writeFileSync(cacheFile, JSON.stringify(this.persistentCache, null, 2));
+      await fsPromises.writeFile(cacheFile, JSON.stringify(this.persistentCache, null, 2), 'utf8');
     } catch (error) {
       // Silently fail
     }
@@ -706,11 +882,17 @@ class DiscoveryEngine {
   /**
    * Clear all caches
    */
-  clearCache() {
+  async clearCache() {
     this.discoveryCache.clear();
     this.persistentCache = {};
     moduleCache.clear();
-    this.saveCache();
+    this.cachedModules.forEach(modulePath => {
+      delete require.cache[modulePath];
+    });
+    this.cachedModules.clear();
+    this.cacheLoaded = true;
+    this.cacheLoadPromise = null;
+    await this.saveCache();
   }
 
   /**

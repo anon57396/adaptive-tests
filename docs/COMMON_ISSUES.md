@@ -43,7 +43,7 @@ const processArray = await engine.discoverTarget({
 
 **Solution**: Clear both discovery and require cache:
 ```javascript
-engine.clearCache();  // Clear discovery cache
+await engine.clearCache();  // Clear discovery cache
 Object.keys(require.cache).forEach(key => {
   if (key.includes('YourModule')) {
     delete require.cache[key];
@@ -111,7 +111,7 @@ If discovery isn't finding your module:
 ```javascript
 // See what's being discovered
 const engine = getDiscoveryEngine();
-engine.clearCache();  // Force fresh scan
+await engine.clearCache();  // Force fresh scan
 
 // Try minimal signature first
 const result = await engine.discoverTarget({

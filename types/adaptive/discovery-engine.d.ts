@@ -6,6 +6,8 @@ export class DiscoveryEngine {
     discoveryCache: Map<any, any>;
     persistentCache: {};
     cacheLoaded: boolean;
+    cacheLoadPromise: Promise<void> | null;
+    ensureCacheLoaded(): Promise<void>;
     /**
      * Discover a target module/class/function
      */
@@ -13,15 +15,16 @@ export class DiscoveryEngine {
     /**
      * Collect all candidates matching the signature
      */
-    collectCandidates(dir: any, signature: any, depth?: number, candidates?: any[]): any[];
+    collectCandidates(dir: any, signature: any, depth?: number, candidates?: any[]): Promise<any[]>;
     /**
      * Evaluate a file as a potential candidate
      */
-    evaluateCandidate(filePath: any, signature: any): {
+    evaluateCandidate(filePath: any, signature: any): Promise<{
         path: any;
         fileName: string;
         content: string;
-    } | null;
+    } | null>;
+    isCandidateSafe(candidate: any): boolean;
     /**
      * Quick check if file name could match signature
      */
@@ -29,7 +32,7 @@ export class DiscoveryEngine {
     /**
      * Try to resolve a candidate by loading and validating it
      */
-    tryResolveCandidate(candidate: any, signature: any): {
+    tryResolveCandidate(candidate: any, signature: any): Promise<{
         target: any;
         access: {
             type: string;
@@ -43,7 +46,7 @@ export class DiscoveryEngine {
             name: string;
         };
         score: number;
-    } | null;
+    } | null>;
     /**
      * Resolve target from module exports
      */
@@ -108,6 +111,7 @@ export class DiscoveryEngine {
      * Get cache key for signature
      */
     getCacheKey(signature: any): string;
+    serializeCacheValue(value: any): any;
     /**
      * Load module from cache entry
      */
@@ -119,15 +123,15 @@ export class DiscoveryEngine {
     /**
      * Load cache from disk
      */
-    loadCache(): void;
+    loadCache(): Promise<void>;
     /**
      * Save cache to disk
      */
-    saveCache(): void;
+    saveCache(): Promise<void>;
     /**
      * Clear all caches
      */
-    clearCache(): void;
+    clearCache(): Promise<void>;
     /**
      * Ensure TypeScript support
      */

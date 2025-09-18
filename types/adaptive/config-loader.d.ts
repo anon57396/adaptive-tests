@@ -75,6 +75,10 @@ export class ConfigLoader {
                 file: string;
                 ttl: null;
             };
+            security: {
+                allowUnsafeRequires: boolean;
+                blockedTokens: string[];
+            };
         };
     };
     constructor(rootPath?: string);
@@ -192,6 +196,10 @@ export namespace DEFAULT_CONFIG {
             let enabled: boolean;
             let file: string;
             let ttl: null;
+        }
+        namespace security {
+            let allowUnsafeRequires: boolean;
+            let blockedTokens: string[];
         }
     }
 }

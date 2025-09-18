@@ -10,8 +10,8 @@ const repoRoot = path.resolve(__dirname, '..', '..');
 describe('DiscoveryEngine', () => {
   const engine = getDiscoveryEngine(repoRoot);
 
-  beforeEach(() => {
-    engine.clearCache();
+  beforeEach(async () => {
+    await engine.clearCache();
   });
 
   test('prefers canonical implementation over demo failure cases', async () => {
@@ -54,11 +54,11 @@ describe('DiscoveryEngine', () => {
     expect(widget.foo()).toBe('foo');
     expect(widget.bar()).toBe('bar');
 
-    tempEngine.clearCache();
+    await tempEngine.clearCache();
     fs.rmSync(tempRoot, { recursive: true, force: true });
   });
 
-  test('creates distinct discovery engines per root path', () => {
+  test('creates distinct discovery engines per root path', async () => {
     const dirA = fs.mkdtempSync(path.join(os.tmpdir(), 'adaptive-a-'));
     const dirB = fs.mkdtempSync(path.join(os.tmpdir(), 'adaptive-b-'));
 
@@ -69,8 +69,8 @@ describe('DiscoveryEngine', () => {
     expect(engineA1).toBe(engineA2);
     expect(engineA1).not.toBe(engineB);
 
-    engineA1.clearCache();
-    engineB.clearCache();
+    await engineA1.clearCache();
+    await engineB.clearCache();
     fs.rmSync(dirA, { recursive: true, force: true });
     fs.rmSync(dirB, { recursive: true, force: true });
   });
@@ -81,8 +81,8 @@ const tsExampleRoot = path.join(repoRoot, 'examples', 'typescript');
 describe('TypeScriptDiscoveryEngine', () => {
   const engine = getTypeScriptDiscoveryEngine(tsExampleRoot);
 
-  beforeEach(() => {
-    engine.clearCache();
+  beforeEach(async () => {
+    await engine.clearCache();
   });
 
   test('discovers TypeScript classes without touching broken stubs', async () => {

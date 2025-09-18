@@ -7,9 +7,6 @@ import { TypeScriptDiscoveryEngine } from "./typescript/discovery";
 import { getDiscoveryEngine } from "./discovery-engine";
 import { getTypeScriptDiscoveryEngine } from "./typescript/discovery";
 import { adaptiveTest } from "./test-base";
-import { ConfigLoader } from "./config-loader";
-import { ScoringEngine } from "./scoring-engine";
-import { DEFAULT_CONFIG } from "./config-loader";
 /**
  * @typedef {import('./discovery-engine').DiscoverySignature} DiscoverySignature
  * @typedef {import('./discovery-engine').TargetType} TargetType
@@ -23,4 +20,7 @@ import { DEFAULT_CONFIG } from "./config-loader";
  * @returns {Promise<T>} A promise that resolves with the discovered target.
  */
 export function discover<T>(signature: DiscoverySignature, rootPath?: string): Promise<T>;
+import { ConfigLoader } from "./config-loader";
+import { ScoringEngine } from "./scoring-engine";
+import { DEFAULT_CONFIG } from "./config-loader";
 export { DiscoveryEngine, AdaptiveTest, TypeScriptDiscoveryEngine, getDiscoveryEngine, getTypeScriptDiscoveryEngine, adaptiveTest, ConfigLoader, ScoringEngine, DEFAULT_CONFIG };

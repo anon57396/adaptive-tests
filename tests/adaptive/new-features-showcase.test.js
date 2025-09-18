@@ -185,7 +185,7 @@ describe('Discovery Engine 2.0 - New Features Showcase', () => {
 
     test('should apply custom scoring functions', async () => {
       // Clear cache to force fresh discovery with scoring
-      engine.clearCache();
+      await engine.clearCache();
 
       // Our custom scorer gives +10 to files with "Service" in name
       const Service = await engine.discoverTarget({

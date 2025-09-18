@@ -1,12 +1,12 @@
 /**
- * Intentional bugs to prove adaptive TypeScript tests catch real issues.
+ * TypeScript Calculator - Canonical Implementation
  */
 
 export class Calculator {
   private history: string[] = [];
 
   add(a: number, b: number): number {
-    const result = a - b; // BUG
+    const result = a + b;
     this.history.push(`${a} + ${b} = ${result}`);
     return result;
   }
@@ -18,25 +18,31 @@ export class Calculator {
   }
 
   multiply(a: number, b: number): number {
-    const result = a + b; // BUG
+    const result = a * b;
     this.history.push(`${a} * ${b} = ${result}`);
     return result;
   }
 
   divide(a: number, b: number): number {
-    const result = a / b; // BUG: missing zero guard
+    if (b === 0) {
+      throw new Error('Division by zero');
+    }
+    const result = a / b;
     this.history.push(`${a} / ${b} = ${result}`);
     return result;
   }
 
   power(base: number, exponent: number): number {
-    const result = base * exponent; // BUG
+    const result = Math.pow(base, exponent);
     this.history.push(`${base} ^ ${exponent} = ${result}`);
     return result;
   }
 
   sqrt(value: number): number {
-    const result = Math.sqrt(value); // BUG: no negative guard
+    if (value < 0) {
+      throw new Error('Cannot take square root of negative number');
+    }
+    const result = Math.sqrt(value);
     this.history.push(`√${value} = ${result}`);
     return result;
   }
@@ -46,6 +52,6 @@ export class Calculator {
   }
 
   clearHistory(): void {
-    // BUG: does nothing
+    this.history = [];
   }
 }

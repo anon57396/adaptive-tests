@@ -25,6 +25,12 @@ const DEFAULT_CONFIG = {
 
     // Scoring configuration
     scoring: {
+      minCandidateScore: -100,
+      recency: {
+        maxBonus: 0,
+        halfLifeHours: 6
+      },
+
       // Path scoring
       paths: {
         positive: {
@@ -110,6 +116,21 @@ const DEFAULT_CONFIG = {
       enabled: true,
       file: '.test-discovery-cache.json',
       ttl: null // No TTL by default
+    },
+
+    // Security configuration
+    security: {
+      allowUnsafeRequires: true,
+      blockedTokens: [
+        'process.exit(',
+        'child_process.exec',
+        'child_process.spawn',
+        'child_process.fork',
+        'fs.rmSync',
+        'fs.rmdirSync',
+        'fs.unlinkSync',
+        'rimraf'
+      ]
     }
   }
 };
