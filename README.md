@@ -2,23 +2,57 @@
 
 <!-- LOGO PLACEHOLDER -->
 <p align="center">
-  <a href="https://github.com/anon57396/adaptive-tests">
+  <a href="https://github.com/adaptive-tests/adaptive-tests">
     <!-- <img src="path/to/your/logo.svg" alt="Adaptive Tests Logo" width="200" /> -->
   </a>
 </p>
 <!-- END LOGO PLACEHOLDER -->
 
 <p align="center">
-  <a href="https://github.com/anon57396/adaptive-tests/actions/workflows/validate.yml"><img src="https://github.com/anon57396/adaptive-tests/actions/workflows/validate.yml/badge.svg" alt="Build Status"></a>
-  <a href="https://www.npmjs.com/package/adaptive-tests-demo"><img src="https://img.shields.io/npm/v/adaptive-tests-demo.svg" alt="npm version"></a>
+  <a href="https://github.com/adaptive-tests/adaptive-tests/actions/workflows/validate.yml"><img src="https://github.com/adaptive-tests/adaptive-tests/actions/workflows/validate.yml/badge.svg" alt="Build Status"></a>
+  <a href="https://www.npmjs.com/package/adaptive-tests"><img src="https://img.shields.io/npm/v/adaptive-tests.svg" alt="npm version"></a>
   <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT"></a>
 </p>
 
 Stop fixing test imports. Start testing what matters.
 
+## Installation
+
+```bash
+npm install adaptive-tests
+```
+
+Adaptive discovery works out of the box for JavaScript projects. If you want the engine to evaluate TypeScript sources directly, add the optional peer dependency:
+
+```bash
+npm install -D ts-node
+```
+
+## Usage
+
+```javascript
+const { discover } = require('adaptive-tests');
+
+(async () => {
+  const UserService = await discover({
+    name: 'UserService',
+    type: 'class',
+    methods: ['createUser', 'authenticate']
+  });
+
+  const service = new UserService();
+  console.log(service.createUser('Ada'));
+})();
+```
+
+- `discover(signature, root?)` dynamically locates the module that matches your signature.
+- `getDiscoveryEngine(root)` lets you reuse a configured engine.
+- `adaptiveTest`/`AdaptiveTest` provide Jest helpers for resilient suites.
+- `getTypeScriptDiscoveryEngine` offers the same API while understanding `.ts/.tsx` files via the TypeScript compiler.
+
 <!-- DEMO GIF PLACEHOLDER -->
 <p align="center">
-  <a href="https://github.com/anon57396/adaptive-tests">
+  <a href="https://github.com/adaptive-tests/adaptive-tests">
     <!-- <img src="path/to/your/demo.gif" alt="Adaptive Tests Demo" /> -->
   </a>
 </p>
