@@ -2,14 +2,14 @@
 
 <!-- LOGO PLACEHOLDER -->
 <p align="center">
-  <a href="https://github.com/adaptive-tests/adaptive-tests">
+  <a href="https://github.com/anon57396/adaptive-tests">
     <!-- <img src="path/to/your/logo.svg" alt="Adaptive Tests Logo" width="200" /> -->
   </a>
 </p>
 <!-- END LOGO PLACEHOLDER -->
 
 <p align="center">
-  <a href="https://github.com/adaptive-tests/adaptive-tests/actions/workflows/validate.yml"><img src="https://github.com/adaptive-tests/adaptive-tests/actions/workflows/validate.yml/badge.svg" alt="Build Status"></a>
+  <a href="https://github.com/anon57396/adaptive-tests/actions/workflows/validate.yml"><img src="https://github.com/anon57396/adaptive-tests/actions/workflows/validate.yml/badge.svg" alt="Build Status"></a>
   <a href="https://www.npmjs.com/package/adaptive-tests-demo"><img src="https://img.shields.io/npm/v/adaptive-tests-demo.svg" alt="npm version"></a>
   <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT"></a>
 </p>
@@ -18,7 +18,7 @@ Stop fixing test imports. Start testing what matters.
 
 <!-- DEMO GIF PLACEHOLDER -->
 <p align="center">
-  <a href="https://github.com/adaptive-tests/adaptive-tests">
+  <a href="https://github.com/anon57396/adaptive-tests">
     <!-- <img src="path/to/your/demo.gif" alt="Adaptive Tests Demo" /> -->
   </a>
 </p>
