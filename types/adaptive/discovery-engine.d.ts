@@ -28,6 +28,71 @@ export class DiscoveryEngine {
         mtimeMs: number | null;
     } | null>;
     isCandidateSafe(candidate: any): boolean;
+    analyzeModuleExports(content: any, fileName: any): {
+        exports: {
+            exportedName: string;
+            access: {
+                type: string;
+                name: null;
+            };
+            info: {
+                kind: any;
+                name: any;
+                methods: any[];
+                properties: any[];
+                extends: any;
+            };
+        }[];
+    } | null;
+    normalizeExportInfo(info: any): {
+        kind: any;
+        name: any;
+        methods: any[];
+        properties: any[];
+        extends: any;
+    };
+    makeUnknownInfo(name: any): {
+        kind: string;
+        name: any;
+        methods: never[];
+        properties: never[];
+        extends: null;
+    };
+    extractClassInfo(node: any, fallbackName: any): {
+        kind: string;
+        name: any;
+        methods: Set<any>;
+        properties: Set<any>;
+        extends: any;
+    };
+    extractFunctionInfo(node: any, fallbackName: any): {
+        kind: string;
+        name: any;
+        methods: Set<any>;
+        properties: Set<any>;
+        extends: null;
+    };
+    extractValueInfo(node: any, fallbackName: any): {
+        kind: string;
+        name: any;
+        methods: Set<any>;
+        properties: Set<any>;
+        extends: any;
+    } | {
+        kind: string;
+        name: any;
+        methods: never[];
+        properties: never[];
+        extends: null;
+    } | null;
+    isModuleExports(node: any): any;
+    isExportsMember(node: any): any;
+    getMemberName(node: any): any;
+    getSpecifierName(node: any): any;
+    resolveExpressionName(node: any): any;
+    selectExportFromMetadata(candidate: any, signature: any): any;
+    matchesSignatureMetadata(entry: any, signature: any): boolean;
+    extractExportByAccess(moduleExports: any, access: any): any;
     tokenizeName(name: any): any;
     /**
      * Quick check if file name could match signature
@@ -50,6 +115,9 @@ export class DiscoveryEngine {
             name: string;
         };
         score: number;
+    } | {
+        target: any;
+        access: any;
     } | null>;
     compileFreshModule(modulePath: any): any;
     /**
