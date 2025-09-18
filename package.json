@@ -3,6 +3,9 @@
   "version": "0.1.3",
   "description": "Adaptive test discovery that survives refactors without losing real bug coverage.",
   "main": "src/adaptive/index.js",
+  "bin": {
+    "adaptive-tests": "./src/cli/init.js"
+  },
   "scripts": {
     "test": "jest",
     "test:traditional": "jest examples/calculator/tests/traditional",
@@ -23,6 +26,7 @@
     "demo": "npm run restore && npm run test:both && echo '\\n\ud83d\udd27 REFACTORING...\\n' && npm run refactor && echo '\\n\ud83d\udcdd TRADITIONAL TESTS:\\n' && npm run test:traditional || true && echo '\\n\u2705 ADAPTIVE TESTS:\\n' && npm run test:adaptive",
     "demo:full": "npm run validate",
     "compare": "node compare.js",
+    "benchmark": "node benchmark.js",
     "prepublishOnly": "npm run test && npm run validate"
   },
   "keywords": [
