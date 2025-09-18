@@ -41,6 +41,7 @@ Before submitting a PR:
 
 ```bash
 npm run validate
+npm test
 ```
 
 This ensures:

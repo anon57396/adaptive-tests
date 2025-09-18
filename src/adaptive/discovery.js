@@ -98,14 +98,26 @@ class DiscoveryEngine {
     }
 
     candidates.sort((a, b) => b.score - a.score || a.path.localeCompare(b.path));
-    const best = candidates[0];
 
-    const cacheEntry = this.createCacheEntry(best);
+    let bestMatch = null;
+    for (const candidate of candidates) {
+      const resolved = this.tryResolveCandidate(candidate, signature);
+      if (resolved) {
+        bestMatch = resolved;
+        break;
+      }
+    }
+
+    if (!bestMatch) {
+      throw new Error(`Could not discover target matching: ${JSON.stringify(serializeSignatureForError(signature.original))}`);
+    }
+
+    const cacheEntry = this.createCacheEntry(bestMatch);
     this.cache.set(cacheKey, cacheEntry);
     this.discoveryCache[cacheKey] = cacheEntry;
     this.saveCache();
 
-    return best.target;
+    return bestMatch.target;
   }
 
   collectCandidates(dir, signature, matches, depth) {
@@ -153,14 +165,30 @@ class DiscoveryEngine {
       return null;
     }
 
+    const score =
+      this.scoreFileName(fileName, signature) +
+      this.scorePath(filePath) +
+      this.scoreNameMentions(fileContent, signature) +
+      this.scoreExportHints(fileContent, signature) +
+      this.scoreTypeHints(fileContent, signature) +
+      this.scoreMethodMentions(fileContent, signature.methods);
+
+    return {
+      path: filePath,
+      fileName,
+      score
+    };
+  }
+
+  tryResolveCandidate(candidate, signature) {
     let moduleExports;
     try {
-      moduleExports = freshRequire(filePath);
+      moduleExports = freshRequire(candidate.path);
     } catch (error) {
       return null;
     }
 
-    const match = this.resolveTargetFromModule(moduleExports, signature, fileName);
+    const match = this.resolveTargetFromModule(moduleExports, signature, candidate.fileName);
     if (!match) {
       return null;
     }
@@ -174,19 +202,18 @@ class DiscoveryEngine {
       return null;
     }
 
-    const score =
+    const finalScore =
+      candidate.score +
       match.baseScore +
-      this.scoreFileName(fileName, signature) +
       this.scoreTargetName(match.targetName, signature) +
-      this.scorePath(filePath) +
       methodScore;
 
     return {
-      path: filePath,
+      path: candidate.path,
       access: match.access,
       target: match.target,
       targetName: match.targetName,
-      score
+      score: finalScore
     };
   }
 
@@ -523,6 +550,77 @@ class DiscoveryEngine {
     }
 
     return methods.length * 5;
+  }
+
+  scoreNameMentions(content, signature) {
+    if (!signature.name) {
+      return 0;
+    }
+
+    const regex = signature.name instanceof RegExp
+      ? new RegExp(signature.name.source, signature.name.flags.includes('g') ? signature.name.flags : `${signature.name.flags}g`)
+      : new RegExp(`\\b${escapeRegExp(signature.name)}\\b`, 'gi');
+
+    const matches = content.match(regex);
+    if (!matches) {
+      return 0;
+    }
+
+    return Math.min(matches.length, 5) * 4;
+  }
+
+  scoreExportHints(content, signature) {
+    if (!signature.exports) {
+      return 0;
+    }
+
+    const exportName = signature.exports;
+    const patterns = [
+      new RegExp(`module\\.exports\\s*=\\s*${escapeRegExp(exportName)}`),
+      new RegExp(`module\\.exports\\.${escapeRegExp(exportName)}\\s*=`),
+      new RegExp(`exports\\.${escapeRegExp(exportName)}\\s*=`),
+      new RegExp(`export\\s+(?:default\\s+)?class\\s+${escapeRegExp(exportName)}`),
+      new RegExp(`export\\s+(?:default\\s+)?function\\s+${escapeRegExp(exportName)}`),
+      new RegExp(`export\\s*{[^}]*${escapeRegExp(exportName)}[^}]*}`)
+    ];
+
+    return patterns.some(pattern => pattern.test(content)) ? 30 : 0;
+  }
+
+  scoreTypeHints(content, signature) {
+    if (!signature.type) {
+      return 0;
+    }
+
+    if (signature.type === 'class') {
+      return /class\s+\w+/.test(content) ? 15 : 0;
+    }
+
+    if (signature.type === 'function') {
+      return /function\s+\w+|const\s+\w+\s*=\s*(?:async\s+)?(?:\([^)]*\)|[^=]*)=>/.test(content) ? 12 : 0;
+    }
+
+    if (signature.type === 'module') {
+      return /module\.exports|export\s+/.test(content) ? 10 : 0;
+    }
+
+    return 0;
+  }
+
+  scoreMethodMentions(content, methods) {
+    if (!methods || methods.length === 0) {
+      return 0;
+    }
+
+    let score = 0;
+    for (const method of methods) {
+      const regex = new RegExp(`\\b${escapeRegExp(method)}\\s*\\(`);
+      if (regex.test(content)) {
+        score += 3;
+      }
+    }
+
+    return score;
   }
 
   scoreFileName(fileName, signature) {

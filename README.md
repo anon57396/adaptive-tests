@@ -85,6 +85,18 @@ npm run test:adaptive     # ❌ Expected 5, Received 2 (Same failure!)
 3. **Knowledge Persistence** - Remembers where things were found for faster discovery
 4. **Graceful Adaptation** - When code moves, tests find the new location automatically
 
+### Reliable Discovery Under Real-World Chaos
+
+The discovery engine now scores every candidate module before it ever gets required:
+
+- **Exact-name bias** – `Calculator.js` outranks `BrokenCalculator.js` because file names, export statements, and class identifiers feed the score.
+- **Path heuristics** – Production directories (`/src`, `/lib`, `/app`) are rewarded, while `/tests`, `/mock`, `/broken`, etc. tank the score.
+- **Structure checks** – Required methods must be real callables, not strings in comments. We only accept candidates with the right type signature.
+- **Safe requiring** – Only the top ranked candidate is required, so command-line helpers like `compare.js` never run accidentally during discovery.
+- **Per-root cache** – `getDiscoveryEngine(root)` keeps discoveries scoped to that tree. Call `engine.clearCache()` if you reshuffle files on disk.
+
+Unit coverage (`tests/adaptive/discovery.test.js`) locks these guarantees in so regressions are caught before release.
+
 ## Quick Start
 
 ### 1. Copy the discovery engine

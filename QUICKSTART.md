@@ -7,6 +7,8 @@ git clone https://github.com/adaptive-tests/adaptive-tests.git
 cd adaptive-tests
 npm install
 npm run validate
+# Full suite: adaptive discovery + calculator demos
+npm test
 ```
 
 Watch as:
