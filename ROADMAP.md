@@ -5,6 +5,7 @@
 ## 🎯 Vision
 
 Adaptive Tests will become the standard way to write resilient test suites. We envision a world where:
+
 - Tests never break due to file reorganization
 - Refactoring is fearless and frequent
 - Test maintenance drops from 30% to near 0% of dev time
@@ -13,6 +14,7 @@ Adaptive Tests will become the standard way to write resilient test suites. We e
 ## 📅 Release Timeline
 
 ### ✅ v0.1 - Foundation (Released)
+
 - [x] Core discovery engine
 - [x] JavaScript support
 - [x] TypeScript support via ts-node
@@ -21,6 +23,7 @@ Adaptive Tests will become the standard way to write resilient test suites. We e
 - [x] Validation suite
 
 ### 🚧 v0.2 - Developer Experience (Q1 2024)
+
 **Theme: Making it dead simple to adopt**
 
 - [ ] **CLI Improvements**
@@ -44,6 +47,7 @@ Adaptive Tests will become the standard way to write resilient test suites. We e
   - [ ] Framework-specific guides
 
 ### 🎯 v0.3 - Framework Integration (Q2 2024)
+
 **Theme: Works everywhere developers work**
 
 - [ ] **Frontend Frameworks**
@@ -64,6 +68,7 @@ Adaptive Tests will become the standard way to write resilient test suites. We e
   - [ ] Turbopack support
 
 ### 🚀 v0.4 - IDE Integration (Q3 2024)
+
 **Theme: Seamless developer workflow**
 
 - [ ] **VS Code Extension**
@@ -83,6 +88,7 @@ Adaptive Tests will become the standard way to write resilient test suites. We e
   - [ ] Discovery impact analysis
 
 ### 🌍 v0.5 - Multi-Language (Q4 2024)
+
 **Theme: Beyond JavaScript**
 
 - [ ] **Python**
@@ -103,6 +109,7 @@ Adaptive Tests will become the standard way to write resilient test suites. We e
   - [ ] Spring Boot starter
 
 ### 🎉 v1.0 - Production Ready (Q1 2025)
+
 **Theme: Enterprise scale**
 
 - [ ] **Enterprise Features**
@@ -126,18 +133,21 @@ Adaptive Tests will become the standard way to write resilient test suites. We e
 ## 🔮 Future Ideas (Post v1.0)
 
 ### Adaptive Tests Cloud
+
 - Hosted discovery service
 - Cross-team test sharing
 - Global discovery cache
 - Analytics and insights
 
 ### AI-Powered Testing
+
 - Auto-generate tests from code changes
 - Predict which tests need updating
 - Smart test selection based on changes
 - Natural language test specifications
 
 ### Standards & Specifications
+
 - Propose adaptive testing standard to TC39
 - Work with test framework maintainers
 - Create formal specification
@@ -148,6 +158,7 @@ Adaptive Tests will become the standard way to write resilient test suites. We e
 We need help in several areas:
 
 ### Immediate Needs
+
 - 🎨 Logo and visual design
 - 📝 Documentation and tutorials
 - 🌍 Internationalization
@@ -155,12 +166,14 @@ We need help in several areas:
 - 🐛 Bug reports and fixes
 
 ### Technical Contributions
+
 - Framework integrations
 - Performance optimizations
 - New language implementations
 - IDE plugin development
 
 ### Community Building
+
 - Write blog posts
 - Create video tutorials
 - Give conference talks
@@ -169,6 +182,7 @@ We need help in several areas:
 ## 📊 Success Metrics
 
 We'll know we've succeeded when:
+
 - 100K+ weekly npm downloads
 - 10K+ GitHub stars
 - Major frameworks adopt adaptive patterns
@@ -177,10 +191,9 @@ We'll know we've succeeded when:
 
 ## 💬 Get Involved
 
-- **Discord**: [Join our community](https://discord.gg/adaptive-tests)
-- **Twitter**: [@adaptivetests](https://twitter.com/adaptivetests)
-- **GitHub Discussions**: [Share ideas](https://github.com/anon57396/adaptive-tests/discussions)
-- **Email**: adaptivetests@gmail.com
+- GitHub Issues: <https://github.com/anon57396/adaptive-tests/issues>
+- npm: <https://www.npmjs.com/package/adaptive-tests>
+- PyPI: <https://pypi.org/project/adaptive-tests-py/>
 
 ---
 

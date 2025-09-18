@@ -1,120 +1,76 @@
 # AGENTS.md
 
-This file provides guidance to AI Agents when working with
-code in this repository.
+Guidance for any AI or automation working inside this repository.
 
-## Commands
+## Core Principles
+
+1. **Tests first** – run `npm test` and `npm run validate` before publishing or
+   recommending changes. These commands exercise both traditional and adaptive
+   suites.
+2. **Prefer the unified engine** – the source of truth lives in
+   `src/adaptive/discovery-engine.js`. Avoid introducing or using any legacy
+   `discovery.js` entry points. If you see `getLegacyEngine` in the public API,
+   it is a thin deprecation shim around the v2 engine—prefer `getDiscoveryEngine`.
+3. **Zero-runtime discovery** – the engine parses candidates with
+   `@babel/parser`. If you contribute features, keep the static-analysis
+   guarantees intact (no `require()` during discovery).
+4. **Respect documentation** – README, Quick Start guides, and `docs/` are part
+   of the public story. Keep them aligned with the code.
+
+## Useful Commands
 
 ### Testing
 
-- `npm test` - Run all tests (traditional and adaptive)
-- `npm run test:traditional` - Run traditional tests for JavaScript calculator
-- `npm run test:adaptive` - Run adaptive tests for JavaScript calculator
-- `npm run test:traditional:ts` - Run traditional tests for TypeScript calculator
-- `npm run test:adaptive:ts` - Run adaptive tests for TypeScript calculator
-- `npm run test:both` - Run both traditional and adaptive JavaScript tests
-- `npm run test:typescript` - Run both traditional and adaptive TypeScript tests
-- `jest examples/calculator/tests/traditional/Calculator.test.js` - Run a single test file
-- `jest --watch` - Run tests in watch mode
+- `npm test` – run every suite (traditional + adaptive)
+- `npm run test:traditional` – JavaScript traditional suites
+- `npm run test:adaptive` – JavaScript adaptive suites
+- `npm run test:typescript` – TypeScript traditional + adaptive suites
+- `jest <path>` – target a single test file in watch/edit loops
 
-### Validation and Demonstrations
+### Validation & Demos
 
-- `npm run validate` - Full validation suite proving adaptive tests catch real bugs
-- `npm run demo` - Quick demonstration of refactoring resilience
-- `npm run demo:full` - Same as validate
-- `npm run compare` - Compare traditional vs adaptive test behavior
+- `npm run validate` – end-to-end demonstration: healthy → refactor → broken
+- `npm run demo` / `npm run demo:full` – same as `validate`
+- `npm run compare` – side-by-side traditional vs adaptive output
 
-### Refactoring Simulations
+### Simulator Scripts
 
-- `npm run refactor` - Move Calculator.js to nested folder (JavaScript)
-- `npm run restore` - Restore Calculator.js to original location
-- `npm run refactor:ts` - Move Calculator.ts to nested folder (TypeScript)
-- `npm run restore:ts` - Restore Calculator.ts to original location
+- `npm run refactor` / `npm run restore` – move the JS calculator around
+- `npm run refactor:ts` / `npm run restore:ts` – TypeScript calculator moves
+- `npm run demo:broken` / `npm run restore:broken` – introduce/fix JS bugs
+- `npm run demo:broken:ts` / `npm run restore:broken:ts` – TypeScript bug flow
 
-### Breaking Code Simulations
+## Architecture Snapshot
 
-- `npm run demo:broken` - Introduce bugs in JavaScript Calculator
-- `npm run restore:broken` - Fix bugs in JavaScript Calculator
-- `npm run demo:broken:ts` - Introduce bugs in TypeScript Calculator
-- `npm run restore:broken:ts` - Fix bugs in TypeScript Calculator
+- `src/adaptive/discovery-engine.js` – AST-driven discovery engine (async I/O,
+  zero-runtime static analysis)
+- `src/adaptive/scoring-engine.js` – heuristic scoring applied during discovery
+- `src/adaptive/test-base.js` – base class plus helper for Jest-style suites
+- `src/adaptive/typescript/discovery.js` – thin TypeScript façade (same API)
+- `src/index.js` – public entry point, re-exporting the v2 surface
 
-## Architecture
+Supporting directories:
 
-### Core Discovery System
+- `examples/` – calculators, services, and TypeScript examples (traditional vs
+  adaptive)
+- `packages/adaptive-tests-py/` – Python companion package
+- `scripts/demo/` – automation used by the validation script
 
-The adaptive testing system centers around a discovery engine that dynamically
-locates test targets without hardcoded paths. The discovery process uses a
-sophisticated scoring algorithm to rank candidates:
+## Contribution Checklist
 
-1. **File scanning**: Recursively searches directories (excluding node_modules,
-   .git, etc.) for matching files
-2. **Signature matching**: Evaluates candidates based on name patterns,
-   exports, methods, and type requirements
-3. **Path scoring**: Prefers production directories (/src, /lib) over test/mock directories
-4. **Safe requiring**: Only loads the highest-scored candidate, preventing
-   accidental execution of test files or broken code
+1. Keep signatures and tests passing (`npm test`, `npm run validate`).
+2. Use the v2 helpers (`getDiscoveryEngine`, `discover`, `adaptiveTest`).
+3. Update documentation and CHANGELOG when behaviour changes user-facing
+   features.
+4. When editing discovery logic, add or update fixtures in
+   `tests/fixtures/` + adaptive suites under `tests/adaptive/` to prove the new
+   behaviour.
 
-The discovery cache (`.test-discovery-cache.json`) persists findings per root
-directory for performance.
+## Support Channels
 
-### TypeScript Support
+- Bug reports / feature requests: [GitHub Issues](https://github.com/anon57396/adaptive-tests/issues)
+- Package consumers: npm [`adaptive-tests`](https://www.npmjs.com/package/adaptive-tests) &
+  PyPI [`adaptive-tests-py`](https://pypi.org/project/adaptive-tests-py/)
 
-TypeScript discovery (`src/adaptive/typescript/discovery.js`) uses the
-TypeScript compiler API to analyze `.ts` files without requiring compilation.
-It applies the same scoring heuristics as JavaScript discovery. Optional peer
-dependency on `ts-node` enables direct TypeScript execution.
-
-### Test Framework Integration
-
-- `AdaptiveTest` base class provides structure for adaptive test suites
-- `adaptiveTest` helper function offers functional API
-- Framework-agnostic design works with Jest, Mocha, Vitest, etc.
-- Tests define target signatures instead of import paths
-
-### Key Design Decisions
-
-1. **Score-based selection**: Multiple heuristics ensure the right module is
-   found even with similar names
-2. **Graceful degradation**: Falls back to broader searches if exact matches
-   aren't found
-3. **Per-root caching**: Each project root maintains its own discovery cache
-4. **Export validation**: Verifies that discovered modules actually export the
-   expected names/methods
-5. **Type checking**: Ensures discovered items are the expected type (class,
-   function, etc.)
-
-## Project Structure
-
-- `src/adaptive/` - Core adaptive testing library
-  - `discovery.js` - Main discovery engine for JavaScript
-  - `typescript/discovery.js` - TypeScript-specific discovery engine
-  - `test-base.js` - Base classes for adaptive tests
-  - `index.js` - Main exports
-
-- `examples/` - Working examples demonstrating adaptive testing
-  - `calculator/` - Simple calculator with side-by-side test comparison
-  - `typescript/` - TypeScript version of calculator example
-  - `todo-app/` - Todo application example (placeholder)
-  - `api-service/` - API service example (placeholder)
-
-- Root scripts - Demonstration and validation utilities
-  - `validate.js` - Comprehensive validation proving tests catch real bugs
-  - `compare.js` - Side-by-side comparison tool
-  - `refactor*.js` - File movement simulations
-  - `demo-broken*.js` - Bug introduction simulations
-
-## Testing Strategy
-
-When adding new features or fixing bugs:
-
-1. Ensure both traditional and adaptive test suites pass initially
-2. Run `npm run validate` to verify the complete testing flow works
-3. Test that adaptive discovery still works after any changes to scoring or
-   matching logic
-4. Verify TypeScript discovery if modifying TypeScript-related code
-
-The validation suite (`validate.js`) is the source of truth - it must show:
-
-- Both test types pass with working code
-- Traditional tests break on refactoring while adaptive survive
-- Both test types catch actual bugs (proving adaptive tests do real validation)
+Remember: this repository is public. Treat every script, code comment, and issue
+reply as something future users will read.

@@ -1,123 +1,88 @@
-# Quick Start - 5 Minutes to Better Testing
+# Quick Start – 5 Minutes to Resilient Tests
 
-## 1. See It Work (30 seconds)
-
-```bash
-git clone https://github.com/anon57396/adaptive-tests.git
-cd adaptive-tests
-npm install
-npm run validate
-# Full suite: adaptive discovery + calculator demos
-npm test
-# Mirror the same behaviour for TypeScript
-npm run test:typescript
-```
-
-Watch as:
-- ✅ Both test suites pass with working code
-- ✅ Traditional breaks when files move, adaptive survives
-- ✅ Both catch real bugs (adaptive tests aren't fake!)
-
-## 2. Try It Yourself (2 minutes)
+## 1. Install
 
 ```bash
-# Interactive comparison
-npm run compare
-
-# Break something and watch both fail
-npm run demo:broken
-npm test
-
-# Move files and watch only traditional fail
-npm run refactor
-npm test
+npm install adaptive-tests
+# Optional, only if you want to discover raw TypeScript sources
+npm install --save-dev ts-node
 ```
 
-## 3. Use It In Your Project (2 minutes)
+Want to mirror the pattern in Python? `pip install adaptive-tests-py`.
 
-Copy these two files to your project:
-- `src/adaptive/discovery-engine.js` - Finds your components
-- `src/adaptive/test-base.js` - Base test class
-
-Write your first adaptive test:
+## 2. Write Your First Adaptive Test
 
 ```javascript
-const { getDiscoveryEngine } = require('./adaptive/discovery-engine');
+const path = require('path');
+const { getDiscoveryEngine } = require('adaptive-tests');
 
-describe('My Component', () => {
-  let MyComponent;
+const engine = getDiscoveryEngine(path.resolve(__dirname, '../..'));
+
+describe('Calculator – adaptive discovery', () => {
+  let Calculator;
 
   beforeAll(async () => {
-    const engine = getDiscoveryEngine();
-    MyComponent = await engine.discoverTarget({
-      name: 'MyComponent',
+    Calculator = await engine.discoverTarget({
+      name: 'Calculator',
       type: 'class',
-      methods: ['doSomething']
+      methods: ['add', 'subtract', 'multiply', 'divide']
     });
   });
 
-  test('does something', () => {
-    const instance = new MyComponent();
-    expect(instance.doSomething()).toBe('expected');
+  it('performs arithmetic without import paths', () => {
+    const calc = new Calculator();
+    expect(calc.add(2, 3)).toBe(5);
   });
 });
 ```
 
-## That's It!
+The engine parses your source files with `@babel/parser`, validates the
+signature against classes/functions/exports, and only requires the selected
+module after validation. No brittle import paths.
 
-Your test will now find `MyComponent` wherever it lives. Move it anywhere. Rename the file. Reorganize your entire project. The test still works.
+## 3. Useful Signatures
 
-No more fixing imports. Ever.
-
-## Common Patterns
-
-### Finding a class
 ```javascript
+// Find a class by name
+await engine.discoverTarget({ name: 'UserService', type: 'class' });
+
+// Find a function that lives anywhere
+await engine.discoverTarget({ name: 'calculateTax', type: 'function' });
+
+// Match a class by methods and instance properties
 await engine.discoverTarget({
-  name: 'UserService',
   type: 'class',
-  methods: ['createUser', 'deleteUser']
+  methods: ['login', 'logout'],
+  properties: ['sessions']
 });
+
+// Regex on names works too
+await engine.discoverTarget({ name: /Controller$/, type: 'class' });
 ```
 
-### Finding a function
+## 4. Move Files – Tests Still Pass
+
+1. Write an adaptive test.
+2. Run it once – it will populate `.test-discovery-cache.json`.
+3. Move or rename the source file.
+4. Run it again – the test still finds the new location.
+
+## 5. Helpful Commands
+
+```bash
+npm run validate   # Full demo: healthy → refactor → broken code
+npm run compare    # See traditional vs adaptive output side by side
+npm run demo       # Quick proof of resilience
+```
+
+## What Not To Do
+
 ```javascript
-await engine.discoverTarget({
-  name: 'calculateTax',
-  type: 'function'
-});
+// ❌ Hardcoded relative import
+const Calculator = require('../../../src/utils/Calculator');
+
+// ✅ Adaptive discovery
+const Calculator = await engine.discoverTarget({ name: 'Calculator', type: 'class' });
 ```
 
-### Finding a React component
-```javascript
-await engine.discoverTarget({
-  name: 'Button',
-  exports: 'Button',
-  type: 'function'  // or 'class' for class components
-});
-```
-
-## FAQ
-
-**Does it slow down tests?**
-First run: ~100ms. After that: <10ms with caching.
-
-**Does it work with TypeScript?**
-Yes. See `examples/typescript/`.
-
-**What about my framework?**
-Works with any test runner (Jest, Mocha, Vitest) and any framework.
-
-**Is this production ready?**
-We use it in production. It's just a pattern, not a framework.
-
-## Next Steps
-
-- Read the [full documentation](README.md)
-- Check out [more examples](examples/)
-- [Contribute](CONTRIBUTING.md) improvements
-- Star the repo if this helped you!
-
----
-
-Stop fixing test imports. Start testing what matters.
+Adaptive Tests removes import maintenance from your refactoring checklist.

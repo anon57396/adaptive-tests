@@ -30,10 +30,10 @@ Tests should validate functionality, not file locations. This project shows how.
 
 ## Guidelines
 
-1. **Keep it simple** - This should be copy-paste ready, not a framework to learn
-2. **No dependencies** - Core functionality should work with just Jest/Mocha
-3. **Real validation only** - Tests must actually test functionality, not just pass
-4. **Language agnostic** - The pattern should work in any language
+1. **Keep it simple** – Copy/paste friendly, no heavy setup
+2. **Minimal, explicit deps** – Engine depends on `@babel/parser`; TypeScript support uses optional `ts-node`
+3. **Real validation only** – Tests must assert behaviour, not just pass
+4. **Multi-language friendly** – JS/TS today, Python companion available
 
 ## Testing
 
@@ -45,6 +45,7 @@ npm test
 ```
 
 This ensures:
+
 - Tests pass with working code
 - Tests survive refactoring
 - Tests fail on actual bugs

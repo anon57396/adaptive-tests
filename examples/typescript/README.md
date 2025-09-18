@@ -25,13 +25,16 @@ npx jest examples/typescript/tests --runInBand
 ## Use it in your own project
 
 1. Install the optional TypeScript tooling:
+
    ```bash
    npm install --save-dev typescript ts-node ts-jest @types/jest @types/node
    ```
+
 2. Add a `tsconfig.json` (the repo ships with one you can copy).
 3. Import the TypeScript discovery helpers:
+
    ```typescript
-   import { getTypeScriptDiscoveryEngine } from '../src/adaptive/typescript/discovery';
+   import { getTypeScriptDiscoveryEngine } from 'adaptive-tests';
 
    const engine = getTypeScriptDiscoveryEngine();
    const UserService = await engine.discoverTarget({
@@ -41,6 +44,7 @@ npx jest examples/typescript/tests --runInBand
      exports: 'UserService'
    });
    ```
+
 4. Write your adaptive tests exactly as you would in JavaScript.
 
 The discovery engine analyses TypeScript syntax via the compiler API, verifies that exported classes actually expose the methods you care about, and loads them through `ts-node` so you don’t need a build step.
@@ -61,4 +65,3 @@ npm run demo:broken:ts
 npm run test:adaptive:ts     # ❌ real failures
 npm run restore:broken:ts
 ```
-

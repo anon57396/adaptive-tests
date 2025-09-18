@@ -1,137 +1,110 @@
-# Common Issues & Solutions for Adaptive Testing
+# Common Issues & Solutions
 
-## ⚠️ Issues You WILL Encounter
+## 1. Discovery skipped my module
 
-### 1. Test Files Being Discovered and Executed
-**Problem**: Discovery engine finds and requires test files, causing:
-- `Cannot nest a describe inside a test` errors
-- Test suites executing during discovery
-- Massive console output during test runs
+**Symptoms**: `createDiscoveryError` mentions candidates but says “none matched all
+requirements”.
 
-**Solution**: Already fixed in framework - test files (`.test.js`, `.spec.js`) are automatically excluded from discovery.
+### Fix
 
-### 2. Module Discovery Confusion
-**Problem**: Trying to discover modules with multiple exports doesn't work as expected:
+1. Start with the simplest signature – just the `name`.
+2. Add `type`, then `methods`/`properties` only if you truly need them.
+3. Remember that names are case-insensitive and AST-driven exports require real
+   methods on the prototype (class) or object.
+4. Check the scoring configuration (see `adaptive-tests.config.js`) if your file
+   lives in an unusual directory. You can temporarily boost a path to confirm the
+   engine sees it.
+
 ```javascript
-// THIS DOESN'T WORK
-await engine.discoverTarget({
-  type: 'module',
-  exports: ['processArray', 'transformData']  // ❌ Array not supported
-});
+await engine.discoverTarget({ name: 'UserService' });
+// If that fails, you probably have a naming mismatch or the file isn’t exported.
 ```
 
-**Solution**: Discover functions individually:
+## 2. AST parse failures
+
+**Symptoms**: The engine logs “Failed to parse candidate” internally and skips a
+file; discovery ultimately fails.
+
+**Fix**
+
+- Make sure the file is valid JavaScript/TypeScript. The parser runs with modern
+  plugins (JSX, decorators, TypeScript), but syntax errors will still derail
+  discovery.
+- Generated files or scripts with shebangs (`#!/usr/bin/env node`) should live in
+  folders excluded by default (`scripts`, `dist`, `build`).
+
+## 3. I moved a file and still get the old implementation
+
+We default to mtime-based cache invalidation, but if your editor copies the file
+without updating the timestamp, force a clear:
+
 ```javascript
-// THIS WORKS
-const processArray = await engine.discoverTarget({
-  name: 'processArray',
-  type: 'function'
-});
+await engine.clearCache();           // wipe discovery + runtime cache
 ```
 
-### 3. Scripts/Demos Polluting Discovery
-**Problem**: Random JS files (demos, scripts, migrations) get discovered and executed, potentially calling `process.exit()` or running unintended code.
+You should rarely need to touch `require.cache` manually now that the engine
+tracks modification times and recompiles changed modules.
 
-**Solution**: Keep non-production code in these excluded directories:
-- `/scripts` - Utility scripts
-- `/build` - Build outputs
-- `/dist` - Distribution files
-- `/coverage` - Test coverage reports
+## 4. Multiple exports in one module
 
-### 4. Require Cache Stale Module Issues
-**Problem**: When testing file moves or dynamic changes, you get old versions of modules.
+You can discover each export independently; the AST metadata allows the engine to
+resolve named exports safely.
 
-**Solution**: Clear both discovery and require cache:
 ```javascript
-await engine.clearCache();  // Clear discovery cache
-Object.keys(require.cache).forEach(key => {
-  if (key.includes('YourModule')) {
-    delete require.cache[key];
+const { discover } = require('adaptive-tests');
+
+const processArray = await discover({ name: 'processArray', type: 'function' });
+const transformData = await discover({ name: 'transformData', type: 'function' });
+```
+
+## 5. Test files or fixtures getting picked as candidates
+
+The default scoring and skip lists exclude common test directories. If you have a
+fixture that should never be considered, add an explicit negative path score in
+`adaptive-tests.config.js`:
+
+```javascript
+module.exports = {
+  discovery: {
+    scoring: {
+      paths: {
+        negative: {
+          '/my-fixtures/': -100
+        }
+      }
+    }
   }
-});
+};
 ```
 
-### 5. Wrong Module Being Discovered
-**Problem**: Discovery engine finds "BrokenCalculator.js" instead of "Calculator.js" due to path scoring or naming.
+## 6. Discovering by inheritance or properties still fails
 
-**Solution**: Use more specific signatures:
+The AST metadata detects `extends` and prototype assignments, but it cannot
+instantiate classes that require constructor arguments. If your constructor needs
+parameters or performs side effects, prefer method/property signatures rather
+than strict inheritance checks.
+
 ```javascript
 await engine.discoverTarget({
-  name: 'Calculator',
   type: 'class',
-  methods: ['add', 'subtract'],  // More specific
-  exports: 'Calculator'          // Exact export name
+  properties: ['sessions'],
+  methods: ['login', 'logout']
 });
 ```
 
-### 6. Tests Fail After Moving Files
-**Problem**: After moving target files, tests can't find them.
+## Debug Checklist
 
-**Solution**: This is actually GOOD - it means you have hardcoded paths! Convert to adaptive:
-```javascript
-// BAD - Hardcoded path
-const Calculator = require('../src/Calculator');
+- [ ] Is the export actually reachable? (`module.exports = { Foo }` or `export class Foo`)
+- [ ] Does the class/function name match the signature (case insensitive)?
+- [ ] Are you using the `adaptive-tests` helpers rather than `require()`?
+- [ ] Did you run `npm run validate` to confirm the tooling still behaves as expected?
+- [ ] For TypeScript, is `ts-node` installed or are you pointing discovery at
+      transpiled output?
 
-// GOOD - Adaptive discovery
-const Calculator = await engine.discoverTarget({
-  name: 'Calculator',
-  type: 'class'
-});
-```
+If you are still stuck, open an issue with:
 
-## 📋 Checklist for New Adaptive Tests
+- The signature you tried.
+- The path to the target file.
+- A minimal reproduction (link or gist).
 
-- [ ] Use discovery engine, not require/import
-- [ ] Clear cache in beforeEach if testing mutations
-- [ ] Put test files in `/tests` directory
-- [ ] Keep utility scripts in `/scripts` directory
-- [ ] Use specific signatures (name + type + methods)
-- [ ] Test that your tests survive file moves
-
-## 🚨 Red Flags Your Tests Aren't Adaptive
-
-1. Your tests break when files move
-2. You see `require('../../../src/something')`
-3. Tests fail with "Cannot find module" after refactoring
-4. You're using mocks instead of discovering real implementations
-5. Your test file has more setup code than actual tests
-
-## 💡 Pro Tips
-
-1. **Start simple**: Just use `name` and `type` in your signature
-2. **Add specificity if needed**: Add `methods` array if multiple matches
-3. **Use patterns**: `name: /User.*Service/` for flexible matching
-4. **Cache is your friend**: Don't clear it unless you need to
-5. **Test the behavior**: Focus on what the code does, not where it lives
-
-## 🐛 Debug Mode
-
-If discovery isn't finding your module:
-
-```javascript
-// See what's being discovered
-const engine = getDiscoveryEngine();
-await engine.clearCache();  // Force fresh scan
-
-// Try minimal signature first
-const result = await engine.discoverTarget({
-  name: 'YourModule'
-});
-
-// Then add constraints
-const result = await engine.discoverTarget({
-  name: 'YourModule',
-  type: 'class',
-  methods: ['someMethod']
-});
-```
-
-## Still Stuck?
-
-The discovery engine prefers:
-- Files in `/src`, `/lib`, `/app` directories (+12 to +4 points)
-- Files NOT in `/tests`, `/mocks`, `/fixtures` (-15 to -50 points)
-- Exact name matches (+45 points)
-- Files with matching method names mentioned (+3 per method)
-
-Check your file location and naming!
+We are happy to help!

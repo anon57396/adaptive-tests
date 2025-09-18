@@ -9,25 +9,16 @@ Some skeptics might think adaptive tests just always pass because they "find som
 Run `npm run validate` to see all three scenarios:
 
 ### Scenario 1: Working Code
-```
-Traditional Tests: ✅ 10 passed, 0 failed
-Adaptive Tests:    ✅ 10 passed, 0 failed
-```
-Both pass because the code is correct.
+
+Both traditional and adaptive suites pass because the code is correct.
 
 ### Scenario 2: Moved Files (Refactored)
-```
-Traditional Tests: ❌ Cannot find module '../src/Calculator'
-Adaptive Tests:    ✅ 10 passed, 0 failed
-```
+
 Traditional breaks on imports. Adaptive finds the moved file and tests it.
 
 ### Scenario 3: Broken Implementation
-```
-Traditional Tests: ❌ Expected 5, Received -1 (add is broken!)
-Adaptive Tests:    ❌ Expected 5, Received -1 (add is broken!)
-```
-**Both fail with the SAME test assertion errors!**
+
+Both fail with the same test assertion errors.
 
 ## What This Proves
 
@@ -72,7 +63,5 @@ npm run test:adaptive     # ✅
 
 Adaptive tests are **real tests** that happen to be smart about finding their targets.
 
-They don't eliminate test failures - they eliminate the WRONG KIND of test failures (broken imports) while preserving the RIGHT KIND (actual bugs).
-Need a quick regression check? Run `npm test` to execute both the JavaScript and TypeScript adaptive suites in one shot.
-
-Both suites now have a TypeScript mirror as well—run `npm run test:typescript` (and the refactor/broken variants) to see adaptive discovery survive identical scenarios in `.ts` land.
+They don't eliminate test failures—they eliminate the wrong kind of test failures (broken imports) while preserving the right kind (actual bugs).
+Need a quick regression check? Run `npm test` to execute both the JavaScript and TypeScript suites. Use `npm run test:typescript` for the TS-only flow.
