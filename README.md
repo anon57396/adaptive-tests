@@ -14,9 +14,8 @@
 
 <p align="center">
   <a href="https://github.com/anon57396/adaptive-tests/actions/workflows/validate.yml"><img src="https://github.com/anon57396/adaptive-tests/actions/workflows/validate.yml/badge.svg" alt="Build Status"></a>
-  <a href="https://www.npmjs.com/package/adaptive-tests"><img src="https://img.shields.io/npm/v/adaptive-tests.svg" alt="npm version"></a>
-  <a href="https://www.npmjs.com/package/adaptive-tests"><img src="https://img.shields.io/npm/dm/adaptive-tests.svg" alt="npm downloads"></a>
-  <a href="https://codecov.io/gh/anon57396/adaptive-tests"><img src="https://img.shields.io/codecov/c/github/anon57396/adaptive-tests" alt="Code Coverage"></a>
+  <a href="https://www.npmjs.com/package/adaptive-tests"><img src="https://img.shields.io/npm/v/adaptive-tests.svg?cache=300" alt="npm version"></a>
+  <a href="https://www.npmjs.com/package/adaptive-tests"><img src="https://img.shields.io/npm/dt/adaptive-tests.svg?cache=300" alt="npm downloads"></a>
   <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT"></a>
   <a href="https://github.com/anon57396/adaptive-tests/stargazers"><img src="https://img.shields.io/github/stars/anon57396/adaptive-tests?style=social" alt="GitHub Stars"></a>
 </p>
@@ -334,6 +333,20 @@ Required methods make sure you pull in the right repository even after it moves 
 - **Cache confusion** – Delete `.test-discovery-cache.json` or call `engine.clearCache()` if you rename files during the test run.
 - **Multiple matches** – Add more context (methods, exports, regex names) or prefer path heuristics by adjusting the `NEGATIVE_PATH_SCORES` / `POSITIVE_PATH_SCORES` in `discovery.js`.
 - **Slow discovery** – Run the suite once to warm the cache; subsequent runs should be <10ms. For huge repos, seed the cache in a `beforeAll` hook or scope discovery to the package using `getDiscoveryEngine(path.resolve(__dirname, '..'))`.
+
+## Automated Releases
+
+Publishing to npm and PyPI is handled by the `Publish` GitHub Actions workflow. Creating a GitHub release will:
+
+1. Run `npm run prepublishOnly` to build and test the JavaScript package.
+2. Publish `adaptive-tests` to npm using `NPM_TOKEN`.
+3. Build `packages/adaptive-tests-py` and publish it to PyPI using `PYPI_TOKEN`.
+
+### One-time setup
+
+- Add repository secrets `NPM_TOKEN` (npm automation token with publish rights) and `PYPI_TOKEN` (PyPI API token).
+- Bump package versions (`package.json` and `packages/adaptive-tests-py/pyproject.toml`) before tagging.
+- Draft a GitHub release. When it’s published, the workflow pushes both packages.
 
 ## 💡 Who's Using Adaptive Tests
 
