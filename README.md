@@ -262,16 +262,72 @@ Move files. Rename folders. Refactor architecture. Your tests keep working.
 
 The `examples/` directory contains:
 
-- **calculator/** - Simple calculator with traditional vs adaptive tests
-- **typescript/** - TypeScript edition powered by TypeScriptDiscoveryEngine
-- **todo-app/** - Todo application showing real-world patterns
-- **api-service/** - REST API service with dynamic discovery
+- **calculator/** – JavaScript calculator with traditional vs adaptive tests (and validation scripts)
+- **typescript/** – Matching TypeScript calculator powered by `TypeScriptDiscoveryEngine`
+- **todo-app/** – Stateful todo manager showing adaptive discovery on services with memory
+- **api-service/** – In-memory REST-style service proving route discovery and lifecycle coverage
+- **python/** – Pytest port that demonstrates the new [`adaptive-tests-py`](packages/adaptive-tests-py/README.md) module
 
-Each example includes:
-- Working application code
-- Traditional test suite (breaks on refactor)
-- Adaptive test suite (survives any refactor)
-- Refactor script to prove the difference
+Each example includes working code, a traditional suite that intentionally breaks after refactors, and an adaptive suite that keeps passing until the behaviour changes.
+
+## Cross-Language Recipes
+
+### React component discovery
+
+```javascript
+// tests/components/Button.adaptive.test.jsx
+import { getDiscoveryEngine } from '../../src/adaptive/discovery';
+
+test('Button component renders', async () => {
+  const engine = getDiscoveryEngine();
+  const module = await engine.discoverTarget({
+    name: 'Button',
+    type: 'function',
+    exports: 'Button'
+  });
+
+  const Button = module.Button || module.default;
+  expect(Button).toBeDefined();
+});
+```
+
+Drop this test next to your React project (with Jest + React Testing Library) and the discovery engine will follow renamed files instead of brittle import paths.
+
+### Node microservice route discovery
+
+```javascript
+const module = await engine.discoverTarget({
+  name: 'createUserRouter',
+  type: 'function',
+  exports: 'createUserRouter',
+  methods: ['handle', 'routes']
+});
+
+const router = module.createUserRouter();
+expect(router.handle('GET', '/health')).toEqual({ status: 'ok' });
+```
+
+Adapt the signature to look for route tables or decorated controllers. Adaptive tests keep working while you reorganise Express/Fastify routers.
+
+### Data-layer modules (Prisma / TypeORM)
+
+```javascript
+await engine.discoverTarget({
+  name: 'UserRepository',
+  type: 'class',
+  methods: ['findByEmail', 'create'],
+  exports: 'UserRepository'
+});
+```
+
+Required methods make sure you pull in the right repository even after it moves between packages or schema namespaces.
+
+## Troubleshooting
+
+- **Signature misses** – Start with a simple signature (name only), then add method checks one by one to see which property is missing.
+- **Cache confusion** – Delete `.test-discovery-cache.json` or call `engine.clearCache()` if you rename files during the test run.
+- **Multiple matches** – Add more context (methods, exports, regex names) or prefer path heuristics by adjusting the `NEGATIVE_PATH_SCORES` / `POSITIVE_PATH_SCORES` in `discovery.js`.
+- **Slow discovery** – Run the suite once to warm the cache; subsequent runs should be <10ms. For huge repos, seed the cache in a `beforeAll` hook or scope discovery to the package using `getDiscoveryEngine(path.resolve(__dirname, '..'))`.
 
 ## 💡 Who's Using Adaptive Tests
 

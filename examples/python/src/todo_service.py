@@ -1,4 +1,4 @@
-"""Simple Todo service used by the Python adaptive testing example."""
+"""Simple Todo service used by the Python adaptive test example."""
 
 from dataclasses import dataclass
 from typing import List
@@ -12,8 +12,6 @@ class Todo:
 
 
 class TodoService:
-    """In-memory todo list manager."""
-
     def __init__(self) -> None:
         self._todos: List[Todo] = []
         self._next_id = 1
@@ -31,7 +29,7 @@ class TodoService:
         todo.completed = True
         return todo
 
-    def list(self, *, status: str = "all") -> List[Todo]:
+    def list(self, status: str = "all") -> List[Todo]:
         if status == "completed":
             return [todo for todo in self._todos if todo.completed]
         if status == "active":
