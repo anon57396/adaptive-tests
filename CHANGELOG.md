@@ -6,6 +6,7 @@
 - Added demo.gif to package for visual documentation
 - Enhanced README with animated demonstration
 - Hardened function detection regex to avoid ReDoS on untrusted input
+- Moved adaptive fixtures to `fixtures/` and taught the discovery engine to skip any `tests/` directory while scanning
 
 ## [0.2.0] - 2024-09-18
 

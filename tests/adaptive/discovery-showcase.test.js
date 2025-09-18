@@ -8,6 +8,8 @@ const fs = require('fs');
 const { getDiscoveryEngine } = require('../../src/adaptive/discovery');
 
 const engine = getDiscoveryEngine(path.resolve(__dirname, '../..'));
+const fixturesRoot = path.resolve(__dirname, '../../fixtures');
+const modulesRoot = path.join(fixturesRoot, 'modules');
 
 describe('Discovery Engine Showcase', () => {
   describe('Discovery Strategies', () => {
@@ -104,7 +106,7 @@ describe('Discovery Engine Showcase', () => {
 
     test('should find class in deeply nested directories', async () => {
       // Create a deeply nested test module
-      const deepPath = path.join(__dirname, '..', 'fixtures', 'deep', 'nested', 'path');
+      const deepPath = path.join(fixturesRoot, 'deep', 'nested', 'path');
       fs.mkdirSync(deepPath, { recursive: true });
 
       tempFilePath = path.join(deepPath, 'DeepClass.js');
@@ -132,9 +134,9 @@ describe('Discovery Engine Showcase', () => {
       // Clean up
       fs.unlinkSync(tempFilePath);
       // Clean up all nested directories
-      fs.rmdirSync(path.join(__dirname, '..', 'fixtures', 'deep', 'nested', 'path'));
-      fs.rmdirSync(path.join(__dirname, '..', 'fixtures', 'deep', 'nested'));
-      fs.rmdirSync(path.join(__dirname, '..', 'fixtures', 'deep'));
+      fs.rmdirSync(path.join(fixturesRoot, 'deep', 'nested', 'path'));
+      fs.rmdirSync(path.join(fixturesRoot, 'deep', 'nested'));
+      fs.rmdirSync(path.join(fixturesRoot, 'deep'));
     });
   });
 
@@ -168,7 +170,7 @@ describe('Discovery Engine Showcase', () => {
 
     test('should handle cache invalidation gracefully', async () => {
       // Create a temporary module
-      const tempPath = path.join(__dirname, '..', 'fixtures', 'modules');
+      const tempPath = modulesRoot;
       tempFilePath = path.join(tempPath, 'TempModule.js');
 
       fs.writeFileSync(tempFilePath, `

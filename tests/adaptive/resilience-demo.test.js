@@ -9,11 +9,13 @@ const { execSync } = require('child_process');
 const { getDiscoveryEngine } = require('../../src/adaptive/discovery');
 
 const engine = getDiscoveryEngine(path.resolve(__dirname, '../..'));
+const fixturesRoot = path.resolve(__dirname, '../../fixtures');
+const modulesRoot = path.join(fixturesRoot, 'modules');
 
 describe('Adaptive Testing Resilience Demo', () => {
-  const originalPath = path.join(__dirname, '..', 'fixtures', 'modules', 'StringUtils.js');
-  const movedPath1 = path.join(__dirname, '..', 'fixtures', 'StringUtilsRenamed.js');
-  const movedPath2 = path.join(__dirname, '..', 'fixtures', 'deep', 'StringUtilsMoved.js');
+  const originalPath = path.join(modulesRoot, 'StringUtils.js');
+  const movedPath1 = path.join(fixturesRoot, 'StringUtilsRenamed.js');
+  const movedPath2 = path.join(fixturesRoot, 'deep', 'StringUtilsMoved.js');
 
   afterAll(() => {
     // Ensure file is back in original location
@@ -24,7 +26,7 @@ describe('Adaptive Testing Resilience Demo', () => {
       fs.renameSync(movedPath2, originalPath);
       // Clean up the deep directory if empty
       try {
-        fs.rmdirSync(path.join(__dirname, '..', 'fixtures', 'deep'));
+        fs.rmdirSync(path.join(fixturesRoot, 'deep'));
       } catch (e) {
         // Directory not empty or doesn't exist
       }
@@ -66,7 +68,7 @@ describe('Adaptive Testing Resilience Demo', () => {
 
   test('should find StringUtils after moving to different directory', async () => {
     // Create deep directory
-    const deepDir = path.join(__dirname, '..', 'fixtures', 'deep');
+    const deepDir = path.join(fixturesRoot, 'deep');
     if (!fs.existsSync(deepDir)) {
       fs.mkdirSync(deepDir, { recursive: true });
     }

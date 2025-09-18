@@ -30,7 +30,7 @@ const POSITIVE_PATH_SCORES = [
   { keyword: '/lib/', score: 4 },
   { keyword: '/core/', score: 4 }
 ];
-const SKIP_DIRECTORIES = new Set(['node_modules', '.git', '.svn', '.hg', 'coverage', 'dist', 'build', 'scripts']);
+const SKIP_DIRECTORIES = new Set(['node_modules', '.git', '.svn', '.hg', 'coverage', 'dist', 'build', 'scripts', 'tests']);
 
 function normalizeRoot(rootPath) {
   return path.resolve(rootPath || process.cwd());

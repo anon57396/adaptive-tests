@@ -273,8 +273,11 @@ The `examples/` directory contains:
 - **todo-app/** – Stateful todo manager showing adaptive discovery on services with memory
 - **api-service/** – In-memory REST-style service proving route discovery and lifecycle coverage
 - **python/** – Pytest port that demonstrates the new [`adaptive-tests-py`](packages/adaptive-tests-py/README.md) module
+- **fixtures/** – Shared modules (StringUtils, DataProcessor, etc.) used by resilience demos
 
 Each example includes working code, a traditional suite that intentionally breaks after refactors, and an adaptive suite that keeps passing until the behaviour changes.
+
+> ℹ️ The `examples/*/tests/traditional` suites remain on purpose—they provide the "break vs survive" contrast showcased by `npm run validate`.
 
 ## Cross-Language Recipes
 
