@@ -24,7 +24,7 @@ Adaptive Tests will become the standard way to write resilient test suites. We e
 
 ### 🚧 v0.2 - Developer Experience (Q1 2024)
 
-**Theme: Making it dead simple to adopt**
+#### Theme: Making it dead simple to adopt
 
 - [ ] **CLI Improvements**
   - [ ] Interactive setup wizard
@@ -48,7 +48,7 @@ Adaptive Tests will become the standard way to write resilient test suites. We e
 
 ### 🎯 v0.3 - Framework Integration (Q2 2024)
 
-**Theme: Works everywhere developers work**
+#### Theme: Works everywhere developers work
 
 - [ ] **Frontend Frameworks**
   - [ ] React adapter with component discovery
@@ -69,7 +69,7 @@ Adaptive Tests will become the standard way to write resilient test suites. We e
 
 ### 🚀 v0.4 - IDE Integration (Q3 2024)
 
-**Theme: Seamless developer workflow**
+#### Theme: Seamless developer workflow
 
 - [ ] **VS Code Extension**
   - [ ] Auto-generate adaptive tests
@@ -89,7 +89,7 @@ Adaptive Tests will become the standard way to write resilient test suites. We e
 
 ### 🌍 v0.5 - Multi-Language (Q4 2024)
 
-**Theme: Beyond JavaScript**
+#### Theme: Beyond JavaScript
 
 - [ ] **Python**
   - [ ] pytest integration
@@ -110,7 +110,7 @@ Adaptive Tests will become the standard way to write resilient test suites. We e
 
 ### 🎉 v1.0 - Production Ready (Q1 2025)
 
-**Theme: Enterprise scale**
+#### Theme: Enterprise scale
 
 - [ ] **Enterprise Features**
   - [ ] Discovery analytics dashboard

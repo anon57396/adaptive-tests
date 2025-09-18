@@ -5,7 +5,7 @@
 **Symptoms**: `createDiscoveryError` mentions candidates but says “none matched all
 requirements”.
 
-### Fix
+### Fix (Signature tuning)
 
 1. Start with the simplest signature – just the `name`.
 2. Add `type`, then `methods`/`properties` only if you truly need them.
@@ -25,7 +25,7 @@ await engine.discoverTarget({ name: 'UserService' });
 **Symptoms**: The engine logs “Failed to parse candidate” internally and skips a
 file; discovery ultimately fails.
 
-**Fix**
+### Fix (Parser failures)
 
 - Make sure the file is valid JavaScript/TypeScript. The parser runs with modern
   plugins (JSX, decorators, TypeScript), but syntax errors will still derail

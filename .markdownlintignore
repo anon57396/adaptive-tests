@@ -1,0 +1,5 @@
+node_modules/
+coverage/
+dist/
+packages/adaptive-tests-py/dist/
+packages/adaptive-tests-py/src/adaptive_tests_py.egg-info/

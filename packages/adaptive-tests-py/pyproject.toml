@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "adaptive-tests-py"
-version = "0.1.0"
+version = "0.1.1"
 description = "Adaptive test discovery for Python projects"
 readme = "README.md"
 authors = [{ name = "Jason Kempf", email = "jasonkempf@gmail.com" }]

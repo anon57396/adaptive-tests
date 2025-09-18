@@ -12,7 +12,7 @@
 If you discover a security vulnerability in Adaptive Tests, please follow these steps:
 
 1. **DO NOT** open a public issue
-2. Email security concerns to: jasonkempf@gmail.com
+2. Email security concerns to: [jasonkempf@gmail.com](mailto:jasonkempf@gmail.com)
 3. Include:
    - Description of the vulnerability
    - Steps to reproduce
