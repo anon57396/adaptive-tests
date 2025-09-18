@@ -186,12 +186,14 @@ describe('Discovery Engine Showcase', () => {
       expect(new v1().tempMethod()).toBe('v1');
 
       // Modify the module
+      await new Promise(resolve => setTimeout(resolve, 25));
       fs.writeFileSync(tempFilePath, `
         class TempModule {
           tempMethod() { return 'v2'; }
         }
         module.exports = TempModule;
       `);
+      fs.utimesSync(tempFilePath, new Date(), new Date());
 
       // Clear cache and rediscover
       await engine.clearCache();

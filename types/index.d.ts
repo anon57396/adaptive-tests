@@ -16,6 +16,11 @@ declare const _exports: {
             maxDepth: number;
             skipDirectories: string[];
             scoring: {
+                minCandidateScore: number;
+                recency: {
+                    maxBonus: number;
+                    halfLifeHours: number;
+                };
                 paths: {
                     positive: {
                         '/src/': number;

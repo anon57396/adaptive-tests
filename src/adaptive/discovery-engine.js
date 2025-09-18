@@ -36,6 +36,7 @@ class DiscoveryEngine {
     this.cacheLoaded = false;
     this.cacheLoadPromise = null;
     this.cachedModules = new Set();
+    this.moduleVersions = new Map();
   }
 
   async ensureCacheLoaded() {
@@ -320,14 +321,56 @@ class DiscoveryEngine {
 
       const resolvedPath = require.resolve(candidate.path);
       const ext = path.extname(candidate.path);
-      let moduleExports;
+      let mtimeMs = null;
+
+      try {
+        const stats = fs.statSync(candidate.path);
+        mtimeMs = stats.mtimeMs;
+      } catch (error) {
+        // Ignore - treat as dynamic module
+      }
+
+      const lastVersion = this.moduleVersions.get(resolvedPath);
+      const initialLoad = lastVersion === undefined;
+      const hasChanged = mtimeMs === null || lastVersion === undefined || lastVersion !== mtimeMs;
 
       if (ext === '.ts' || ext === '.tsx') {
         this.ensureTypeScriptSupport();
-        delete require.cache[resolvedPath];
-        moduleExports = require(candidate.path);
+        if (hasChanged) {
+          delete require.cache[resolvedPath];
+        }
+        const moduleExports = require(candidate.path);
+        if (mtimeMs !== null) {
+          this.moduleVersions.set(resolvedPath, mtimeMs);
+        } else {
+          this.moduleVersions.delete(resolvedPath);
+        }
+        this.cachedModules.add(resolvedPath);
+        return this.resolveTargetFromModule(moduleExports, signature, candidate);
+      }
+
+      let moduleExports;
+
+      if (hasChanged && !initialLoad) {
+        moduleExports = this.compileFreshModule(candidate.path);
+        const cached = require.cache[resolvedPath];
+        if (cached) {
+          cached.exports = moduleExports;
+        } else {
+          const synthetic = new Module(resolvedPath, module.parent);
+          synthetic.filename = resolvedPath;
+          synthetic.exports = moduleExports;
+          synthetic.paths = Module._nodeModulePaths(path.dirname(resolvedPath));
+          require.cache[resolvedPath] = synthetic;
+        }
       } else {
-        moduleExports = this.loadFreshModule(candidate.path);
+        moduleExports = require(candidate.path);
+      }
+
+      if (mtimeMs !== null) {
+        this.moduleVersions.set(resolvedPath, mtimeMs);
+      } else {
+        this.moduleVersions.delete(resolvedPath);
       }
 
       this.cachedModules.add(resolvedPath);
@@ -338,21 +381,13 @@ class DiscoveryEngine {
     }
   }
 
-  loadFreshModule(modulePath) {
+  compileFreshModule(modulePath) {
     const code = fs.readFileSync(modulePath, 'utf8');
     const freshModule = new Module(modulePath, module.parent);
     freshModule.filename = modulePath;
     freshModule.paths = Module._nodeModulePaths(path.dirname(modulePath));
     freshModule._compile(code, modulePath);
-    const exports = freshModule.exports;
-    if (exports && typeof exports === 'object' && Object.keys(exports).length === 1) {
-      const [key] = Object.keys(exports);
-      const value = exports[key];
-      if (typeof value === 'function') {
-        return value;
-      }
-    }
-    return exports;
+    return freshModule.exports;
   }
 
   /**
@@ -755,6 +790,10 @@ class DiscoveryEngine {
   loadModule(cacheEntry, signature) {
     const resolvedPath = require.resolve(cacheEntry.path);
 
+    if (cacheEntry.target) {
+      return cacheEntry.target;
+    }
+
     if (cacheEntry.mtimeMs) {
       try {
         const stats = fs.statSync(cacheEntry.path);
@@ -771,6 +810,14 @@ class DiscoveryEngine {
     }
 
     const moduleExports = require(cacheEntry.path);
+    this.cachedModules.add(resolvedPath);
+    if (cacheEntry.mtimeMs !== null && cacheEntry.mtimeMs !== undefined) {
+      this.moduleVersions.set(resolvedPath, cacheEntry.mtimeMs);
+    }
+
+    if (cacheEntry.target) {
+      return cacheEntry.target;
+    }
 
     moduleCache.set(resolvedPath, cacheEntry.mtimeMs);
 

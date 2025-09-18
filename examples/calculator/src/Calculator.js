@@ -41,17 +41,17 @@ class Calculator {
     return result;
   }
 
-  sqrt(n) {
-    if (n < 0) {
+  sqrt(value) {
+    if (value < 0) {
       throw new Error('Cannot take square root of negative number');
     }
-    const result = Math.sqrt(n);
-    this.history.push(`√${n} = ${result}`);
+    const result = Math.sqrt(value);
+    this.history.push(`√${value} = ${result}`);
     return result;
   }
 
   getHistory() {
-    return this.history;
+    return [...this.history];
   }
 
   clearHistory() {
@@ -60,4 +60,3 @@ class Calculator {
 }
 
 module.exports = Calculator;
-module.exports.Calculator = Calculator;

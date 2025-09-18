@@ -7,6 +7,8 @@ export class DiscoveryEngine {
     persistentCache: {};
     cacheLoaded: boolean;
     cacheLoadPromise: Promise<void> | null;
+    cachedModules: Set<any>;
+    moduleVersions: Map<any, any>;
     ensureCacheLoaded(): Promise<void>;
     /**
      * Discover a target module/class/function
@@ -23,8 +25,10 @@ export class DiscoveryEngine {
         path: any;
         fileName: string;
         content: string;
+        mtimeMs: number | null;
     } | null>;
     isCandidateSafe(candidate: any): boolean;
+    tokenizeName(name: any): any;
     /**
      * Quick check if file name could match signature
      */
@@ -47,6 +51,7 @@ export class DiscoveryEngine {
         };
         score: number;
     } | null>;
+    compileFreshModule(modulePath: any): any;
     /**
      * Resolve target from module exports
      */
@@ -112,6 +117,7 @@ export class DiscoveryEngine {
      */
     getCacheKey(signature: any): string;
     serializeCacheValue(value: any): any;
+    calculateRecencyBonus(mtimeMs: any): any;
     /**
      * Load module from cache entry
      */

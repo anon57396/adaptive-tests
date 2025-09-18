@@ -3,7 +3,8 @@
 <!-- LOGO PLACEHOLDER -->
 <p align="center">
   <a href="https://github.com/anon57396/adaptive-tests">
-    <!-- <img src="path/to/your/logo.svg" alt="Adaptive Tests Logo" width="200" /> -->
+    <!-- <img src="path/to/your/logo.svg" alt="Adaptive Tests Logo"
+         width="200" /> -->
   </a>
 </p>
 <!-- END LOGO PLACEHOLDER -->
@@ -13,12 +14,30 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/anon57396/adaptive-tests/actions/workflows/validate.yml"><img src="https://github.com/anon57396/adaptive-tests/actions/workflows/validate.yml/badge.svg" alt="Build Status"></a>
-  <a href="https://www.npmjs.com/package/adaptive-tests"><img src="https://img.shields.io/npm/v/adaptive-tests.svg?cache=300" alt="npm version"></a>
-  <a href="https://www.npmjs.com/package/adaptive-tests"><img src="https://img.shields.io/npm/dt/adaptive-tests.svg?cache=300" alt="npm downloads"></a>
-  <a href="https://codecov.io/gh/anon57396/adaptive-tests"><img src="https://codecov.io/gh/anon57396/adaptive-tests/branch/main/graph/badge.svg" alt="Code Coverage"></a>
-  <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT"></a>
-  <a href="https://github.com/anon57396/adaptive-tests/stargazers"><img src="https://img.shields.io/github/stars/anon57396/adaptive-tests?style=social" alt="GitHub Stars"></a>
+  <a href="https://github.com/anon57396/adaptive-tests/actions/workflows/validate.yml">
+    <img src="https://github.com/anon57396/adaptive-tests/actions/workflows/validate.yml/badge.svg"
+         alt="Build Status">
+  </a>
+  <a href="https://www.npmjs.com/package/adaptive-tests">
+    <img src="https://img.shields.io/npm/v/adaptive-tests.svg?cache=300"
+         alt="npm version">
+  </a>
+  <a href="https://www.npmjs.com/package/adaptive-tests">
+    <img src="https://img.shields.io/npm/dt/adaptive-tests.svg?cache=300"
+         alt="npm downloads">
+  </a>
+  <a href="https://codecov.io/gh/anon57396/adaptive-tests">
+    <img src="https://codecov.io/gh/anon57396/adaptive-tests/branch/main/graph/badge.svg"
+         alt="Code Coverage">
+  </a>
+  <a href="https://opensource.org/licenses/MIT">
+    <img src="https://img.shields.io/badge/License-MIT-yellow.svg"
+         alt="License: MIT">
+  </a>
+  <a href="https://github.com/anon57396/adaptive-tests/stargazers">
+    <img src="https://img.shields.io/github/stars/anon57396/adaptive-tests?style=social"
+         alt="GitHub Stars">
+  </a>
 </p>
 
 <p align="center">
@@ -36,7 +55,9 @@
 
 **Your tests break when you move files. Ours don't.**
 
-Adaptive Tests uses intelligent discovery to find your code wherever it lives. Move files, rename folders, restructure your entire project - your tests keep working.
+Adaptive Tests uses intelligent discovery to find your code wherever it lives.
+Move files, rename folders, restructure your entire project - your tests keep
+working.
 
 ```diff
 - 🔴 Traditional: Tests break on every refactor
@@ -72,13 +93,16 @@ Adaptive Tests uses intelligent discovery to find your code wherever it lives. M
 npm install adaptive-tests
 ```
 
-Adaptive discovery works out of the box for JavaScript projects. If you want the engine to evaluate TypeScript sources directly, add the optional peer dependency:
+Adaptive discovery works out of the box for JavaScript projects. If you want
+the engine to evaluate TypeScript sources directly, add the optional peer
+dependency:
 
 ```bash
 npm install -D ts-node
 ```
 
-Working in Python too? Install the companion package and reuse the same adaptive patterns:
+Working in Python too? Install the companion package and reuse the same
+adaptive patterns:
 
 ```bash
 pip install adaptive-tests-py
@@ -104,12 +128,16 @@ const { discover } = require('adaptive-tests');
 - `discover(signature, root?)` dynamically locates the module that matches your signature.
 - `getDiscoveryEngine(root)` lets you reuse a configured engine.
 - `adaptiveTest`/`AdaptiveTest` provide Jest helpers for resilient suites.
-- `getTypeScriptDiscoveryEngine` offers the same API while understanding `.ts/.tsx` files via the TypeScript compiler.
+- `getTypeScriptDiscoveryEngine` offers the same API while understanding
+  `.ts/.tsx` files via the TypeScript compiler.
 
 <!-- DEMO -->
 <p align="center">
   <a href="https://github.com/anon57396/adaptive-tests">
-    <img src="demo.gif" alt="Adaptive Tests Demo - See traditional tests fail while adaptive tests survive refactoring" width="100%" />
+    <img src="demo.gif"
+         alt="Adaptive Tests Demo - See traditional tests fail while
+              adaptive tests survive refactoring"
+         width="100%" />
   </a>
 </p>
 <!-- END DEMO -->
@@ -168,8 +196,10 @@ npm run validate
 This validation proves three critical points:
 
 1. **✅ Both test suites pass with working code**
-2. **✅ After refactoring: Traditional tests break (import errors), Adaptive tests still pass**
-3. **✅ With buggy code: BOTH fail with actual test failures** *(This proves adaptive tests aren't just always passing!)*
+2. **✅ After refactoring: Traditional tests break (import errors), Adaptive
+   tests still pass**
+3. **✅ With buggy code: BOTH fail with actual test failures** *(This proves
+   adaptive tests aren't just always passing!)*
 
 ### Quick Demo
 
@@ -197,11 +227,13 @@ npm run test:traditional:ts  # ❌ Real assertion failures
 npm run test:adaptive:ts     # ❌ Same assertion failures
 ```
 
-**This is the key insight**: Adaptive tests fail for the RIGHT reasons (actual bugs), not the WRONG reasons (moved files).
+**This is the key insight**: Adaptive tests fail for the RIGHT reasons (actual
+bugs), not the WRONG reasons (moved files).
 
 ## How It Works
 
-1. **Discovery Engine** - Scans your codebase to find components by their characteristics, not their location
+1. **Discovery Engine** - Scans your codebase to find components by their
+   characteristics, not their location
 2. **Semantic Matching** - Identifies targets by name patterns, methods, and behavior
 3. **Knowledge Persistence** - Remembers where things were found for faster discovery
 4. **Graceful Adaptation** - When code moves, tests find the new location automatically
@@ -210,15 +242,23 @@ npm run test:adaptive:ts     # ❌ Same assertion failures
 
 The discovery engine now scores every candidate module before it ever gets required:
 
-- **Exact-name bias** – `Calculator.js` outranks `BrokenCalculator.js` because file names, export statements, and class identifiers feed the score.
-- **Path heuristics** – Production directories (`/src`, `/lib`, `/app`) are rewarded, while `/tests`, `/mock`, `/broken`, etc. tank the score.
-- **Structure checks** – Required methods must be real callables, not strings in comments. We only accept candidates with the right type signature.
-- **Safe requiring** – Only the top ranked candidate is required, so command-line helpers like `compare.js` never run accidentally during discovery.
-- **Per-root cache** – `getDiscoveryEngine(root)` keeps discoveries scoped to that tree. Call `await engine.clearCache()` if you reshuffle files on disk.
+- **Exact-name bias** – `Calculator.js` outranks `BrokenCalculator.js` because
+  file names, export statements, and class identifiers feed the score.
+- **Path heuristics** – Production directories (`/src`, `/lib`, `/app`) are
+  rewarded, while `/tests`, `/mock`, `/broken`, etc. tank the score.
+- **Structure checks** – Required methods must be real callables, not strings
+  in comments. We only accept candidates with the right type signature.
+- **Safe requiring** – Only the top ranked candidate is required, so
+  command-line helpers like `compare.js` never run accidentally during discovery.
+- **Per-root cache** – `getDiscoveryEngine(root)` keeps discoveries scoped to
+  that tree. Call `await engine.clearCache()` if you reshuffle files on disk.
 
-Unit coverage (`tests/adaptive/discovery.test.js`) locks these guarantees in so regressions are caught before release.
+Unit coverage (`tests/adaptive/discovery.test.js`) locks these guarantees in so
+regressions are caught before release.
 
-Need TypeScript? Import `getTypeScriptDiscoveryEngine` from `src/adaptive/typescript/discovery` and the same heuristics apply to `.ts` files via the TypeScript compiler API.
+Need TypeScript? Import `getTypeScriptDiscoveryEngine` from
+`src/adaptive/typescript/discovery` and the same heuristics apply to `.ts`
+files via the TypeScript compiler API.
 
 ## Quick Start
 
@@ -268,16 +308,25 @@ Move files. Rename folders. Refactor architecture. Your tests keep working.
 
 The `examples/` directory contains:
 
-- **calculator/** – JavaScript calculator with traditional vs adaptive tests (and validation scripts)
-- **typescript/** – Matching TypeScript calculator powered by `TypeScriptDiscoveryEngine`
-- **todo-app/** – Stateful todo manager showing adaptive discovery on services with memory
-- **api-service/** – In-memory REST-style service proving route discovery and lifecycle coverage
-- **python/** – Pytest port that demonstrates the new [`adaptive-tests-py`](packages/adaptive-tests-py/README.md) module
-- **fixtures/** – Shared modules (StringUtils, DataProcessor, etc.) used by resilience demos
+- **calculator/** – JavaScript calculator with traditional vs adaptive tests
+  (and validation scripts)
+- **typescript/** – Matching TypeScript calculator powered by
+  `TypeScriptDiscoveryEngine`
+- **todo-app/** – Stateful todo manager showing adaptive discovery on services
+  with memory
+- **api-service/** – In-memory REST-style service proving route discovery and
+  lifecycle coverage
+- **python/** – Pytest port that demonstrates the new
+  [`adaptive-tests-py`](packages/adaptive-tests-py/README.md) module
+- **fixtures/** – Shared modules (StringUtils, DataProcessor, etc.) used by
+  resilience demos
 
-Each example includes working code, a traditional suite that intentionally breaks after refactors, and an adaptive suite that keeps passing until the behaviour changes.
+Each example includes working code, a traditional suite that intentionally
+breaks after refactors, and an adaptive suite that keeps passing until the
+behaviour changes.
 
-> ℹ️ The `examples/*/tests/traditional` suites remain on purpose—they provide the "break vs survive" contrast showcased by `npm run validate`.
+> ℹ️ The `examples/*/tests/traditional` suites remain on purpose—they provide
+> the "break vs survive" contrast showcased by `npm run validate`.
 
 ## Cross-Language Recipes
 
@@ -300,7 +349,9 @@ test('Button component renders', async () => {
 });
 ```
 
-Drop this test next to your React project (with Jest + React Testing Library) and the discovery engine will follow renamed files instead of brittle import paths.
+Drop this test next to your React project (with Jest + React Testing Library)
+and the discovery engine will follow renamed files instead of brittle import
+paths.
 
 ### Node microservice route discovery
 
@@ -316,7 +367,8 @@ const router = module.createUserRouter();
 expect(router.handle('GET', '/health')).toEqual({ status: 'ok' });
 ```
 
-Adapt the signature to look for route tables or decorated controllers. Adaptive tests keep working while you reorganise Express/Fastify routers.
+Adapt the signature to look for route tables or decorated controllers. Adaptive
+tests keep working while you reorganise Express/Fastify routers.
 
 ### Data-layer modules (Prisma / TypeORM)
 
@@ -329,18 +381,27 @@ await engine.discoverTarget({
 });
 ```
 
-Required methods make sure you pull in the right repository even after it moves between packages or schema namespaces.
+Required methods make sure you pull in the right repository even after it moves
+between packages or schema namespaces.
 
 ## Troubleshooting
 
-- **Signature misses** – Start with a simple signature (name only), then add method checks one by one to see which property is missing.
-- **Cache confusion** – Delete `.test-discovery-cache.json` or call `await engine.clearCache()` if you rename files during the test run.
-- **Multiple matches** – Add more context (methods, exports, regex names) or prefer path heuristics by adjusting the `NEGATIVE_PATH_SCORES` / `POSITIVE_PATH_SCORES` in `discovery.js`.
-- **Slow discovery** – Run the suite once to warm the cache; subsequent runs should be <10ms. For huge repos, seed the cache in a `beforeAll` hook or scope discovery to the package using `getDiscoveryEngine(path.resolve(__dirname, '..'))`.
+- **Signature misses** – Start with a simple signature (name only), then add
+  method checks one by one to see which property is missing.
+- **Cache confusion** – Delete `.test-discovery-cache.json` or call
+  `await engine.clearCache()` if you rename files during the test run.
+- **Multiple matches** – Add more context (methods, exports, regex names) or
+  prefer path heuristics by adjusting the `NEGATIVE_PATH_SCORES` /
+  `POSITIVE_PATH_SCORES` in `discovery.js`.
+- **Slow discovery** – Run the suite once to warm the cache; subsequent runs
+  should be <10ms. For huge repos, seed the cache in a `beforeAll` hook or
+  scope discovery to the package using
+  `getDiscoveryEngine(path.resolve(__dirname, '..'))`.
 
 ## Automated Releases
 
-Publishing to npm and PyPI is handled by the `Publish` GitHub Actions workflow. Creating a GitHub release will:
+Publishing to npm and PyPI is handled by the `Publish` GitHub Actions workflow.
+Creating a GitHub release will:
 
 1. Run `npm run prepublishOnly` to build and test the JavaScript package.
 2. Publish `adaptive-tests` to npm using `NPM_TOKEN`.
@@ -348,8 +409,10 @@ Publishing to npm and PyPI is handled by the `Publish` GitHub Actions workflow. 
 
 ### One-time setup
 
-- Add repository secrets `NPM_TOKEN` (npm automation token with publish rights) and `PYPI_TOKEN` (PyPI API token).
-- Bump package versions (`package.json` and `packages/adaptive-tests-py/pyproject.toml`) before tagging.
+- Add repository secrets `NPM_TOKEN` (npm automation token with publish rights)
+  and `PYPI_TOKEN` (PyPI API token).
+- Bump package versions (`package.json` and
+  `packages/adaptive-tests-py/pyproject.toml`) before tagging.
 - Draft a GitHub release. When it’s published, the workflow pushes both packages.
 
 ## 💡 Who's Using Adaptive Tests
@@ -371,7 +434,8 @@ Publishing to npm and PyPI is handled by the `Publish` GitHub Actions workflow. 
   </tr>
 </table>
 
-> "Adaptive Tests fundamentally changed how we think about test maintenance. It's not just a tool, it's a paradigm shift." - *Early Adopter*
+> "Adaptive Tests fundamentally changed how we think about test maintenance.
+> It's not just a tool, it's a paradigm shift." - *Early Adopter*
 
 ## 🎯 Perfect For
 
@@ -384,13 +448,17 @@ Publishing to npm and PyPI is handled by the `Publish` GitHub Actions workflow. 
 ## FAQ
 
 **Q: Are the tests actually validating functionality, or just always passing?**
-A: They validate real functionality! Run `npm run validate` to see adaptive tests fail on actual bugs. The difference is they fail for the RIGHT reasons (bugs in code) not WRONG reasons (moved files).
+A: They validate real functionality! Run `npm run validate` to see adaptive
+tests fail on actual bugs. The difference is they fail for the RIGHT reasons
+(bugs in code) not WRONG reasons (moved files).
 
 **Q: Doesn't dynamic discovery slow down tests?**
-A: First run: ~100ms to scan. Subsequent runs: <10ms using cache. Worth it to never fix imports again.
+A: First run: ~100ms to scan. Subsequent runs: <10ms using cache. Worth it to
+never fix imports again.
 
 **Q: What about TypeScript?**
-A: Full TypeScript support via `TypeScriptDiscoveryEngine`. Run `npm test` to execute the ts-jest suite or explore `examples/typescript/` for a full demo.
+A: Full TypeScript support via `TypeScriptDiscoveryEngine`. Run `npm test` to
+execute the ts-jest suite or explore `examples/typescript/` for a full demo.
 
 **Q: Can this work with my framework?**
 A: Yes. Framework agnostic. Works with Jest, Mocha, Vitest, anything.
@@ -417,16 +485,17 @@ MIT - Use it anywhere, for anything.
 ## Links
 
 - [Quick Start Guide](QUICKSTART.md) - Get running in 5 minutes
-- [Proof Tests Are Real](PROOF.md) - Evidence that adaptive tests validate real functionality
+- [Proof Tests Are Real](PROOF.md) - Evidence that adaptive tests validate real
+  functionality
 - [Contributing](CONTRIBUTING.md) - Help make testing better for everyone
 - [Examples](examples/) - Calculator, TypeScript, and more
 
 ## 🌟 Recognition
 
-- Featured on [JavaScript Weekly](#) *(coming soon)*
-- Trending on [Hacker News](#) *(submit your story)*
+- Featured on JavaScript Weekly *(coming soon)*
+- Trending on Hacker News *(submit your story)*
 - [Dev.to Article](https://dev.to/adaptive-tests) with 10k+ views *(planned)*
-- Conference talks at [JSConf](#), [NodeConf](#) *(proposals submitted)*
+- Conference talks at JSConf, NodeConf *(proposals submitted)*
 
 ## 📈 Roadmap
 
@@ -454,8 +523,10 @@ MIT - Use it anywhere, for anything.
 ## Support
 
 <p align="center">
-  <a href="https://github.com/anon57396/adaptive-tests/issues">🐛 Report Bug</a> •
-  <a href="https://github.com/anon57396/adaptive-tests/discussions">💬 Discussions</a> •
+  <a href="https://github.com/anon57396/adaptive-tests/issues">
+    🐛 Report Bug</a> •
+  <a href="https://github.com/anon57396/adaptive-tests/discussions">
+    💬 Discussions</a> •
   <a href="https://twitter.com/adaptivetests">🐦 Twitter</a> •
   <a href="https://discord.gg/adaptive-tests">💬 Discord</a>
 </p>

@@ -8,6 +8,11 @@ export class ConfigLoader {
             maxDepth: number;
             skipDirectories: string[];
             scoring: {
+                minCandidateScore: number;
+                recency: {
+                    maxBonus: number;
+                    halfLifeHours: number;
+                };
                 paths: {
                     positive: {
                         '/src/': number;
@@ -125,6 +130,11 @@ export namespace DEFAULT_CONFIG {
         let maxDepth: number;
         let skipDirectories: string[];
         namespace scoring {
+            export let minCandidateScore: number;
+            export namespace recency {
+                let maxBonus: number;
+                let halfLifeHours: number;
+            }
             export namespace paths {
                 let positive: {
                     '/src/': number;
