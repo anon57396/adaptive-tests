@@ -24,7 +24,7 @@
     "demo:broken:ts": "node scripts/demo/demo-broken-ts.js",
     "restore:broken:ts": "node scripts/demo/restore-broken-ts.js",
     "validate": "node scripts/demo/validate.js",
-    "demo": "npm run restore && npm run test:both && echo '\n🔧 REFACTORING...\n' && npm run refactor && echo '\n📝 TRADITIONAL TESTS:\n' && npm run test:traditional || true && echo '\n✅ ADAPTIVE TESTS:\n' && npm run test:adaptive",
+    "demo": "npm run restore && npm run test:both && echo '\n\ud83d\udd27 REFACTORING...\n' && npm run refactor && echo '\n\ud83d\udcdd TRADITIONAL TESTS:\n' && npm run test:traditional || true && echo '\n\u2705 ADAPTIVE TESTS:\n' && npm run test:adaptive",
     "demo:full": "npm run validate",
     "compare": "node scripts/demo/compare.js",
     "benchmark": "node scripts/demo/benchmark.js",
@@ -124,5 +124,8 @@
       "require": "./src/adaptive/index.js"
     },
     "./package.json": "./package.json"
+  },
+  "dependencies": {
+    "@babel/parser": "^7.25.0"
   }
 }
