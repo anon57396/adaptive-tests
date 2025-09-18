@@ -1,5 +1,10 @@
 # Changelog
 
+
+## [0.1.1] - 2025-09-18
+- Fix npm metadata links (repository/homepage/author)
+- Bump package version for republish
+
 All notable changes to this project will be documented in this file.
 
 ## [0.1.0] - 2025-09-18

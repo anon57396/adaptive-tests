@@ -2,14 +2,14 @@
 
 <!-- LOGO PLACEHOLDER -->
 <p align="center">
-  <a href="https://github.com/adaptive-tests/adaptive-tests">
+  <a href="https://github.com/anon57396/adaptive-tests">
     <!-- <img src="path/to/your/logo.svg" alt="Adaptive Tests Logo" width="200" /> -->
   </a>
 </p>
 <!-- END LOGO PLACEHOLDER -->
 
 <p align="center">
-  <a href="https://github.com/adaptive-tests/adaptive-tests/actions/workflows/validate.yml"><img src="https://github.com/adaptive-tests/adaptive-tests/actions/workflows/validate.yml/badge.svg" alt="Build Status"></a>
+  <a href="https://github.com/anon57396/adaptive-tests/actions/workflows/validate.yml"><img src="https://github.com/anon57396/adaptive-tests/actions/workflows/validate.yml/badge.svg" alt="Build Status"></a>
   <a href="https://www.npmjs.com/package/adaptive-tests"><img src="https://img.shields.io/npm/v/adaptive-tests.svg" alt="npm version"></a>
   <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT"></a>
 </p>
@@ -52,7 +52,7 @@ const { discover } = require('adaptive-tests');
 
 <!-- DEMO GIF PLACEHOLDER -->
 <p align="center">
-  <a href="https://github.com/adaptive-tests/adaptive-tests">
+  <a href="https://github.com/anon57396/adaptive-tests">
     <!-- <img src="path/to/your/demo.gif" alt="Adaptive Tests Demo" /> -->
   </a>
 </p>
@@ -99,7 +99,7 @@ const UserService = await discoverTarget({
 
 ```bash
 # Clone this repo
-git clone https://github.com/adaptive-tests/adaptive-tests.git
+git clone https://github.com/anon57396/adaptive-tests.git
 cd adaptive-tests
 
 # Install dependencies
@@ -274,5 +274,5 @@ MIT - Use it anywhere, for anything.
 ## Support
 
 ⭐ Star this repo if it helped you
-🐛 [Report issues](https://github.com/adaptive-tests/adaptive-tests/issues)
+🐛 [Report issues](https://github.com/anon57396/adaptive-tests/issues)
 💡 Share your success stories
