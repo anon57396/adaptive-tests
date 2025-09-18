@@ -1,0 +1,8 @@
+{
+  "{\"name\":\"Calculator\",\"type\":\"class\",\"exports\":\"Calculator\",\"methods\":[\"add\",\"divide\",\"multiply\",\"subtract\"]}": {
+    "path": "/Users/jasonkempf/Documents/GitHub/adaptive-tests/examples/calculator/src/Calculator.js",
+    "access": {
+      "type": "direct"
+    }
+  }
+}

@@ -2,6 +2,7 @@
  * Adaptive Test - Survives any refactoring!
  */
 
+const path = require('path');
 const { AdaptiveTest } = require('../../../../src/adaptive/test-base');
 const { getDiscoveryEngine } = require('../../../../src/adaptive/discovery');
 
@@ -17,7 +18,7 @@ class CalculatorAdaptiveTest extends AdaptiveTest {
 }
 
 // Setup adaptive discovery
-const engine = getDiscoveryEngine(require('path').resolve(__dirname, '../../../..'));
+const engine = getDiscoveryEngine(path.resolve(__dirname, '../..'));
 
 describe('Calculator - Adaptive Tests', () => {
   let Calculator;

@@ -73,3 +73,4 @@ npm run test:adaptive     # ✅
 Adaptive tests are **real tests** that happen to be smart about finding their targets.
 
 They don't eliminate test failures - they eliminate the WRONG KIND of test failures (broken imports) while preserving the RIGHT KIND (actual bugs).
+Need a quick regression check? Run `npm test` to execute both the JavaScript and TypeScript adaptive suites in one shot.

@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "strict": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "types": [
+      "node",
+      "jest"
+    ],
+    "isolatedModules": true
+  },
+  "include": [
+    "src/**/*.ts",
+    "examples/**/*.ts",
+    "tests/**/*.ts"
+  ]
+}

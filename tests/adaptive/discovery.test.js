@@ -3,6 +3,7 @@ const os = require('os');
 const path = require('path');
 
 const { getDiscoveryEngine, DiscoveryEngine } = require('../../src/adaptive/discovery');
+const { getTypeScriptDiscoveryEngine } = require('../../src/adaptive/typescript/discovery');
 
 const repoRoot = path.resolve(__dirname, '..', '..');
 
@@ -72,5 +73,27 @@ describe('DiscoveryEngine', () => {
     engineB.clearCache();
     fs.rmSync(dirA, { recursive: true, force: true });
     fs.rmSync(dirB, { recursive: true, force: true });
+  });
+});
+
+describe('TypeScriptDiscoveryEngine', () => {
+  const engine = getTypeScriptDiscoveryEngine(repoRoot);
+
+  beforeEach(() => {
+    engine.clearCache();
+  });
+
+  test('discovers TypeScript classes without touching broken stubs', async () => {
+    const Calculator = await engine.discoverTarget({
+      name: 'Calculator',
+      type: 'class',
+      methods: ['add', 'subtract', 'multiply', 'divide'],
+      exports: 'Calculator'
+    });
+
+    const instance = new Calculator();
+    expect(instance.add(2, 3)).toBe(5);
+    expect(instance.multiply(4, 5)).toBe(20);
+    expect(() => instance.divide(10, 0)).toThrow('Division by zero');
   });
 });

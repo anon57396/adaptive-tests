@@ -8,6 +8,7 @@ const fs = require('fs');
 const path = require('path');
 
 const MAX_SCAN_DEPTH = 10;
+const DEFAULT_EXTENSIONS = ['.js', '.cjs', '.mjs', '.ts', '.tsx'];
 const NEGATIVE_PATH_SCORES = [
   { keyword: '/__tests__/', score: -50 },
   { keyword: '/__mocks__/', score: -45 },
@@ -39,7 +40,38 @@ function escapeRegExp(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
+let tsNodeRegistered = false;
+
+function ensureTypeScriptSupport() {
+  if (tsNodeRegistered) {
+    return;
+  }
+
+  try {
+    require('ts-node').register({
+      transpileOnly: true,
+      preferTsExts: true,
+      compilerOptions: {
+        module: 'commonjs',
+        target: 'es2020',
+        moduleResolution: 'node',
+        esModuleInterop: true,
+        resolveJsonModule: true
+      }
+    });
+    tsNodeRegistered = true;
+  } catch (error) {
+    const help = 'TypeScript support requires the optional peer dependency "ts-node". Install it or precompile your .ts files.';
+    error.message = `${help}\n${error.message}`;
+    throw error;
+  }
+}
+
 function freshRequire(modulePath) {
+  const ext = path.extname(modulePath);
+  if (ext === '.ts' || ext === '.tsx') {
+    ensureTypeScriptSupport();
+  }
   const resolved = require.resolve(modulePath);
   delete require.cache[resolved];
   return require(resolved);
@@ -55,8 +87,11 @@ function serializeSignatureForError(signature) {
 }
 
 class DiscoveryEngine {
-  constructor(rootPath = process.cwd()) {
+  constructor(rootPath = process.cwd(), options = {}) {
     this.rootPath = normalizeRoot(rootPath);
+    this.extensions = Array.isArray(options.extensions) && options.extensions.length > 0
+      ? [...new Set(options.extensions.map(ext => ext.startsWith('.') ? ext : `.${ext}`))]
+      : DEFAULT_EXTENSIONS;
     this.cacheFile = path.join(this.rootPath, '.test-discovery-cache.json');
     this.cache = new Map();
     this.discoveryCache = {};
@@ -143,7 +178,16 @@ class DiscoveryEngine {
         continue;
       }
 
-      if (!entry.isFile() || !entry.name.endsWith('.js')) {
+      if (!entry.isFile()) {
+        continue;
+      }
+
+      const ext = path.extname(entry.name);
+      if (!this.extensions.includes(ext)) {
+        continue;
+      }
+
+      if (ext === '.ts' && entry.name.endsWith('.d.ts')) {
         continue;
       }
 
@@ -167,6 +211,7 @@ class DiscoveryEngine {
 
     const score =
       this.scoreFileName(fileName, signature) +
+      this.scoreExtension(filePath) +
       this.scorePath(filePath) +
       this.scoreNameMentions(fileContent, signature) +
       this.scoreExportHints(fileContent, signature) +
@@ -621,6 +666,20 @@ class DiscoveryEngine {
     }
 
     return score;
+  }
+
+  scoreExtension(filePath) {
+    const ext = path.extname(filePath);
+    if (ext === '.ts' || ext === '.tsx') {
+      return 18;
+    }
+    if (ext === '.mjs') {
+      return 6;
+    }
+    if (ext === '.cjs') {
+      return 4;
+    }
+    return 0;
   }
 
   scoreFileName(fileName, signature) {

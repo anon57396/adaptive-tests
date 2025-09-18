@@ -97,6 +97,8 @@ The discovery engine now scores every candidate module before it ever gets requi
 
 Unit coverage (`tests/adaptive/discovery.test.js`) locks these guarantees in so regressions are caught before release.
 
+Need TypeScript? Import `getTypeScriptDiscoveryEngine` from `src/adaptive/typescript/discovery` and the same heuristics apply to `.ts` files via the TypeScript compiler API.
+
 ## Quick Start
 
 ### 1. Copy the discovery engine
@@ -172,7 +174,7 @@ A: They validate real functionality! Run `npm run validate` to see adaptive test
 A: First run: ~100ms to scan. Subsequent runs: <10ms using cache. Worth it to never fix imports again.
 
 **Q: What about TypeScript?**
-A: Full TypeScript support. See `examples/typescript/`.
+A: Full TypeScript support via `TypeScriptDiscoveryEngine`. Run `npm test` to execute the ts-jest suite or explore `examples/typescript/` for a full demo.
 
 **Q: Can this work with my framework?**
 A: Yes. Framework agnostic. Works with Jest, Mocha, Vitest, anything.
