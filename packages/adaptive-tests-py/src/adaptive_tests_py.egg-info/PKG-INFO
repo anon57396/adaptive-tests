@@ -1,0 +1,43 @@
+Metadata-Version: 2.4
+Name: adaptive-tests-py
+Version: 0.1.0
+Summary: Adaptive test discovery for Python projects
+Author-email: Jason Kempf <jasonkempf@gmail.com>
+License: MIT
+Project-URL: Homepage, https://github.com/anon57396/adaptive-tests
+Project-URL: Repository, https://github.com/anon57396/adaptive-tests
+Project-URL: Issues, https://github.com/anon57396/adaptive-tests/issues
+Classifier: Development Status :: 3 - Alpha
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python :: 3
+Classifier: Topic :: Software Development :: Testing
+Requires-Python: >=3.8
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Dynamic: license-file
+
+# adaptive-tests-py
+
+Python port of the adaptive discovery engine. It mirrors the JavaScript API so polyglot teams can keep their testing strategy consistent across stacks.
+
+## Installation
+
+```bash
+pip install adaptive-tests-py
+```
+
+## Usage
+
+```python
+from adaptive_tests_py import DiscoveryEngine, Signature
+
+engine = DiscoveryEngine(root=".")
+TodoService = engine.discover(
+    Signature(name="TodoService", methods=["add", "complete", "list"])
+)
+
+service = TodoService()
+service.add("Ship adaptive tests")
+```
+
+See `examples/python/` for a full pytest demo and advanced signatures.

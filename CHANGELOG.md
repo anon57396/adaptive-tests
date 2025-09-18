@@ -1,6 +1,11 @@
 # Changelog
 
-## [0.2.0] - 2025-09-18
+## [0.2.1] - 2024-09-18
+- Fixed npm package.json bin path warning
+- Added demo.gif to package for visual documentation
+- Enhanced README with animated demonstration
+
+## [0.2.0] - 2024-09-18
 - Added Python example (`examples/python/`) and companion `adaptive-tests-py` package scaffold for PyPI
 - Documented cross-language recipes (React components, Node microservices, Prisma/TypeORM repositories)
 - Added troubleshooting tips for signature debugging and cache management

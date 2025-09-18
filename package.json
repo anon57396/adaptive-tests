@@ -1,10 +1,10 @@
 {
   "name": "adaptive-tests",
-  "version": "0.1.3",
+  "version": "0.2.1",
   "description": "Adaptive test discovery that survives refactors without losing real bug coverage.",
   "main": "src/adaptive/index.js",
   "bin": {
-    "adaptive-tests": "./src/cli/init.js"
+    "adaptive-tests": "src/cli/init.js"
   },
   "scripts": {
     "test": "jest",
@@ -23,7 +23,7 @@
     "demo:broken:ts": "node demo-broken-ts.js",
     "restore:broken:ts": "node restore-broken-ts.js",
     "validate": "node validate.js",
-    "demo": "npm run restore && npm run test:both && echo '\\n\ud83d\udd27 REFACTORING...\\n' && npm run refactor && echo '\\n\ud83d\udcdd TRADITIONAL TESTS:\\n' && npm run test:traditional || true && echo '\\n\u2705 ADAPTIVE TESTS:\\n' && npm run test:adaptive",
+    "demo": "npm run restore && npm run test:both && echo '\\n🔧 REFACTORING...\\n' && npm run refactor && echo '\\n📝 TRADITIONAL TESTS:\\n' && npm run test:traditional || true && echo '\\n✅ ADAPTIVE TESTS:\\n' && npm run test:adaptive",
     "demo:full": "npm run validate",
     "compare": "node compare.js",
     "benchmark": "node benchmark.js",
@@ -90,7 +90,10 @@
     "types",
     "LICENSE",
     "README.md",
-    "CHANGELOG.md"
+    "CHANGELOG.md",
+    "ROADMAP.md",
+    "SECURITY.md",
+    "demo.gif"
   ],
   "engines": {
     "node": ">=16.0.0"
