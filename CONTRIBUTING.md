@@ -6,6 +6,47 @@ This is a simple idea that should have existed years ago. Help make it better.
 
 Tests should validate functionality, not file locations. This project shows how.
 
+## Development Setup
+
+### Prerequisites
+
+- **Node.js**: Version 16.0.0 or higher (see `engines` field in package.json)
+- **npm**: Version 7.0.0 or higher
+- **Git**: For cloning the repository
+
+### Getting Started
+
+```bash
+# Clone the repository
+git clone https://github.com/anon57396/adaptive-tests.git
+cd adaptive-tests
+
+# Install dependencies
+npm install
+
+# Run tests to verify setup
+npm test
+
+# Run the validation script
+npm run validate
+```
+
+### VS Code Extension Development
+
+If you're working on the VS Code extension:
+
+```bash
+cd extensions/vscode-adaptive-tests
+npm install
+npm run compile
+
+# Open VS Code and press F5 to launch the extension development host
+```
+
+## Code of Conduct
+
+Please read our [Code of Conduct](CODE_OF_CONDUCT.md) before contributing. We are committed to providing a welcoming and inclusive environment for all contributors.
+
 ## How to Contribute
 
 ### Share Your Use Cases

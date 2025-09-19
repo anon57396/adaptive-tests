@@ -1,6 +1,8 @@
 # Internal Execution Plan – Adaptive Tests
 
-This document translates our recent prioritization into concrete, actionable work. It is an internal guide for planning, implementation, validation, and release. Some sections outline exploratory directions for discussion; they are non-committal and intended to inform, not overstate, our public roadmap.
+This document tracks the project's strategic goals, development phases, and next steps. It is an internal guide for planning and execution.
+
+**Project Status (September 2025): Ahead of Schedule.** The project has demonstrated exceptional velocity, completing major milestones far ahead of the original timeline. Full Java support and a comprehensive VS Code extension, originally planned as "Later" items, are now complete. This plan has been updated to reflect these accomplishments and to outline the next strategic phase: driving adoption.
 
 ## Principles
 
@@ -9,432 +11,77 @@ This document translates our recent prioritization into concrete, actionable wor
 - Make new features explainable: every result should have a way to "show why".
 - Prefer HTML + JSON artifacts for CI and debugging.
 
-## Language Expansion Strategy
+---
 
-### Prioritization Rationale
+## ✅ Completed Milestones
 
-We target languages where refactoring pain is highest and communities are largest:
+### Phase 1: Core Engine & CLI (Complete)
+- **Core Discovery Engine:** A robust, zero-runtime discovery engine using AST analysis was implemented.
+- **Smart Test Scaffolding:** The `npx adaptive-tests scaffold` command was created to automatically generate test files from source metadata.
+- **Discovery Lens:** The `npx adaptive-tests why` command was implemented to provide transparent, debuggable insights into the discovery process.
+- **TypeScript Support:** Full support for TypeScript, including path alias resolution, was integrated into the core engine.
 
-**Tier 1 - Immediate ROI:**
-- **PHP** (3-6 weeks): Quickest implementation via JS extension, massive community (WordPress, Laravel, Symfony), high refactoring pain
-- **Java** (6-8 weeks): Enterprise credibility, Spring Boot dominance, deepest refactoring pain in large codebases
+### Phase 2: Language Expansion (Complete)
+- **PHP Support:** Full discovery and scaffolding support for PHP was implemented, leveraging the `php-parser` library within the Node.js environment.
+- **Java Support:** A comprehensive Java integration was completed. This includes an AST bridge using `java-parser`, rich metadata extraction, and JUnit 5 test generation that respects Maven/Gradle project structures.
 
-**Tier 2 - Strategic Growth:**
-- **Go** (6-8 weeks): Cloud-native ecosystem, microservices architecture, excellent built-in AST support
-- **C#** (12+ weeks): Microsoft ecosystem, Unity game development, enterprise .NET applications
+### Phase 3: IDE Integration & API (Complete)
+- **VS Code Extension:** A full-featured VS Code extension was developed, significantly exceeding the original scope of a simple "optional panel."
+- **Key Features:**
+    - **Interactive Discovery Lens:** A webview UI for the `why` command.
+    - **Smart Scaffolding:** Right-click context menus for file and folder scaffolding.
+    - **Smart Test Detection:** Dynamic context menus that change based on test existence.
+- **Hub-Ready API:** The extension was architected with a public API surface, making it ready for Phase 2 of the Cypher Suite vision (unification into a single "Hub" extension).
 
-### Implementation Approach
+---
 
-- **PHP**: Extend existing JS codebase using php-parser npm package (lowest effort, highest reach)
-- **Java/Go/C#**: Native implementations for performance and idiomatic integration
-- All languages share core concepts: signatures, scoring, zero-runtime discovery
+## 🚀 Next Strategic Focus: Growth & Adoption
 
-## Milestones Overview
-
-- Now (next 2 weeks)
-  - Smart Test Scaffolding (CLI: `scaffold`)
-  - TS path alias resolution in discovery/collection
-  - Discovery failure UX: friendly suggestions + top candidates + "run why" hint
-  - Framework recipes: React components, Express services, Monorepo configs
-- Next (3–6 weeks)
-  - Interactive Visualizer (CLI: `visualize`) – HTML graph
-  - Test Gap Analysis (CLI: `gaps`) – static MVP
-  - PR artifacts for visualize/gaps
-  - Vitest/Mocha recipes, TS templates for scaffold
-  - **PHP Support** (Quick win - extend JS codebase)
-- Later (6+ weeks)
-  - **Java Implementation** (Enterprise credibility)
-  - **Go Implementation** (Cloud native adoption)
-  - Refactor Assistant (CLI: `refactor`) – dry‑run AST rewrite + diff + `--apply`
-  - Selective TS migration of core surfaces
-  - Optional IDE panel (Lens/Visualizer) once CLI stabilizes
-- Future (12+ weeks)
-  - **C# (.NET) Implementation** (Microsoft ecosystem)
-
-## Milestone: Now (2 weeks)
-
-### 1) Smart Test Scaffolding (CLI: `scaffold <path-or-name>`)
-
-- Outcome
-  - Generates `tests/adaptive/<Name>.test.js` (and `.ts` variant) with a perfect discovery signature derived from source metadata and `it(...)` placeholders per public method.
-- Acceptance Criteria
-  - Given a class/function file, `npx adaptive-tests scaffold src/.../UserService.js` creates a runnable test file with:
-    - Signature: type, name, `exports` if named, method list (top‑level public instance methods), and optional `properties` if identified.
-    - One `it` block per method with TODO comments.
-    - Works for ESM and CJS export styles.
-  - `--typescript` emits `.ts` test with imports typed from the public API.
-- Implementation Notes
-  - Reuse `analyzeModuleExports` + `extractClassInfo`/`extractFunctionInfo` for metadata.
-  - Template files under `templates/scaffold/{js,ts}.txt` to keep code clean.
-  - Resolve `<path-or-name>`: path wins; otherwise search by signature name and choose top Lens candidate.
-- Tests
-  - Fixtures: simple class, named exports, default exports, multiple exports (select primary).
-  - Snapshot tests for generated files.
-- Docs
-  - README: add a “Scaffold” snippet.
-  - New page: docs/recipes/Scaffold.md (short, copy/paste guide).
-
-### 2) TS Path Alias Resolution
-
-- Outcome
-  - Discovery respects `tsconfig.json` paths and `baseUrl` for collection/import resolution.
-- Acceptance Criteria
-  - If a repo uses `paths` or `baseUrl`, discovery and “importers” resolution (for Visualizer later) resolve modules correctly.
-- Implementation Notes
-  - Load tsconfig (closest to root) and build a resolver map.
-  - Respect `.ts`, `.tsx`, `.js`, `.jsx` priority.
-  - Keep feature behind a small helper to reuse later in Visualizer/Refactor.
-- Tests
-  - Fixture with `baseUrl` and `paths` pointing into `src/`.
-
-### 3) Discovery Failure UX
-
-- Outcome
-  - On failure, the error message shows:
-    - “Try: npx adaptive-tests why '<sig>'”
-    - Up to 3 top candidates with scores (reuse Lens `calculateScoreDetailed`).
-    - A suggested signature block when we can derive it.
-- Acceptance Criteria
-  - Clear, actionable errors that unblock users without reading docs.
-- Tests
-  - Snapshot error messages for typical failures.
-
-### 4) Framework Recipes (Docs + Tiny Examples)
-
-- Outcome
-  - React components + Express services + Monorepo (pnpm/Nx/Turbo) recipes.
-- Acceptance Criteria
-  - Each recipe has a minimal example and a tuned `adaptive-tests.config.js` when helpful.
-- Docs
-  - docs/recipes/React.md
-  - docs/recipes/Express.md
-  - docs/recipes/Monorepo.md
-
-## Milestone: Next (3–6 weeks)
-
-### 5) Interactive Visualizer (CLI: `visualize <signature-or-path>`) – HTML + JSON
-
-- Outcome
-  - Generates `visualize/<name>.html` (plus `<name>.json`) with a graph of:
-    - Center node: chosen component
-    - Test nodes: tests that discover it
-    - Importer nodes: modules that import it (direct dependents)
-- Acceptance Criteria
-  - Zoom/pan, hover details with Lens score snippets, search by node name.
-  - CLI flags: `--depth`, `--include`, `--exclude`, `--out`.
-- Implementation Notes
-  - Build import graph by scanning AST `ImportDeclaration`/`require()`.
-  - Node data includes path, export/methods summary; edges labeled by relation.
-  - Use D3 or Cytoscape; bundle as standalone HTML + embedded JSON.
-- Tests
-  - Fixture: small app with 2–3 modules and 2 tests.
-  - Verify JSON content and presence of key nodes/edges.
-- CI
-  - GitHub Action step to upload `visualize/*.html` as artifacts on PRs.
-
-### 6) Test Gap Analysis (CLI: `gaps`) – static MVP
-
-- Outcome
-  - Reports untested components and list of public methods not mentioned in tests for tested components.
-- Acceptance Criteria
-  - Output: human‑readable table + `gaps.json` for tooling.
-  - Optional flags: `--report untested,methods`, `--json`.
-- Implementation Notes
-  - Discover production components (reuse collector + metadata).
-  - Parse tests for `discover()/discoverTarget()` and scan for method mentions; consider basic MemberExpression usage.
-  - v2: add runtime proof mode (opt‑in) wiring to coverage to confirm method calls.
-- Tests
-  - Fixtures: class with 3 methods, tests calling 2 → warn for the 3rd.
-- CI
-  - Optional step to upload `gaps.json`/HTML artifact.
-
-### 7) Vitest/Mocha Recipes + TS Templates
-
-- Outcome
-  - Low-friction adoption for non-Jest projects and TypeScript test scaffolding.
-
-### 8) Java Parity – adaptive-tests-java (Core + CLI)
-
-- Outcome
-  - Deliver a first-class Java implementation so JS/TS/Python/Java have feature parity.
-- Scope Summary
-  - **Modules**: Maven multi-module project (`core`, `cli`, `examples`, `integration-tests`).
-  - **Parsing**: JavaParser for AST inspection; zero-runtime discovery via custom class loader.
-  - **Configuration**: Read defaults plus overrides from `adaptive-tests.config.json`, `.adaptive-tests-java.json`, or `[adaptiveTests]` sections in `pom.xml` / `build.gradle`.
-  - **CLI**: Picocli-based tool with `discover`, `why`, and `scaffold` commands mirroring JS/Python UX.
-  - **Framework Support**: JUnit 5 AdaptiveTest base + extension (priority), optional adapters for JUnit 4/TestNG.
-  - **Examples**: Spring Boot sample proving resilience to package refactors.
-- Acceptance Criteria
-  - Discovery engine locates classes/interfaces after package/file moves, with scoring + caching parity.
-  - CLI produces JUnit stubs that call `JavaDiscoveryEngine` analogous to other languages.
-  - Integration suite exercises Gradle/Maven builds and a Spring Boot refactor scenario.
-  - Documentation covers setup, CLI usage, and CI integration (run adaptive tests on every build).
-- Deliverables
-  1. Maven project skeleton committed with CI.
-  2. Config + discovery engine with unit tests.
-  3. CLI & scaffolder with integration tests.
-  4. Spring Boot example + docs.
-
-### 9) PHP Parity – adaptive-tests-php (Quick Win)
-
-- Outcome
-  - Target the massive PHP community with minimal effort by leveraging existing JS infrastructure.
-- Scope Summary
-  - **Architecture**: Hybrid approach - JS/Node CLI wrapper calling php-parser for AST analysis.
-  - **Parsing**: Use nikic/php-parser (via npm php-parser package) for zero-runtime discovery.
-  - **Configuration**: Support `adaptive-tests.config.json` and composer.json `[extra][adaptive-tests]` section.
-  - **CLI**: Extend existing JS CLI with PHP-specific commands.
-  - **Framework Support**: PHPUnit integration (priority), optional Pest/Codeception adapters.
-  - **Examples**: Laravel and Symfony samples showing namespace refactoring resilience.
-- Acceptance Criteria
-  - Discovery engine handles PHP namespaces, traits, interfaces after moves.
-  - Generates PHPUnit test stubs with appropriate use statements.
-  - Works with Composer autoloading (PSR-4, PSR-0, classmap).
-  - Integration with popular frameworks (Laravel, Symfony, WordPress).
-- Deliverables
-  1. PHP support added to existing JS codebase.
-  2. PHPUnit base test class and traits.
-  3. Laravel/Symfony examples with CI.
-  4. Packagist release as `adaptive-tests/php`.
-
-### 10) Go Implementation – adaptive-tests-go (Cloud Native)
-
-- Outcome
-  - Native Go implementation targeting microservices and cloud-native applications.
-- Scope Summary
-  - **Architecture**: Pure Go implementation leveraging go/ast and go/parser standard library.
-  - **Parsing**: Built-in Go AST parser for zero-runtime discovery.
-  - **Configuration**: Support `adaptive-tests.yaml` and go.mod directives.
-  - **CLI**: Cobra-based CLI matching JS/Python/Java UX.
-  - **Framework Support**: Native go test integration, optional Ginkgo/Gomega support.
-  - **Examples**: HTTP service, gRPC service, CLI tool showing refactoring resilience.
-- Acceptance Criteria
-  - Handles Go modules, packages, and vendoring correctly.
-  - Respects Go workspace mode and replace directives.
-  - Generates idiomatic Go test files with proper imports.
-  - Works with common Go project layouts (standard, DDD, clean architecture).
-- Deliverables
-  1. Go module at github.com/adaptive-tests/go.
-  2. Discovery engine with caching and scoring.
-  3. CLI with discover, why, scaffold, gaps commands.
-  4. Kubernetes operator example.
-
-### 11) C# (.NET) Implementation – AdaptiveTests.NET
-
-- Outcome
-  - Enterprise .NET and Unity game development support via Roslyn-powered implementation.
-- Scope Summary
-  - **Architecture**: .NET 6+ implementation using Roslyn APIs for analysis.
-  - **Parsing**: Roslyn syntax trees and semantic model for rich discovery.
-  - **Configuration**: Support appsettings.json, .editorconfig, and adaptive-tests.json.
-  - **CLI**: System.CommandLine-based tool as dotnet global tool.
-  - **Framework Support**: xUnit (priority), NUnit, MSTest adapters.
-  - **Examples**: ASP.NET Core API, Blazor app, Unity game scripts.
-- Acceptance Criteria
-  - Handles C# 10+ features (records, top-level programs, global usings).
-  - Respects .NET project references and NuGet packages.
-  - Generates test files with proper async/await patterns.
-  - Unity-specific support for MonoBehaviour discovery.
-- Deliverables
-  1. NuGet package: AdaptiveTests.Core, AdaptiveTests.xUnit.
-  2. dotnet tool: dotnet-adaptive-tests.
-  3. Visual Studio extension for test discovery.
-  4. Unity package via OpenUPM.
-
-## Milestone: Later (6+ weeks)
-
-### 8) Refactor Assistant (CLI: `refactor --move <old> --to <new>`)
-
-- Outcome
-  - Dry‑run AST rewrite of import specifiers; print diff; apply with `--apply`.
-- Acceptance Criteria
-  - ESM `import` and CJS `require()` supported; TS path aliases v2.
-  - On unresolved rewrite, leave a clear TODO marker and continue.
-- Tests
-  - Fixtures for relative/aliased paths; before/after snapshots.
-
-### 9) Selective TS Migration (Core Surfaces)
-
-- Outcome
-  - Stronger `.d.ts`, light TS adoption for critical modules (e.g., config, scoring interfaces), while keeping zero‑config JS usage.
-
-### 10) Optional IDE Panel (Lens/Visualizer)
-
-- Outcome
-  - VS Code read‑only panel loading `why --json` and `visualize` JSON.
-
-## Quality Gates
-
-- Linting: markdownlint + link checker must pass.
-- Tests: all suites green; new CLI features require unit tests and at least one fixture‑based e2e test.
-- Coverage: keep Codecov informational; focus on engine/scoring modules via existing excludes.
-- Performance Budgets: log discovery time for easy repos; document expectations and regressions.
-
-## Instrumentation & Budgets
-
-- Add `why --timings` to print per‑phase timings.
-- Publish per‑run discovery metrics in debug mode: files scanned, candidates kept, parse failures skipped.
-
-## Risks & Mitigations
-
-- Import resolution for aliases → mitigate with tsconfig loader + explicit docs.
-- Static “gaps” false positives → provide runtime proof mode as opt‑in.
-- Visualizer scale on big repos → cache results + include/exclude globs + depth limit.
-- Refactor changes correctness → default to dry‑run, diff view, and precise AST rewrites.
-
-## Issue Seeds (create one issue per bullet)
-
-- CLI: scaffold – JS/TS templates, metadata extraction, path-or-name resolution.
-- Discovery: tsconfig path alias resolution helper.
-- Discovery errors: friendly suggestions + top candidates + signature hint.
-- Docs: recipes for React, Express, Monorepo.
-- CLI: visualize – JSON model + HTML renderer + flags.
-- CLI: gaps – static MVP + JSON + optional runtime proof design.
-- CI: upload visualize/gaps artifacts on PRs.
-- CLI: refactor – dry‑run AST rewrite + diff + `--apply`.
-- Engine: golden fixtures and scoring breakdown golden tests.
-- Instrumentation: `why --timings` + debug metrics logging.
-
-## Success Metrics
-
-- Time‑to‑first‑success: % users who get a passing adaptive test within 10 minutes.
-- Lens usage: % discovery failures where users run `why`.
-- Docs engagement: recipe page views; reduced “how do I” issues.
-- Heuristic bugs: number and time‑to‑fix for mis‑ranked top candidates.
-- Feature adoption: scaffold/visualize/gaps CLI calls per week (anonymous, opt‑in if needed).
-
-## Release & Comms
-
-- Draft release notes per milestone; include demo GIFs and a 60–90s Lens/Visualizer video.
-- Keep “free + support” message: add gentle Sponsor/tip note to new CLI outputs (once per session).
-
-## Python Parity Initiative
-
-Goal: Bring the Python adaptive-tests package to feature parity with the JavaScript engine and ship it as a first-class, OSS-friendly package. Leverage patterns already explored in `CodeCypher/core/tests/infrastructure`.
-
-**Status update (static discovery)** – The Python `DiscoveryEngine` now mirrors the JS zero-runtime guarantees: candidates are scored via `ast` traversal and modules are only imported on-demand when a caller chooses to load the winning result.
-
-### Phase 1 – Core Parity
-
-- Configuration
-  - Support `.adaptive-tests.yml` / `.adaptive-testsrc` / env overrides mirroring JS defaults.
-  - Honor include/exclude globs, scoring config sections (paths, fileName, extensions, typeHints, methods, exports, names, recency).
-- Scoring Engine
-  - Port heuristics from JS `ScoringEngine`; expose `calculate_score_detailed` to feed Discovery Lens.
-  - Implement path/file/name/type/method/export signal extraction for Python AST (classes, functions, attributes).
-- Caching & knowledge
-  - Implement persistent discovery cache (`.test-discovery-cache.json` equivalent).
-  - Optional knowledge store per test (JSON) storing last-known module paths & successful patterns (inspired by `TestKnowledge`).
-- CLI parity
-  - Provide `python -m adaptive_tests why` with identical JSON schema to JS `why`.
-  - Ensure `AdaptiveTest` base class + `discover()` API align with Node version for identical test authoring experience.
-- Fixture parity
-  - Add Python fixtures similar to JS examples (Flask/FastAPI service, util functions, classes) to validate heuristics.
-
-### Phase 2 – Advanced Features from CodeCypher Infra
-
-- Audit / instrumentation abstraction (default to structured logging; allow injection).
-- Async validation and multi-signature tests as baked into base class (`run_adaptive_test`).
-- Self-healing knowledge persistence (opt-in) with JSON store for last-known paths, performance benchmarks.
-
-### Phase 3 – Bundled Tooling
-
-- Python equivalents for `visualize`, `gaps`, `refactor`, sharing schema with JS outputs.
-- Unified CLI story so mixed-language repos can run adaptive commands via one pipeline (JS CLI wrapper invoking Python modules when needed).
-- Additional recipes (Django/FastAPI) and docs to highlight parity.
-
-### Tasks & Checks
-
-- Port `DiscoveryEngine`/`TargetSignature`/`DiscoveredTarget` from CodeCypher infra, removing proprietary dependencies (audit, runtime_paths) or providing adapters.
-- Build shared config loader (YAML/JSON/env) with typed dataclasses.
-- Add pytest fixtures + snapshot tests covering heuristics and knowledge flows.
-- Provide packaging updates (`packages/adaptive-tests-py`) with new entry points, docs, CI build/upload.
-
-## AI-First Adoption Strategy
-
-Objective: Make Adaptive Tests the natural choice for AI agents and automated workflows.
-
-- Prompt-Friendly Docs
-  - Maintain a concise `PROMPT_GUIDE.md` with: what adaptive tests are, example signature, CLI commands (`why`, `gaps`, `visualize`, `scaffold`, `refactor`), and typical failure fixes.
-  - Keep AGENTS.md updated with "playbook" instructions.
-- Machine-Readable CLI Output
-  - Ensure every CLI command offers `--json`; keep schema versioned.
-  - Provide `--quiet/--no-ansi` modes for deterministic logs.
-- Deterministic, Idempotent commands
-  - Dry-run default for mutating commands (`refactor`), explicit `--apply` to mutate.
-  - Consistent exit codes (0 success, 1 failure, 2 recoverable warnings, etc.).
-- Structured Errors & Suggestions
-  - For discovery failures, return both human-readable message and JSON payload (`reason`, `topCandidates`, `nextSteps`).
-- CI Playbooks
-  - Publish ready-to-use GitHub Actions / scripts (e.g., `npm run adaptive:diagnose`) that run tests + `why --json` + `gaps` and upload artifacts—AI agents can invoke a single command.
-- Package Defaults
-  - Ensure `pip install adaptive-tests` mirrors npm package; document minimal `pyproject.toml` snippet for quick adoption.
-- Adoption Metrics
-  - Track CLI usage counts (opt-in telemetry or "anonymous ping file" behind config); if not, rely on user feedback/issues.
-- Future Consideration
-  - Optional hosted hint JSON (static) enumerating known scoring tweaks or sample signatures so agents can query known solutions.
-
-## Wide Adoption Strategy (NEW)
+With the core product vision largely realized, the project's primary focus now shifts from feature development to driving wide adoption. The following strategies will guide this new phase.
 
 ### 1. Zero-Friction Onboarding
-
-- **Instant Value Demo**: Create interactive demo at adaptive-tests.dev showing test surviving a massive refactor
-- **Migration Tool**: `npx adaptive-tests migrate` – automated codemod converting traditional tests
-- **Framework Templates**: Pre-configured setups for Next.js, Vite, CRA, Express with one-line install
-- **5-Minute Video**: Compelling before/after showing 70% test maintenance reduction
+- **Interactive Demo**: Create an interactive demo at adaptive-tests.dev showing a test surviving a massive refactor.
+- **Migration Tool**: `npx adaptive-tests migrate` – an automated codemod to convert traditional tests.
+- **Framework Templates**: Pre-configured setups for Next.js, Vite, CRA, Express with one-line install.
+- **5-Minute Video**: A compelling before/after video showing a 70% reduction in test maintenance.
 
 ### 2. Strategic Positioning
-
-- **Pain-First Messaging**: "Stop Fixing Broken Import Paths" not "Adaptive Test Discovery"
-- **SEO Content**: Target "test maintenance burden", "refactoring breaks tests", "import path errors"
-- **Comparison Matrix**: vs Jest, Vitest, Mocha showing unique value prop
-- **ROI Calculator**: Tool showing hours saved based on team size
+- **Pain-First Messaging**: "Stop Fixing Broken Import Paths," not "Adaptive Test Discovery."
+- **SEO Content**: Target "test maintenance burden," "refactoring breaks tests," "import path errors."
+- **Comparison Matrix**: vs. Jest, Vitest, Mocha, showing the unique value proposition.
+- **ROI Calculator**: A tool showing hours saved based on team size.
 
 ### 3. Framework Integration Fast-Track
-
-- **Jest Plugin** (`jest-adaptive`): Zero-config Jest transformer
-- **Vite Plugin**: Auto-discovery during HMR
-- **Webpack Plugin**: Discovery at build time
-- **VS Code Extension**: Visual test coverage overlay + quick fixes
+- **Jest Plugin** (`jest-adaptive`): A zero-config Jest transformer.
+- **Vite & Webpack Plugins**: For discovery during HMR and at build time.
+- **VS Code Extension Enhancements**: Visual test coverage overlay and quick fixes.
 
 ### 4. Community Catalyst Program
-
-- **Early Adopter Benefits**: Featured case studies, direct support, roadmap influence
-- **Ambassador Program**: Recognize top contributors with swag, conference tickets
-- **Office Hours**: Weekly Zoom sessions for migration help
-- **Bounty Program**: Pay for framework integrations, recipes, translations
+- **Early Adopter Benefits**: Feature case studies, direct support, roadmap influence.
+- **Ambassador Program**: Recognize top contributors with swag and conference tickets.
+- **Office Hours**: Weekly Zoom sessions for migration help.
+- **Bounty Program**: Pay for framework integrations, recipes, and translations.
 
 ### 5. Enterprise Adoption Path
+- **Pilot Package**: A 30-day guided migration for one team.
+- **Success Metrics Dashboard**: To track maintenance time reduction.
+- **Executive Summary Template**: For selling the concept to leadership.
+- **Compliance & Security Docs**: SOC2, GDPR considerations.
 
-- **Pilot Package**: 30-day guided migration for one team
-- **Success Metrics Dashboard**: Track maintenance time reduction
-- **Executive Summary Template**: For selling to leadership
-- **Compliance & Security Docs**: SOC2, GDPR considerations
+---
 
-### 6. Content & Education Blitz
+## 🛠️ Future Development Roadmap
 
-- **Conference Talk Circuit**: "How We Killed Test Maintenance at [Company]"
-- **Dev.to Series**: Weekly posts on specific use cases
-- **YouTube Channel**: Tutorials, tips, success stories
-- **Podcast Tour**: Developer Tea, JS Party, Syntax
+The following major technical features remain in the backlog and will be prioritized based on feedback gathered during the growth and adoption phase.
 
-### 7. Strategic Partnerships
+### Advanced Insights
+- **Interactive Visualizer (`visualize`):** Generate an HTML-based dependency graph showing the relationships between components, tests, and importers.
+- **Test Gap Analysis (`gaps`):** A static analysis tool to report untested components and public methods.
+- **Refactor Assistant (`refactor`):** A dry-run AST rewriter to help automate the updating of import paths.
 
-- **Testing Frameworks**: Collaborations with Jest/Vitest maintainers and communities
-- **CI/CD Platforms**: Integrations with GitHub Actions, CircleCI
-- **Dev Tools**: Optional bundles with Nx, Turborepo monorepo setups
-- **Education**: Guides for curricula and learning platforms
+### Future Language Expansion
+- **Go Implementation:** A native Go implementation targeting microservices and cloud-native applications.
+- **C# (.NET) Implementation:** A Roslyn-powered implementation for the .NET and Unity ecosystems.
 
-### 8. Metrics for Success
-
-- **Adoption Velocity**: Steady, compounding growth in npm downloads
-- **Community Growth**: Active, helpful community channels
-- **Customer Proof**: Real-world case studies across teams and companies
-- **Framework Coverage**: Broad recipes across popular JS frameworks
-
-### 9. Competitive Moat
-
-- **Open Techniques**: Document and publish the AST-based discovery method; review prior art
-- **Community Recognition**: Badges or acknowledgements for contributors and adopters
-- **Technical Writing**: Whitepaper and in-depth blog posts on maintenance reduction
-- **Standards Dialogue**: Engage in community standards conversations where relevant; no formal standardization plans
+### Python Parity Initiative
+- Bring the existing Python package (`adaptive-tests-py`) to full feature parity with the JavaScript engine, including a robust CLI, scaffolding, and advanced discovery features.

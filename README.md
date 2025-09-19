@@ -2,6 +2,8 @@
 
 [![Docs](https://img.shields.io/badge/docs-website-blue)](https://anon57396.github.io/adaptive-tests/)
 [![npm version](https://img.shields.io/npm/v/adaptive-tests.svg)](https://www.npmjs.com/package/adaptive-tests)
+[![PyPI version](https://img.shields.io/pypi/v/adaptive-tests-py.svg)](https://pypi.org/project/adaptive-tests-py/)
+[![VS Code Extension](https://img.shields.io/badge/VS%20Code-Coming%20Soon-orange)](extensions/vscode-adaptive-tests/README.md)
 
 Documentation: [https://anon57396.github.io/adaptive-tests/](https://anon57396.github.io/adaptive-tests/)
 
@@ -12,6 +14,33 @@ engine uses **zero-runtime discovery** powered by AST analysis, so test targets 
 resolved without ever `require`-ing application modules during discovery. Move
 files, rename directories, refactor into new layers—adaptive suites still find the
 code they care about, while traditional suites keep failing with import errors.
+
+---
+
+## 🎯 VS Code Extension (Coming Soon!)
+
+Experience the power of adaptive testing with our upcoming VS Code extension:
+
+### ✨ Key Features
+
+- **🔍 Discovery Lens**: Visualize how adaptive-tests finds your code with an interactive, beautiful webview
+- **📁 Batch Scaffolding**: Right-click any folder to generate tests for all files inside
+- **🎯 Smart Context Menus**: "Scaffold Test" for new files, "Open Test" for files with existing tests
+- **💡 CodeLens Integration**: See test hints directly in your code
+- **📊 Discovery Tree View**: Browse discovery results in the activity bar
+
+![Discovery Lens in action](docs/images/discovery-lens-preview.gif) *(Coming Soon)*
+
+### 🚀 Installation (When Available)
+
+```
+1. Open VS Code
+2. Go to Extensions (Ctrl/Cmd + Shift + X)
+3. Search for "Adaptive Tests"
+4. Click Install
+```
+
+[Learn more about the VS Code extension →](extensions/vscode-adaptive-tests/README.md)
 
 ---
 
@@ -184,17 +213,6 @@ You don't need complex test selection for adaptive tests because:
 [Read the full CI/CD strategy →](docs/CI_STRATEGY.md)
 
 ---
-
-## 🎯 VS Code Extension
-
-**NEW!** Install the VS Code extension for a visual discovery experience:
-
-- **Discovery Lens**: Interactive webview showing how discovery works visually
-- **Smart Scaffolding**: Right-click any file to generate adaptive tests
-- **CodeLens Integration**: See inline hints and generate tests directly from your code
-- **Live Discovery**: Watch the discovery engine find your code in real-time
-
-[Learn more about the VS Code extension →](extensions/vscode-adaptive-tests/README.md)
 
 ## Documentation & Examples
 
