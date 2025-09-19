@@ -1,0 +1,2 @@
+[console_scripts]
+adaptive-tests-py = adaptive_tests_py.cli:main
