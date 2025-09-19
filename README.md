@@ -180,6 +180,7 @@ You don't need complex test selection for adaptive tests because:
 - [CI/CD Strategy](docs/CI_STRATEGY.md)
 - Prompt Guide (AIs & automation): PROMPT_GUIDE.md
 - [API Reference](https://anon57396.github.io/adaptive-tests/api/)
+- [Java Quick Start](docs/JAVA_QUICKSTART.md)
 - [Proof & Demo Scripts](PROOF.md)
 - [Examples](examples/) (`calculator`, `api-service`, `todo-app`, `typescript`, `python`)
 

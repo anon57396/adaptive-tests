@@ -1,0 +1,14 @@
+io/adaptivetests/java/discovery/Signature.class
+io/adaptivetests/java/discovery/ScoringEngine.class
+io/adaptivetests/java/discovery/JavaDiscoveryEngine$CacheEntry.class
+io/adaptivetests/java/discovery/JavaDiscoveryEngine.class
+io/adaptivetests/java/discovery/DiscoveryResult.class
+io/adaptivetests/java/discovery/DiscoveryConfig.class
+io/adaptivetests/java/discovery/Signature$Type.class
+io/adaptivetests/java/discovery/JavaDiscoveryEngine$DiscoveryException.class
+io/adaptivetests/java/discovery/ConfigLoader.class
+io/adaptivetests/java/discovery/JavaDiscoveryEngine$1.class
+io/adaptivetests/java/discovery/JavaDiscoveryEngine$ScoredCandidate.class
+io/adaptivetests/java/discovery/ScoringEngine$Candidate.class
+io/adaptivetests/java/discovery/ConfigLoader$1.class
+io/adaptivetests/java/discovery/Signature$Builder.class

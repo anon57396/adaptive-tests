@@ -138,6 +138,7 @@
   },
   "dependencies": {
     "@babel/parser": "^7.25.0",
+    "php-parser": "^3.2.5",
     "tsconfig-paths": "^4.2.0"
   }
 }

@@ -6,25 +6,50 @@ This document translates our recent prioritization into concrete, actionable wor
 
 - Ship small, end‑to‑end vertical slices; keep scope tight and demonstrable.
 - Preserve zero‑runtime discovery guarantees for all discovery/insight commands.
-- Make new features explainable: every result should have a way to “show why”.
+- Make new features explainable: every result should have a way to "show why".
 - Prefer HTML + JSON artifacts for CI and debugging.
+
+## Language Expansion Strategy
+
+### Prioritization Rationale
+
+We target languages where refactoring pain is highest and communities are largest:
+
+**Tier 1 - Immediate ROI:**
+- **PHP** (3-6 weeks): Quickest implementation via JS extension, massive community (WordPress, Laravel, Symfony), high refactoring pain
+- **Java** (6-8 weeks): Enterprise credibility, Spring Boot dominance, deepest refactoring pain in large codebases
+
+**Tier 2 - Strategic Growth:**
+- **Go** (6-8 weeks): Cloud-native ecosystem, microservices architecture, excellent built-in AST support
+- **C#** (12+ weeks): Microsoft ecosystem, Unity game development, enterprise .NET applications
+
+### Implementation Approach
+
+- **PHP**: Extend existing JS codebase using php-parser npm package (lowest effort, highest reach)
+- **Java/Go/C#**: Native implementations for performance and idiomatic integration
+- All languages share core concepts: signatures, scoring, zero-runtime discovery
 
 ## Milestones Overview
 
 - Now (next 2 weeks)
   - Smart Test Scaffolding (CLI: `scaffold`)
   - TS path alias resolution in discovery/collection
-  - Discovery failure UX: friendly suggestions + top candidates + “run why” hint
+  - Discovery failure UX: friendly suggestions + top candidates + "run why" hint
   - Framework recipes: React components, Express services, Monorepo configs
 - Next (3–6 weeks)
   - Interactive Visualizer (CLI: `visualize`) – HTML graph
   - Test Gap Analysis (CLI: `gaps`) – static MVP
   - PR artifacts for visualize/gaps
   - Vitest/Mocha recipes, TS templates for scaffold
+  - **PHP Support** (Quick win - extend JS codebase)
 - Later (6+ weeks)
+  - **Java Implementation** (Enterprise credibility)
+  - **Go Implementation** (Cloud native adoption)
   - Refactor Assistant (CLI: `refactor`) – dry‑run AST rewrite + diff + `--apply`
   - Selective TS migration of core surfaces
   - Optional IDE panel (Lens/Visualizer) once CLI stabilizes
+- Future (12+ weeks)
+  - **C# (.NET) Implementation** (Microsoft ecosystem)
 
 ## Milestone: Now (2 weeks)
 
@@ -149,6 +174,72 @@ This document translates our recent prioritization into concrete, actionable wor
   2. Config + discovery engine with unit tests.
   3. CLI & scaffolder with integration tests.
   4. Spring Boot example + docs.
+
+### 9) PHP Parity – adaptive-tests-php (Quick Win)
+
+- Outcome
+  - Target the massive PHP community with minimal effort by leveraging existing JS infrastructure.
+- Scope Summary
+  - **Architecture**: Hybrid approach - JS/Node CLI wrapper calling php-parser for AST analysis.
+  - **Parsing**: Use nikic/php-parser (via npm php-parser package) for zero-runtime discovery.
+  - **Configuration**: Support `adaptive-tests.config.json` and composer.json `[extra][adaptive-tests]` section.
+  - **CLI**: Extend existing JS CLI with PHP-specific commands.
+  - **Framework Support**: PHPUnit integration (priority), optional Pest/Codeception adapters.
+  - **Examples**: Laravel and Symfony samples showing namespace refactoring resilience.
+- Acceptance Criteria
+  - Discovery engine handles PHP namespaces, traits, interfaces after moves.
+  - Generates PHPUnit test stubs with appropriate use statements.
+  - Works with Composer autoloading (PSR-4, PSR-0, classmap).
+  - Integration with popular frameworks (Laravel, Symfony, WordPress).
+- Deliverables
+  1. PHP support added to existing JS codebase.
+  2. PHPUnit base test class and traits.
+  3. Laravel/Symfony examples with CI.
+  4. Packagist release as `adaptive-tests/php`.
+
+### 10) Go Implementation – adaptive-tests-go (Cloud Native)
+
+- Outcome
+  - Native Go implementation targeting microservices and cloud-native applications.
+- Scope Summary
+  - **Architecture**: Pure Go implementation leveraging go/ast and go/parser standard library.
+  - **Parsing**: Built-in Go AST parser for zero-runtime discovery.
+  - **Configuration**: Support `adaptive-tests.yaml` and go.mod directives.
+  - **CLI**: Cobra-based CLI matching JS/Python/Java UX.
+  - **Framework Support**: Native go test integration, optional Ginkgo/Gomega support.
+  - **Examples**: HTTP service, gRPC service, CLI tool showing refactoring resilience.
+- Acceptance Criteria
+  - Handles Go modules, packages, and vendoring correctly.
+  - Respects Go workspace mode and replace directives.
+  - Generates idiomatic Go test files with proper imports.
+  - Works with common Go project layouts (standard, DDD, clean architecture).
+- Deliverables
+  1. Go module at github.com/adaptive-tests/go.
+  2. Discovery engine with caching and scoring.
+  3. CLI with discover, why, scaffold, gaps commands.
+  4. Kubernetes operator example.
+
+### 11) C# (.NET) Implementation – AdaptiveTests.NET
+
+- Outcome
+  - Enterprise .NET and Unity game development support via Roslyn-powered implementation.
+- Scope Summary
+  - **Architecture**: .NET 6+ implementation using Roslyn APIs for analysis.
+  - **Parsing**: Roslyn syntax trees and semantic model for rich discovery.
+  - **Configuration**: Support appsettings.json, .editorconfig, and adaptive-tests.json.
+  - **CLI**: System.CommandLine-based tool as dotnet global tool.
+  - **Framework Support**: xUnit (priority), NUnit, MSTest adapters.
+  - **Examples**: ASP.NET Core API, Blazor app, Unity game scripts.
+- Acceptance Criteria
+  - Handles C# 10+ features (records, top-level programs, global usings).
+  - Respects .NET project references and NuGet packages.
+  - Generates test files with proper async/await patterns.
+  - Unity-specific support for MonoBehaviour discovery.
+- Deliverables
+  1. NuGet package: AdaptiveTests.Core, AdaptiveTests.xUnit.
+  2. dotnet tool: dotnet-adaptive-tests.
+  3. Visual Studio extension for test discovery.
+  4. Unity package via OpenUPM.
 
 ## Milestone: Later (6+ weeks)
 
