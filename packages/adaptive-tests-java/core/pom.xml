@@ -10,7 +10,7 @@
   </parent>
   <artifactId>adaptive-tests-java-core</artifactId>
   <name>adaptive-tests-java-core</name>
-  <description>Core discovery engine for adaptive-tests Java</description>
+  <description>Core discovery engine for Adaptive Tests Java</description>
 
   <dependencies>
     <dependency>

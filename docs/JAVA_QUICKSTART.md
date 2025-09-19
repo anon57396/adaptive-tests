@@ -4,15 +4,13 @@
 
 ## Installation
 
-Clone this repository and build the Java modules:
-
 ```bash
 cd packages/adaptive-tests-java
-./mvnw -pl core test     # verify engine
+./mvnw -pl core test
 ./mvnw -pl cli -am package
 ```
 
-The CLI shaded JAR lives at `packages/adaptive-tests-java/cli/target/adaptive-tests-java-cli-0.1.0-SNAPSHOT-shaded.jar`.
+This produces `cli/target/adaptive-tests-java-cli-0.1.0-SNAPSHOT-shaded.jar` for easy distribution.
 
 ## Discovering a Class
 
@@ -23,7 +21,7 @@ java -jar adaptive-tests-java-cli-0.1.0-SNAPSHOT-shaded.jar \
   --method create --method cancel
 ```
 
-## Scaffolding a JUnit Test
+## Scaffolding a JUnit Test (coming soon)
 
 ```bash
 java -jar adaptive-tests-java-cli-0.1.0-SNAPSHOT-shaded.jar \
@@ -31,11 +29,11 @@ java -jar adaptive-tests-java-cli-0.1.0-SNAPSHOT-shaded.jar \
   --tests-dir src/test/java/com/example/order
 ```
 
-This generates a JUnit 5 placeholder that uses the adaptive discovery engine to locate `OrderService` at runtime.
+The scaffolder emits a JUnit 5 placeholder that uses the discovery engine to locate the production class at runtime.
 
 ## Configuration
 
-Place configuration in `adaptive-tests.config.json` or `.adaptive-tests-java.json` at your project root. Example:
+Use JSON config files at the project root:
 
 ```json
 {
@@ -48,12 +46,12 @@ Place configuration in `adaptive-tests.config.json` or `.adaptive-tests-java.jso
 }
 ```
 
-Pyproject-style configuration and Maven/Gradle plugins are planned (see `docs/INTERNAL_EXECUTION_PLAN.md`).
+Future work will support configuration from `pom.xml` / `build.gradle`.
 
-## Current Limitations
+## Limitations
 
-- Class loading currently relies on the application being built (`target/classes` on the classpath). Future work will add pluggable classpath detection.
-- Only top-level classes and interfaces are discovered; nested classes/enums return the parent.
-- Scoring is intentionally conservative—expect to tweak config weights for large monorepos.
+- Class loading currently assumes compiled classes are on the classpath (e.g., `target/classes`). Classpath helpers are planned.
+- Only top-level classes/interfaces are considered; nested classes map to their parent.
+- Scoring defaults are conservative—tune `skipDirectories`, `skipFiles`, and path weights for large repos.
 
-Feedback and issues are welcome via GitHub! We’re iterating in the open to reach full parity with the JS/TS/Python engines.
+Feedback and issues are welcome via GitHub. We’re iterating in the open to reach full parity with the JS/TS/Python engines.

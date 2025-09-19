@@ -14,7 +14,7 @@ public final class ConfigLoader {
 
     public DiscoveryConfig load(Path root, Map<String, Object> inline) {
         Map<String, Object> merged = new HashMap<>();
-        merged.put("discovery", Map.of());
+        merged.put("discovery", new HashMap<>());
 
         readConfig(root.resolve("adaptive-tests.config.json")).ifPresent(cfg -> mergeInto(merged, cfg));
         readConfig(root.resolve(".adaptive-tests-java.json")).ifPresent(cfg -> mergeInto(merged, cfg));

@@ -51,6 +51,13 @@ Python teams can mirror the same patterns with the companion package:
 pip install adaptive-tests-py
 ```
 
+PHP teams can use the built-in PHP discovery support:
+
+```bash
+# Generate PHPUnit tests from PHP classes
+npx adaptive-tests scaffold src/Calculator.php
+```
+
 Once installed, discover code directly from a test:
 
 ```javascript
@@ -181,8 +188,9 @@ You don't need complex test selection for adaptive tests because:
 - Prompt Guide (AIs & automation): PROMPT_GUIDE.md
 - [API Reference](https://anon57396.github.io/adaptive-tests/api/)
 - [Java Quick Start](docs/JAVA_QUICKSTART.md)
+- [PHP Quick Start](docs/PHP_QUICKSTART.md)
 - [Proof & Demo Scripts](PROOF.md)
-- [Examples](examples/) (`calculator`, `api-service`, `todo-app`, `typescript`, `python`)
+- [Examples](examples/) (`calculator`, `api-service`, `todo-app`, `typescript`, `python`, `php`)
 
 Every example exposes both **traditional** and **adaptive** suites so you can see
 the contrast immediately.

@@ -2,10 +2,8 @@ package io.adaptivetests.java.discovery;
 
 import java.nio.file.Path;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 
 public final class DiscoveryConfig {
     private final List<String> extensions;
@@ -57,8 +55,9 @@ public final class DiscoveryConfig {
         List<String> skipDirs = (List<String>) map.getOrDefault("skipDirectories", defaults.skipDirectories);
         List<String> skipFiles = (List<String>) map.getOrDefault("skipFiles", defaults.skipFiles);
         String cachePath = (String) map.getOrDefault("cacheFile", defaults.cacheFile.toString());
-        Path resolvedCache = cachePath == null || cachePath.isEmpty() ? defaults.cacheFile :
-                (Path.of(cachePath).isAbsolute() ? Path.of(cachePath) : root.resolve(cachePath));
+        Path resolvedCache = (cachePath == null || cachePath.isEmpty())
+                ? defaults.cacheFile
+                : (Path.of(cachePath).isAbsolute() ? Path.of(cachePath) : root.resolve(cachePath));
         return new DiscoveryConfig(extensions, skipDirs, skipFiles, resolvedCache);
     }
 }

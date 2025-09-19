@@ -1,10 +1,12 @@
 package io.adaptivetests.java.discovery;
 
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
 final class ScoringEngine {
+
     double scoreCandidate(Candidate candidate, Signature signature) {
         double nameScore = nameScore(candidate.className, signature);
         if (nameScore <= 0) {
@@ -15,7 +17,6 @@ final class ScoringEngine {
         score += pathScore(candidate.filePath);
         score += packageScore(candidate.packageName, signature);
         score += methodScore(candidate.methodNames, signature.getMethods());
-
         return score;
     }
 
@@ -91,7 +92,7 @@ final class ScoringEngine {
             this.className = className;
             this.packageName = packageName;
             this.filePath = filePath;
-            this.methodNames = methodNames;
+            this.methodNames = new ArrayList<>(methodNames);
         }
     }
 }

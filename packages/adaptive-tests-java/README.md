@@ -2,21 +2,21 @@
 
 Adaptive Tests for Java brings zero-runtime discovery to JVM projects. It mirrors the JavaScript, TypeScript, and Python engines so refactors no longer break your test suites.
 
-> **Status:** experimental (0.1.0-SNAPSHOT). APIs may change as we expand coverage and gather feedback.
+> **Status:** experimental (`0.1.0-SNAPSHOT`). APIs may change as we close parity gaps.
 
 ## Modules
 
 | Module | Description |
 | ------ | ----------- |
 | `core` | Discovery engine, scoring rules, configuration loader, cache manager. |
-| `cli`  | Command line utilities (`discover`, `why`, `scaffold`). Packaged as an executable fat JAR. |
+| `cli`  | Command line utilities (`discover`, `why`, `scaffold`) packaged as a fat JAR. |
 | `examples/spring-boot` | Placeholder for Spring Boot demos (coming soon). |
 
 ## Quick Start
 
 ```bash
 cd packages/adaptive-tests-java
-./mvnw -pl core test   # Run engine unit tests
+./mvnw -pl core test     # verify the engine
 ./mvnw -pl cli -am package
 java -jar cli/target/adaptive-tests-java-cli-0.1.0-SNAPSHOT-shaded.jar --help
 ```
@@ -25,43 +25,36 @@ java -jar cli/target/adaptive-tests-java-cli-0.1.0-SNAPSHOT-shaded.jar --help
 
 ```bash
 java -jar cli/target/adaptive-tests-java-cli-0.1.0-SNAPSHOT-shaded.jar \
-  discover --root path/to/project --name OrderService --method create --method cancel
+  discover --root /path/to/project --name OrderService --method create --method cancel
 ```
 
 ### Explain Scoring
 
 ```bash
 java -jar cli/target/adaptive-tests-java-cli-0.1.0-SNAPSHOT-shaded.jar \
-  why --root path/to/project --name OrderService --limit 3
+  why --root /path/to/project --name OrderService --limit 3
 ```
 
-### Scaffold a JUnit Test
+### Scaffold a JUnit Test (coming soon)
 
 ```bash
 java -jar cli/target/adaptive-tests-java-cli-0.1.0-SNAPSHOT-shaded.jar \
   scaffold src/main/java/com/example/OrderService.java --tests-dir src/test/java/com/example
 ```
 
-The scaffolder emits a JUnit 5 stub that uses the adaptive discovery engine to locate the production class at runtime.
-
 ## Configuration
 
-By default the engine scans `.java` files under the project root, skipping common build directories. Override behaviour with one of:
-
-- `adaptive-tests.config.json`
-- `.adaptive-tests-java.json`
-
-Example:
+Place configuration in `adaptive-tests.config.json` or `.adaptive-tests-java.json` at your project root. Example:
 
 ```json
 {
   "discovery": {
     "extensions": [".java"],
-    "skipDirectories": [".git", "build"],
+    "skipDirectories": [".git", "target", "build"],
     "skipFiles": ["Test.java"],
     "cacheFile": ".adaptive-tests-cache.json"
   }
 }
 ```
 
-Support for reading configuration from `pom.xml` / `build.gradle` will land in a follow-up milestone (tracked in `docs/INTERNAL_EXECUTION_PLAN.md`).
+Support for `pom.xml` / `build.gradle` configuration blocks is planned. Track progress in `docs/INTERNAL_EXECUTION_PLAN.md`.

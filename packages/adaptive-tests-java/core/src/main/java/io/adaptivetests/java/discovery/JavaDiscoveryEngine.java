@@ -14,7 +14,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -50,58 +49,41 @@ public final class JavaDiscoveryEngine {
     }
 
     public DiscoveryResult discover(Signature signature) throws DiscoveryException {
-        List<DiscoveryResult> all = discoverAll(signature);
-        return all.stream()
-                .findFirst()
-                .orElseThrow(() -> new DiscoveryException("No candidates matched signature " + signature));
+        List<DiscoveryResult> results = discoverAll(signature);
+        if (results.isEmpty()) {
+            throw new DiscoveryException("No candidates matched signature " + signature);
+        }
+        return results.get(0);
     }
 
     public List<DiscoveryResult> discoverAll(Signature signature) throws DiscoveryException {
         try {
             ensureCacheLoaded();
-            String cacheKey = cacheKey(signature);
-            CacheEntry cached = runtimeCache.get(cacheKey);
+            String key = cacheKey(signature);
+            CacheEntry cached = runtimeCache.get(key);
             if (cached != null && isFresh(cached)) {
                 return List.of(cached.toDiscoveryResult());
             }
-            CacheEntry persistent = persistentCache.get(cacheKey);
-            if (persistent != null && isFresh(persistent)) {
-                runtimeCache.put(cacheKey, persistent);
-                return List.of(persistent.toDiscoveryResult());
+            CacheEntry persisted = persistentCache.get(key);
+            if (persisted != null && isFresh(persisted)) {
+                runtimeCache.put(key, persisted);
+                return List.of(persisted.toDiscoveryResult());
             }
 
             List<ScoredCandidate> candidates = collectCandidates(signature);
             candidates.sort(Comparator.comparingDouble((ScoredCandidate c) -> c.score).reversed());
-            List<DiscoveryResult> results = candidates.stream()
-                    .map(ScoredCandidate::toResult)
-                    .collect(Collectors.toList());
+            List<DiscoveryResult> results = candidates.stream().map(ScoredCandidate::toResult).collect(Collectors.toList());
 
             if (!results.isEmpty()) {
                 CacheEntry entry = CacheEntry.from(results.get(0));
-                runtimeCache.put(cacheKey, entry);
-                persistentCache.put(cacheKey, entry);
+                runtimeCache.put(key, entry);
+                persistentCache.put(key, entry);
                 saveCache();
             }
 
             return results;
         } catch (IOException e) {
             throw new DiscoveryException("Failed to discover targets", e);
-        }
-    }
-
-    private boolean isFresh(CacheEntry entry) {
-        Path file = Paths.get(entry.path);
-        if (!Files.exists(file)) {
-            return false;
-        }
-        if (entry.mtime == 0) {
-            return true;
-        }
-        try {
-            long mtime = Files.getLastModifiedTime(file).toMillis();
-            return mtime == entry.mtime;
-        } catch (IOException e) {
-            return false;
         }
     }
 
@@ -123,7 +105,9 @@ public final class JavaDiscoveryEngine {
     private boolean isEligibleFile(Path path) {
         String filename = path.getFileName().toString();
         String lower = filename.toLowerCase(Locale.ROOT);
-        if (config.getSkipFiles().stream().anyMatch(lower::endsWith)) {
+        boolean badSuffix = config.getSkipFiles().stream().anyMatch(lower::endsWith)
+                || lower.matches(".*(?:\\s(?:copy|copy\\s\\d+)|\\s\\d+)(?=\\.[^.]+$)");
+        if (badSuffix) {
             return false;
         }
         String relative = root.relativize(path).toString().replace('\\', '/');
@@ -202,6 +186,22 @@ public final class JavaDiscoveryEngine {
             MAPPER.writerWithDefaultPrettyPrinter().writeValue(cacheFile.toFile(), persistentCache);
         } catch (IOException e) {
             System.err.println("[adaptive-tests-java] Failed to persist cache: " + e.getMessage());
+        }
+    }
+
+    private boolean isFresh(CacheEntry entry) {
+        Path file = Paths.get(entry.path);
+        if (!Files.exists(file)) {
+            return false;
+        }
+        if (entry.mtime == 0) {
+            return true;
+        }
+        try {
+            long mtime = Files.getLastModifiedTime(file).toMillis();
+            return mtime == entry.mtime;
+        } catch (IOException e) {
+            return false;
         }
     }
 

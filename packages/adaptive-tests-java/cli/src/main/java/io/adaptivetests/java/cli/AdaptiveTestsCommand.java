@@ -101,15 +101,16 @@ public class AdaptiveTestsCommand implements Callable<Integer> {
         public Integer call() {
             try {
                 List<DiscoveryResult> results = engine().discoverAll(buildSignature());
+                if (results.isEmpty()) {
+                    System.out.println("No matches found");
+                    return 1;
+                }
                 results.stream().limit(limit).forEach(result -> {
                     System.out.println("• " + result.getQualifiedName() + " (score=" + result.getScore() + ")");
                     System.out.println("  File: " + root.relativize(result.getFilePath()));
                     System.out.println("  Methods: " + result.getMethods());
                 });
-                if (results.isEmpty()) {
-                    System.out.println("No matches found");
-                }
-                return results.isEmpty() ? 1 : 0;
+                return 0;
             } catch (DiscoveryException e) {
                 System.err.println("❌ " + e.getMessage());
                 return 1;

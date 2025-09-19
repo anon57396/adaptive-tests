@@ -27,7 +27,7 @@ class JavaDiscoveryEngineTest {
     }
 
     @Test
-    void returnsEmptyWhenNoMatch() {
+    void throwsWhenNoMatchFound() {
         Path project = Path.of("src/test/resources/sample-project");
         JavaDiscoveryEngine engine = new JavaDiscoveryEngine(project);
 

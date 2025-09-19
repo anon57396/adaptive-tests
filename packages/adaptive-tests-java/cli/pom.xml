@@ -10,7 +10,7 @@
   </parent>
   <artifactId>adaptive-tests-java-cli</artifactId>
   <name>adaptive-tests-java-cli</name>
-  <description>Command line interface for adaptive-tests Java</description>
+  <description>Command line interface for Adaptive Tests Java</description>
 
   <dependencies>
     <dependency>

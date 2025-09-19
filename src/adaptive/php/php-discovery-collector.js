@@ -90,29 +90,31 @@ class PHPDiscoveryCollector {
 
     // Traverse AST
     this.traverse(ast, {
-      Namespace: (node) => {
-        metadata.namespace = node.name;
+      namespace: (node) => {
+        // Extract namespace name
+        if (node.name && typeof node.name === 'string') {
+          metadata.namespace = node.name;
+        } else if (node.name && Array.isArray(node.name)) {
+          metadata.namespace = node.name.join('\\');
+        }
       },
-      UseItem: (node) => {
+      useitem: (node) => {
         metadata.imports.push({
           name: node.name,
           alias: node.alias
         });
       },
-      Class: (node) => {
+      class: (node) => {
         metadata.classes.push(this.extractClassInfo(node));
       },
-      Interface: (node) => {
+      interface: (node) => {
         metadata.interfaces.push(this.extractInterfaceInfo(node));
       },
-      Trait: (node) => {
+      trait: (node) => {
         metadata.traits.push(this.extractTraitInfo(node));
       },
-      Function: (node) => {
-        // Only top-level functions
-        if (node.isGlobal) {
-          metadata.functions.push(this.extractFunctionInfo(node));
-        }
+      function: (node) => {
+        metadata.functions.push(this.extractFunctionInfo(node));
       }
     });
 
@@ -245,17 +247,30 @@ class PHPDiscoveryCollector {
   traverse(node, visitors) {
     if (!node || typeof node !== 'object') return;
 
-    // Check if current node matches any visitor
+    // Check if current node matches any visitor (case-insensitive)
     if (node.kind && visitors[node.kind]) {
       visitors[node.kind](node);
     }
 
-    // Traverse children
-    Object.values(node).forEach(child => {
-      if (Array.isArray(child)) {
-        child.forEach(item => this.traverse(item, visitors));
-      } else if (child && typeof child === 'object') {
-        this.traverse(child, visitors);
+    // Handle children array specifically (php-parser uses this structure)
+    if (node.children && Array.isArray(node.children)) {
+      node.children.forEach(child => this.traverse(child, visitors));
+    }
+
+    // Also traverse body for class/interface/trait members
+    if (node.body && Array.isArray(node.body)) {
+      node.body.forEach(member => this.traverse(member, visitors));
+    }
+
+    // Traverse other properties that might contain nodes
+    Object.keys(node).forEach(key => {
+      if (key !== 'kind' && key !== 'children' && key !== 'body') {
+        const child = node[key];
+        if (Array.isArray(child)) {
+          child.forEach(item => this.traverse(item, visitors));
+        } else if (child && typeof child === 'object' && child.kind) {
+          this.traverse(child, visitors);
+        }
       }
     });
   }

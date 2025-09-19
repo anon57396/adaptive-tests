@@ -2,14 +2,17 @@ package io.adaptivetests.java.discovery;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.regex.Pattern;
 
-/**
- * Structure-based query describing the symbol a test wants to discover.
- */
+/** Structure-based query describing the symbol a test wants to discover. */
 public final class Signature {
+    public enum Type {
+        CLASS,
+        INTERFACE,
+        ANY
+    }
+
     private final String name;
     private final Pattern namePattern;
     private final Type type;
@@ -18,19 +21,13 @@ public final class Signature {
     private final List<String> annotations;
     private final String extendsClass;
 
-    public enum Type {
-        CLASS,
-        INTERFACE,
-        ANY
-    }
-
     private Signature(Builder builder) {
         this.name = builder.name;
         this.namePattern = builder.namePattern;
         this.type = builder.type;
-        this.methods = List.copyOf(builder.methods);
+        this.methods = builder.methods == null ? Collections.emptyList() : List.copyOf(builder.methods);
         this.packageName = builder.packageName;
-        this.annotations = List.copyOf(builder.annotations);
+        this.annotations = builder.annotations == null ? Collections.emptyList() : List.copyOf(builder.annotations);
         this.extendsClass = builder.extendsClass;
     }
 
@@ -82,9 +79,9 @@ public final class Signature {
         private String name;
         private Pattern namePattern;
         private Type type = Type.CLASS;
-        private List<String> methods = Collections.emptyList();
+        private List<String> methods;
         private String packageName;
-        private List<String> annotations = Collections.emptyList();
+        private List<String> annotations;
         private String extendsClass;
 
         private Builder() {
@@ -103,12 +100,12 @@ public final class Signature {
         }
 
         public Builder type(Type value) {
-            this.type = Objects.requireNonNullElse(value, Type.CLASS);
+            this.type = value == null ? Type.CLASS : value;
             return this;
         }
 
         public Builder methods(List<String> value) {
-            this.methods = value == null ? Collections.emptyList() : List.copyOf(value);
+            this.methods = value;
             return this;
         }
 
@@ -118,7 +115,7 @@ public final class Signature {
         }
 
         public Builder annotations(List<String> value) {
-            this.annotations = value == null ? Collections.emptyList() : List.copyOf(value);
+            this.annotations = value;
             return this;
         }
 

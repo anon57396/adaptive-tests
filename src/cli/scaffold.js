@@ -4,6 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const { DiscoveryEngine, getDiscoveryEngine } = require('../adaptive/discovery-engine');
+const { PHPDiscoveryIntegration } = require('../adaptive/php/php-discovery-integration');
 
 const COLORS = {
   reset: '\x1b[0m',
@@ -147,6 +148,46 @@ const generateMethodBlocks = (signature, methods, options) => {
   return blocks + '\n';
 };
 
+const generatePHPTestContent = ({ signature, phpMetadata }) => {
+  const phpIntegration = new PHPDiscoveryIntegration(null);
+
+  // Find the target in metadata
+  let target = null;
+
+  if (signature.kind === 'class' || !signature.kind) {
+    target = phpMetadata.classes.find(c => c.name === signature.name);
+  }
+
+  if (!target && signature.kind === 'interface') {
+    target = phpMetadata.interfaces.find(i => i.name === signature.name);
+  }
+
+  if (!target && signature.kind === 'trait') {
+    target = phpMetadata.traits.find(t => t.name === signature.name);
+  }
+
+  if (!target && signature.kind === 'function') {
+    target = phpMetadata.functions.find(f => f.name === signature.name);
+  }
+
+  if (!target) {
+    target = {
+      name: signature.name || 'Target',
+      type: signature.kind || 'class',
+      metadata: signature
+    };
+  }
+
+  const fullTarget = {
+    name: target.name,
+    type: target.type || target.kind || 'class',
+    namespace: phpMetadata.namespace,
+    metadata: target
+  };
+
+  return phpIntegration.generatePHPTest(fullTarget);
+};
+
 const generateTestContent = ({
   signature,
   methods,
@@ -189,6 +230,69 @@ const analyzeSourceFile = (engine, filePath) => {
     return null;
   }
   return metadata.exports;
+};
+
+const analyzePHPFile = async (filePath) => {
+  const phpIntegration = new PHPDiscoveryIntegration(null);
+  const metadata = await phpIntegration.phpCollector.parseFile(filePath);
+  if (!metadata) return null;
+
+  // Convert PHP metadata to export-like format for consistency
+  const exports = [];
+
+  // Add classes
+  metadata.classes.forEach(cls => {
+    exports.push({
+      exportedName: cls.name,
+      access: { type: 'default' },
+      info: {
+        name: cls.name,
+        kind: 'class',
+        methods: cls.methods.filter(m => m.visibility === 'public').map(m => m.name),
+        properties: cls.properties.filter(p => p.visibility === 'public').map(p => p.name)
+      }
+    });
+  });
+
+  // Add interfaces
+  metadata.interfaces.forEach(intf => {
+    exports.push({
+      exportedName: intf.name,
+      access: { type: 'default' },
+      info: {
+        name: intf.name,
+        kind: 'interface',
+        methods: intf.methods.map(m => m.name)
+      }
+    });
+  });
+
+  // Add traits
+  metadata.traits.forEach(trait => {
+    exports.push({
+      exportedName: trait.name,
+      access: { type: 'default' },
+      info: {
+        name: trait.name,
+        kind: 'trait',
+        methods: trait.methods.filter(m => m.visibility === 'public').map(m => m.name)
+      }
+    });
+  });
+
+  // Add functions
+  metadata.functions.forEach(fn => {
+    exports.push({
+      exportedName: fn.name,
+      access: { type: 'default' },
+      info: {
+        name: fn.name,
+        kind: 'function'
+      }
+    });
+  });
+
+  return { exports, phpMetadata: metadata };
 };
 
 const parseArgs = (argv) => {
@@ -312,12 +416,28 @@ const gatherSourceFiles = (dir, extensions) => {
   return files;
 };
 
-const processSingleFile = (engine, filePath, options, results) => {
-  const exports = analyzeSourceFile(engine, filePath);
-  if (!exports || exports.length === 0) {
-    results.skippedNoExport.push(filePath);
-    log(`⚠️  No exports found in ${path.relative(options.root, filePath)}`, COLORS.yellow, options);
-    return;
+const processSingleFile = async (engine, filePath, options, results) => {
+  const ext = path.extname(filePath);
+  const isPHP = ext === '.php';
+
+  let exports, phpMetadata;
+
+  if (isPHP) {
+    const phpResult = await analyzePHPFile(filePath);
+    if (!phpResult || !phpResult.exports || phpResult.exports.length === 0) {
+      results.skippedNoExport.push(filePath);
+      log(`⚠️  No PHP classes/functions found in ${path.relative(options.root, filePath)}`, COLORS.yellow, options);
+      return;
+    }
+    exports = phpResult.exports;
+    phpMetadata = phpResult.phpMetadata;
+  } else {
+    exports = analyzeSourceFile(engine, filePath);
+    if (!exports || exports.length === 0) {
+      results.skippedNoExport.push(filePath);
+      log(`⚠️  No exports found in ${path.relative(options.root, filePath)}`, COLORS.yellow, options);
+      return;
+    }
   }
 
   let selectedExports;
@@ -341,20 +461,36 @@ const processSingleFile = (engine, filePath, options, results) => {
       signature.name = exportEntry.exportedName || `Export${index + 1}`;
     }
     const methods = signature.methods || [];
-    const outputPath = generateOutputPath(options.root, filePath, options, options.allExports ? signature.name : null);
+
+    let outputPath, content;
+
+    if (isPHP) {
+      // For PHP files, generate PHPUnit test files
+      const baseDir = options.outputDir || path.join(options.root, 'tests');
+      ensureDirSync(baseDir);
+      const baseName = signature.name || path.basename(filePath, path.extname(filePath));
+      outputPath = path.join(baseDir, `${baseName}Test.php`);
+
+      content = generatePHPTestContent({
+        signature: exportEntry.info,
+        phpMetadata
+      });
+    } else {
+      outputPath = generateOutputPath(options.root, filePath, options, options.allExports ? signature.name : null);
+
+      content = generateTestContent({
+        signature,
+        methods,
+        isTypeScript: options.isTypeScript,
+        applyAssertions: options.applyAssertions
+      });
+    }
 
     if (fs.existsSync(outputPath) && !options.force) {
       results.skippedExisting.push(outputPath);
       log(`⏭️  Skipping existing file ${path.relative(options.root, outputPath)} (use --force to overwrite)`, COLORS.yellow, options);
       return;
     }
-
-    const content = generateTestContent({
-      signature,
-      methods,
-      isTypeScript: options.isTypeScript,
-      applyAssertions: options.applyAssertions
-    });
 
     ensureDirSync(path.dirname(outputPath));
     fs.writeFileSync(outputPath, content, 'utf8');
@@ -363,13 +499,19 @@ const processSingleFile = (engine, filePath, options, results) => {
   });
 };
 
-const runBatch = (engine, entryPath, options, results) => {
+const runBatch = async (engine, entryPath, options, results) => {
   const extensions = engine.config.discovery.extensions || ['.js', '.ts', '.tsx'];
+  // Add PHP extension if not already included
+  if (!extensions.includes('.php')) {
+    extensions.push('.php');
+  }
   const files = fs.statSync(entryPath).isDirectory()
     ? gatherSourceFiles(entryPath, extensions)
     : [entryPath];
 
-  files.forEach((file) => processSingleFile(engine, file, options, results));
+  for (const file of files) {
+    await processSingleFile(engine, file, options, results);
+  }
 };
 
 async function runScaffold(argv = []) {
@@ -401,7 +543,7 @@ async function runScaffold(argv = []) {
         throw new Error(`Directory not found: ${targetArg}`);
       }
       log(`🔄 Batch scaffolding ${path.relative(root, directory)}`, COLORS.cyan, options);
-      runBatch(discoveryEngine, directory, { ...options, targetArg: directory }, results);
+      await runBatch(discoveryEngine, directory, { ...options, targetArg: directory }, results);
     } else {
       let filePath = null;
       if (isPath) {
@@ -417,7 +559,7 @@ async function runScaffold(argv = []) {
         filePath = resolved.path;
         log(`🔍 Found component at ${path.relative(root, filePath)}`, COLORS.dim, options);
       }
-      processSingleFile(discoveryEngine, filePath, options, results);
+      await processSingleFile(discoveryEngine, filePath, options, results);
     }
   } catch (error) {
     console.error(`${COLORS.red}Error:${COLORS.reset} ${error.message}`);

@@ -2,7 +2,6 @@ package io.adaptivetests.java.discovery;
 
 import java.nio.file.Path;
 import java.util.List;
-import java.util.Objects;
 
 public final class DiscoveryResult {
     private final String className;
@@ -11,10 +10,14 @@ public final class DiscoveryResult {
     private final double score;
     private final List<String> methods;
 
-    public DiscoveryResult(String className, String packageName, Path filePath, double score, List<String> methods) {
-        this.className = Objects.requireNonNull(className, "className");
+    public DiscoveryResult(String className,
+                           String packageName,
+                           Path filePath,
+                           double score,
+                           List<String> methods) {
+        this.className = className;
         this.packageName = packageName;
-        this.filePath = Objects.requireNonNull(filePath, "filePath");
+        this.filePath = filePath;
         this.score = score;
         this.methods = List.copyOf(methods);
     }
@@ -44,10 +47,5 @@ public final class DiscoveryResult {
             return className;
         }
         return packageName + "." + className;
-    }
-
-    public Class<?> loadClass(ClassLoader loader) throws ClassNotFoundException {
-        ClassLoader effectiveLoader = loader != null ? loader : Thread.currentThread().getContextClassLoader();
-        return Class.forName(getQualifiedName(), true, effectiveLoader);
     }
 }
