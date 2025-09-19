@@ -133,12 +133,51 @@ The script runs four scenarios:
 
 ---
 
+## CI/CD Strategy
+
+### Why Adaptive Tests Excel in CI/CD
+
+Traditional CI requires complex dependency tracking to run only affected tests. **Adaptive tests flip this paradigm** — since they're resilient to refactoring, you can run the entire suite without fear of false failures from moved files!
+
+### Our Two-Track Approach
+
+1. **Traditional Tests** → Run only changed tests for quick feedback
+2. **Adaptive Tests** → Run ALL of them (they won't break from refactoring!)
+
+```yaml
+# In .github/workflows/ci.yml
+jobs:
+  traditional-tests:
+    # Quick feedback on direct changes
+    run: npx jest --onlyChanged
+
+  adaptive-tests:
+    # Comprehensive coverage, resilient to refactoring
+    run: npm run test:adaptive
+```
+
+### The Key Insight
+
+You don't need complex test selection for adaptive tests because:
+- ✅ They survive file moves and renames
+- ✅ They're fast enough to run completely
+- ✅ They catch real bugs, not import errors
+
+**Example**: Move `Calculator.js` to a new folder?
+- Traditional tests: ❌ `Cannot find module '../src/Calculator'`
+- Adaptive tests: ✅ Find it automatically and pass!
+
+[Read the full CI/CD strategy →](docs/CI_STRATEGY.md)
+
+---
+
 ## Documentation & Examples
 
 - [Quick Start Guide](docs/QUICK_START.md)
 - [Common Issues & Troubleshooting](docs/COMMON_ISSUES.md)
 - [How It Works](docs/HOW_IT_WORKS.md)
 - [Best Practices](docs/BEST_PRACTICES.md)
+- [CI/CD Strategy](docs/CI_STRATEGY.md)
 - Prompt Guide (AIs & automation): PROMPT_GUIDE.md
 - [API Reference](https://anon57396.github.io/adaptive-tests/api/)
 - [Proof & Demo Scripts](PROOF.md)

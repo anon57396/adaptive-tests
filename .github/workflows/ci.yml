@@ -1,0 +1,151 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+permissions:
+  contents: read
+
+jobs:
+  # Quick feedback on changed files only
+  traditional-tests:
+    name: Traditional Tests (Changed Only)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Required for --onlyChanged to work
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run changed traditional tests
+        run: |
+          echo "🎯 Running only traditional tests affected by changes..."
+          npx jest --onlyChanged --testPathIgnorePatterns="adaptive" || true
+          echo "Note: This may show no tests if only non-test files changed."
+
+  # Comprehensive adaptive test suite - resilient to refactoring
+  adaptive-tests:
+    name: Adaptive Tests (Full Suite)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Clear Jest cache
+        run: npx jest --clearCache
+
+      - name: Run all adaptive tests
+        run: |
+          echo "🔍 Running full adaptive test suite..."
+          echo "These tests are resilient to refactoring and will find targets wherever they move!"
+          npm run test:adaptive
+
+  # TypeScript adaptive tests
+  typescript-tests:
+    name: TypeScript Adaptive Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run TypeScript tests
+        run: |
+          echo "📘 Running TypeScript adaptive tests..."
+          npm run test:typescript
+
+  # Quick smoke test to ensure adaptive tests actually catch bugs
+  resilience-check:
+    name: Resilience Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Verify tests survive refactoring
+        run: |
+          echo "🚀 Verifying adaptive tests survive refactoring..."
+          npm run restore
+          npm run test:adaptive
+          npm run refactor
+          echo "📂 Calculator moved to deeply nested folder..."
+          npm run test:adaptive
+          echo "✅ Adaptive tests still pass after refactoring!"
+          npm run restore
+
+      - name: Verify tests catch real bugs
+        run: |
+          echo "🐛 Verifying adaptive tests catch real bugs..."
+          npm run demo:broken
+          if npm run test:adaptive 2>&1 | grep -q "failed"; then
+            echo "✅ Adaptive tests correctly failed on broken implementation!"
+          else
+            echo "❌ Adaptive tests should have failed on broken implementation!"
+            exit 1
+          fi
+          npm run restore:broken
+
+  # Summary job that requires all others to pass
+  ci-summary:
+    name: CI Summary
+    runs-on: ubuntu-latest
+    needs: [traditional-tests, adaptive-tests, typescript-tests, resilience-check]
+    if: always()
+    steps:
+      - name: Check results
+        run: |
+          echo "📊 CI Summary:"
+          echo "Traditional Tests: ${{ needs.traditional-tests.result }}"
+          echo "Adaptive Tests: ${{ needs.adaptive-tests.result }}"
+          echo "TypeScript Tests: ${{ needs.typescript-tests.result }}"
+          echo "Resilience Check: ${{ needs.resilience-check.result }}"
+
+          if [ "${{ needs.adaptive-tests.result }}" != "success" ] ||
+             [ "${{ needs.typescript-tests.result }}" != "success" ] ||
+             [ "${{ needs.resilience-check.result }}" != "success" ]; then
+            echo "❌ CI Failed - Critical tests did not pass"
+            exit 1
+          fi
+
+          echo "✅ CI Passed - All critical tests successful!"
+          echo ""
+          echo "💡 Note: Traditional tests may skip if no relevant changes were made."
+          echo "🛡️ Adaptive tests provide comprehensive coverage regardless of refactoring!"

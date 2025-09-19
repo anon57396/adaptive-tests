@@ -13,6 +13,7 @@ if str(_SRC_ROOT) not in sys.path:
     sys.path.insert(0, str(_SRC_ROOT))
 
 from adaptive_tests_py import (
+    ConfigLoader,
     DEFAULT_CONFIG,
     DiscoveryEngine,
     DiscoveryError,
@@ -258,3 +259,62 @@ def test_cli_why_json_output(tmp_path: Path, capsys: pytest.CaptureFixture[str])
     assert exit_code == 0
     payload = json.loads(captured.out)
     assert payload[0]["name"] == "JsonService"
+
+
+def test_cli_scaffold_generates_pytest_stub(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    project = tmp_path / "project"
+    (project / "src").mkdir(parents=True)
+    (project / "src" / "__init__.py").write_text("", encoding="utf-8")
+
+    _write(
+        project / "src" / "order_service.py",
+        """
+        class OrderService:
+            def create(self):
+                return True
+
+            def cancel(self):
+                return False
+        """,
+    )
+
+    exit_code = cli_main([
+        "scaffold",
+        "src/order_service.py",
+        "--root",
+        str(project),
+        "--tests-dir",
+        "tests/adaptive",
+    ])
+
+    assert exit_code == 0
+    output = capsys.readouterr().out
+    assert "Generated tests/adaptive/test_order_service.py" in output
+
+    test_file = project / "tests" / "adaptive" / "test_order_service.py"
+    assert test_file.exists()
+    content = test_file.read_text(encoding="utf-8")
+    assert "OrderService" in content
+    assert "methods=['create', 'cancel']" in content
+
+
+def test_config_loader_reads_pyproject(tmp_path: Path) -> None:
+    project = tmp_path / "project"
+    project.mkdir()
+
+    pyproject = project / "pyproject.toml"
+    pyproject.write_text(
+        """
+        [tool.adaptive_tests.discovery]
+        max_depth = 7
+
+        [tool.adaptive_tests.discovery.scoring.paths.positive]
+        "/domain/" = 25
+        """,
+        encoding="utf-8",
+    )
+
+    loader = ConfigLoader(project)
+    config = loader.load()
+    assert config["discovery"]["max_depth"] == 7
+    assert config["discovery"]["scoring"]["paths"]["positive"]["/domain/"] == 25
