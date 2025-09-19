@@ -27,6 +27,92 @@ npx adaptive-tests scaffold "src/main/java/**/*.java" --all-exports
 
 CLI flags such as `--output-dir`, `--all-exports`, and `--force` behave the same way they do for JavaScript/TypeScript targets.
 
+## Writing Adaptive Tests with JUnit 5
+
+Once you've scaffolded a test, you can use the adaptive discovery system to make your tests resilient to refactoring. Here's a complete example:
+
+```java
+import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+
+public class CalculatorTest {
+    private static Class<?> Calculator;
+
+    @BeforeAll
+    static void setUp() throws Exception {
+        // Discover Calculator by signature - survives package moves
+        Calculator = AdaptiveTestUtils.discover(
+            DiscoverySignature.builder()
+                .name("Calculator")
+                .type("class")
+                .methods("add", "subtract", "multiply", "divide")
+                .build()
+        );
+    }
+
+    @Test
+    void testAddition() throws Exception {
+        Object calculator = Calculator.getDeclaredConstructor().newInstance();
+
+        // Use reflection to call discovered methods
+        var addMethod = Calculator.getMethod("add", double.class, double.class);
+        var result = (Double) addMethod.invoke(calculator, 5.0, 3.0);
+
+        assertEquals(8.0, result, 0.001);
+    }
+
+    @Test
+    void testDivision() throws Exception {
+        Object calculator = Calculator.getDeclaredConstructor().newInstance();
+
+        var divideMethod = Calculator.getMethod("divide", double.class, double.class);
+        var result = (Double) divideMethod.invoke(calculator, 10.0, 2.0);
+
+        assertEquals(5.0, result, 0.001);
+    }
+
+    @Test
+    void testDivisionByZero() throws Exception {
+        Object calculator = Calculator.getDeclaredConstructor().newInstance();
+
+        var divideMethod = Calculator.getMethod("divide", double.class, double.class);
+
+        assertThrows(ArithmeticException.class, () -> {
+            divideMethod.invoke(calculator, 10.0, 0.0);
+        });
+    }
+}
+```
+
+## Discovery Signatures for Java
+
+Java discovery signatures support rich metadata:
+
+```java
+// Discover by class name and method signatures
+DiscoverySignature.builder()
+    .name("UserService")
+    .type("class")
+    .methods("createUser", "findUser", "deleteUser")
+    .build();
+
+// Discover by package and inheritance
+DiscoverySignature.builder()
+    .name("BaseRepository")
+    .type("class")
+    .packageName("com.example.repository")
+    .isAbstract(true)
+    .build();
+
+// Discover by annotations
+DiscoverySignature.builder()
+    .name("ProductController")
+    .type("class")
+    .annotations("@RestController", "@RequestMapping")
+    .build();
+```
+
 ## Native Java CLI
 
 A Maven multi-module project lives under `packages/adaptive-tests-java/` and provides a pure-Java command line for teams that prefer JVM tooling.

@@ -132,7 +132,9 @@
   },
   "exports": {
     ".": {
-      "require": "./src/adaptive/index.js"
+      "require": "./src/adaptive/index.js",
+      "import": "./src/adaptive/index.mjs",
+      "types": "./types/src/adaptive/index.d.ts"
     },
     "./package.json": "./package.json"
   },

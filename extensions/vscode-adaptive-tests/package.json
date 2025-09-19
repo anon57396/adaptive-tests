@@ -157,6 +157,6 @@
     "typescript": "^5.0.0"
   },
   "dependencies": {
-    "adaptive-tests": "file:../.."
+    "adaptive-tests": "^0.2.2"
   }
 }

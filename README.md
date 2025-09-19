@@ -17,9 +17,9 @@ code they care about, while traditional suites keep failing with import errors.
 
 ---
 
-## 🎯 VS Code Extension (Coming Soon!)
+## 🎯 VS Code Extension (Development Alpha)
 
-Experience the power of adaptive testing with our upcoming VS Code extension:
+Experience the power of adaptive testing with our VS Code extension currently in development:
 
 ### ✨ Key Features
 
@@ -28,17 +28,21 @@ Experience the power of adaptive testing with our upcoming VS Code extension:
 - **🎯 Smart Context Menus**: "Scaffold Test" for new files, "Open Test" for files with existing tests
 - **💡 CodeLens Integration**: See test hints directly in your code
 - **📊 Discovery Tree View**: Browse discovery results in the activity bar
+- **🌐 Multi-Language Support**: JavaScript, TypeScript, Python, Java, PHP
 
-![Discovery Lens in action](docs/images/discovery-lens-preview.gif) *(Coming Soon)*
+### 🛠️ Development Setup
 
-### 🚀 Installation (When Available)
+To test the extension during development:
 
+```bash
+cd extensions/vscode-adaptive-tests
+npm install
+# Open in VS Code and press F5 to launch Extension Development Host
 ```
-1. Open VS Code
-2. Go to Extensions (Ctrl/Cmd + Shift + X)
-3. Search for "Adaptive Tests"
-4. Click Install
-```
+
+### 🚀 Installation (Marketplace Release Coming Soon)
+
+The extension will be available on the VS Code Marketplace. For now, use the development setup above.
 
 [Learn more about the VS Code extension →](extensions/vscode-adaptive-tests/README.md)
 
@@ -154,6 +158,14 @@ npx adaptive-tests why '{"name":"UserService"}' --json
 
 The `why` command prints a ranked list of candidates with score breakdowns and
 optional JSON output for tooling.
+
+### Coverage Notes
+
+`npm run test:coverage` reports on the adaptive engine and core utilities. Jest
+intentionally skips the CLI wrappers and the testing base class (`collectCoverageFrom`
+excludes `src/cli/**` and `src/adaptive/test-base.js`) so that coverage reflects
+the static analysis engine itself. If you need coverage for the CLI, run Jest
+against those folders explicitly.
 
 ---
 

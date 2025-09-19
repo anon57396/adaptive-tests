@@ -6,6 +6,12 @@ All notable changes to this project are documented here. Dates are omitted when 
 
 - Shipped adaptive-tests-py 0.2.0 with configurable scoring, persistent cache, Lens-style explanations, and bundled CLI tooling
 - Updated PyPI packaging metadata and wheels for the new Python release
+- Fixed critical Windows path handling issues in Java scaffolding
+- Added package manager detection (yarn/pnpm/bun support) for cross-team compatibility
+- Implemented LRU caches to prevent memory leaks in large codebases
+- Enhanced security: added input validation for Python integration to prevent command injection
+- Fixed cache portability: converted absolute to relative paths for CI/CD compatibility
+- Improved cross-platform file matching with case-insensitive comparisons
 
 ## [0.2.2]
 
@@ -14,6 +20,8 @@ All notable changes to this project are documented here. Dates are omitted when 
 - Bumped npm package metadata in preparation for publish
 - Added the Discovery Lens CLI (`npx adaptive-tests why`) for deep-dive scoring diagnostics
 - Aligned Python companion package version (adaptive-tests-py 0.1.1) and cleaned packaging metadata (SPDX license expression)
+- Enhanced Java/PHP quickstart docs with complete adaptive test examples
+- Updated VS Code extension status from "Coming Soon" to "Development Alpha" with setup instructions
 
 ## [0.2.1]
 
