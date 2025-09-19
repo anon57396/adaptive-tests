@@ -137,6 +137,7 @@
     "./package.json": "./package.json"
   },
   "dependencies": {
-    "@babel/parser": "^7.25.0"
+    "@babel/parser": "^7.25.0",
+    "tsconfig-paths": "^4.2.0"
   }
 }

@@ -16,6 +16,7 @@ const Module = require('module');
 const { ConfigLoader } = require('./config-loader');
 const parser = require('@babel/parser');
 const { ScoringEngine } = require('./scoring-engine');
+const { createTsconfigResolver } = require('./tsconfig-resolver');
 
 // Cache for module requirements
 const moduleCache = new Map();
@@ -30,6 +31,9 @@ class DiscoveryEngine {
 
     // Initialize scoring engine with config
     this.scoringEngine = new ScoringEngine(this.config);
+
+    // Optional TypeScript path resolver
+    this.tsconfigResolver = createTsconfigResolver(this.rootPath);
 
     // Runtime caches
     this.discoveryCache = new Map();
