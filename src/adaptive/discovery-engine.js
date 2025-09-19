@@ -51,6 +51,26 @@ class DiscoveryEngine {
     this.moduleVersions = new Map();
   }
 
+  detectCallerExtension() {
+    try {
+      const stack = new Error().stack;
+      const lines = stack.split('\n');
+
+      // Find the first file that's not this discovery engine
+      for (const line of lines) {
+        if (line.includes('.js') && !line.includes('discovery-engine.js') && !line.includes('adaptive-tests')) {
+          return '.js';
+        }
+        if (line.includes('.ts') && !line.includes('discovery-engine.js')) {
+          return '.ts';
+        }
+      }
+    } catch (e) {
+      // Default to JS
+    }
+    return '.js';
+  }
+
   async ensureCacheLoaded() {
     if (!this.config.discovery.cache.enabled) {
       this.cacheLoaded = true;
@@ -75,6 +95,9 @@ class DiscoveryEngine {
     // Normalize and validate signature
     const normalizedSig = this.normalizeSignature(signature);
     const cacheKey = this.getCacheKey(normalizedSig);
+
+    // Detect caller's file extension from stack
+    const callerExtension = this.detectCallerExtension();
 
     await this.ensureCacheLoaded();
 
@@ -106,21 +129,38 @@ class DiscoveryEngine {
       throw this.createDiscoveryError(normalizedSig);
     }
 
-    // Sort by score
-    candidates.sort((a, b) => b.score - a.score || a.path.localeCompare(b.path));
+    // Sort by score, but prioritize matching extensions
+    candidates.sort((a, b) => {
+      const aExt = path.extname(a.path);
+      const bExt = path.extname(b.path);
+
+      // If caller is JS and one candidate is JS, prefer it
+      if (callerExtension === '.js') {
+        if (aExt === '.js' && bExt !== '.js') return -1;
+        if (aExt !== '.js' && bExt === '.js') return 1;
+      }
+
+      // If caller is TS and one candidate is TS, prefer it
+      if (callerExtension === '.ts') {
+        if (aExt === '.ts' && bExt !== '.ts') return -1;
+        if (aExt !== '.ts' && bExt === '.ts') return 1;
+      }
+
+      // Otherwise sort by score
+      return b.score - a.score || a.path.localeCompare(b.path);
+    });
 
     // Try to resolve candidates in order
     for (const candidate of candidates) {
       const resolved = await this.tryResolveCandidate(candidate, normalizedSig);
       if (resolved) {
-        // Cache the result
+        // Cache the metadata only (not the actual module/target)
         const cacheEntry = {
           path: candidate.path,
           access: resolved.access,
           score: candidate.score,
           timestamp: Date.now(),
-          mtimeMs: candidate.mtimeMs ?? null,
-          target: resolved.target
+          mtimeMs: candidate.mtimeMs ?? null
         };
 
         this.discoveryCache.set(cacheKey, cacheEntry);
@@ -181,6 +221,10 @@ class DiscoveryEngine {
       }
 
       if (entry.name.endsWith('.d.ts')) {
+        continue;
+      }
+
+      if (entry.name.endsWith('.backup')) {
         continue;
       }
 
@@ -830,9 +874,8 @@ class DiscoveryEngine {
 
       if (ext === '.ts' || ext === '.tsx') {
         this.ensureTypeScriptSupport();
-        if (hasChanged) {
-          delete require.cache[resolvedPath];
-        }
+        // Always delete from cache to get fresh module
+        delete require.cache[resolvedPath];
         const moduleExports = require(candidate.path);
         if (mtimeMs !== null) {
           this.moduleVersions.set(resolvedPath, mtimeMs);
@@ -851,23 +894,13 @@ class DiscoveryEngine {
         return this.resolveTargetFromModule(moduleExports, signature, candidate);
       }
 
-      let moduleExports;
+      // Always delete from cache to get fresh module
+      delete require.cache[resolvedPath];
 
-      if (hasChanged && !initialLoad) {
-        moduleExports = this.compileFreshModule(candidate.path);
-        const cached = require.cache[resolvedPath];
-        if (cached) {
-          cached.exports = moduleExports;
-        } else {
-          const synthetic = new Module(resolvedPath, module.parent);
-          synthetic.filename = resolvedPath;
-          synthetic.exports = moduleExports;
-          synthetic.paths = Module._nodeModulePaths(path.dirname(resolvedPath));
-          require.cache[resolvedPath] = synthetic;
-        }
-      } else {
-        moduleExports = require(candidate.path);
+      if (process.env.DEBUG_DISCOVERY) {
+        console.log('Loading module from candidate:', candidate.path);
       }
+      const moduleExports = require(candidate.path);
 
       if (mtimeMs !== null) {
         this.moduleVersions.set(resolvedPath, mtimeMs);
@@ -1299,36 +1332,14 @@ class DiscoveryEngine {
   loadModule(cacheEntry, signature) {
     const resolvedPath = require.resolve(cacheEntry.path);
 
-    if (cacheEntry.target) {
-      return cacheEntry.target;
-    }
-
-    if (cacheEntry.mtimeMs) {
-      try {
-        const stats = fs.statSync(cacheEntry.path);
-        if (stats.mtimeMs !== cacheEntry.mtimeMs) {
-          throw new Error('Cached entry out of date');
-        }
-      } catch (error) {
-        throw new Error('Cached entry out of date');
-      }
-    }
-
-    if (!moduleCache.has(resolvedPath)) {
-      delete require.cache[resolvedPath];
-    }
+    // Never cache the actual module object - always load fresh
+    // Always clear require.cache to ensure fresh module load
+    delete require.cache[resolvedPath];
 
     const moduleExports = require(cacheEntry.path);
-    this.cachedModules.add(resolvedPath);
-    if (cacheEntry.mtimeMs !== null && cacheEntry.mtimeMs !== undefined) {
-      this.moduleVersions.set(resolvedPath, cacheEntry.mtimeMs);
+    if (process.env.DEBUG_DISCOVERY) {
+      console.log('Loading module from cache entry:', cacheEntry.path);
     }
-
-    if (cacheEntry.target) {
-      return cacheEntry.target;
-    }
-
-    moduleCache.set(resolvedPath, cacheEntry.mtimeMs);
 
     let target = moduleExports;
 

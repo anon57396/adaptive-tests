@@ -1,6 +1,6 @@
 /**
- * Simple Calculator Class
- * This will be moved around to demonstrate adaptive testing
+ * Broken Calculator Class - Intentionally buggy to prove tests catch real errors
+ * This demonstrates that adaptive tests fail for legitimate reasons
  */
 
 class Calculator {
@@ -9,7 +9,8 @@ class Calculator {
   }
 
   add(a, b) {
-    const result = a + b;
+    // BUG: Should be a + b, not a - b
+    const result = a - b;
     this.history.push(`${a} + ${b} = ${result}`);
     return result;
   }
@@ -21,30 +22,28 @@ class Calculator {
   }
 
   multiply(a, b) {
-    const result = a * b;
+    // BUG: Should be a * b, not a + b
+    const result = a + b;
     this.history.push(`${a} * ${b} = ${result}`);
     return result;
   }
 
   divide(a, b) {
-    if (b === 0) {
-      throw new Error('Division by zero');
-    }
+    // BUG: Missing zero check
     const result = a / b;
     this.history.push(`${a} / ${b} = ${result}`);
     return result;
   }
 
   power(base, exponent) {
-    const result = Math.pow(base, exponent);
+    // BUG: Should use Math.pow, not multiplication
+    const result = base * exponent;
     this.history.push(`${base} ^ ${exponent} = ${result}`);
     return result;
   }
 
   sqrt(n) {
-    if (n < 0) {
-      throw new Error('Cannot take square root of negative number');
-    }
+    // BUG: Missing negative check
     const result = Math.sqrt(n);
     this.history.push(`√${n} = ${result}`);
     return result;
@@ -55,7 +54,8 @@ class Calculator {
   }
 
   clearHistory() {
-    this.history = [];
+    // BUG: Doesn't actually clear history
+    // this.history = [];
   }
 }
 
