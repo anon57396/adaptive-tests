@@ -1,5 +1,17 @@
-// Results display and rendering functionality
+/**
+ * @fileoverview Results display and rendering module for the Discovery Lens.
+ * Handles the presentation of discovery results with interactive features.
+ *
+ * @module ResultsModule
+ */
 
+/**
+ * Shows skeleton loading placeholders while discovery is in progress.
+ *
+ * @function showSkeleton
+ * @param {HTMLElement} resultsContainer - Container for skeleton elements
+ * @param {number} [count=3] - Number of skeleton items to display
+ */
 export function showSkeleton(resultsContainer, count = 3) {
     resultsContainer.innerHTML = '';
     
@@ -9,6 +21,12 @@ export function showSkeleton(resultsContainer, count = 3) {
     }
 }
 
+/**
+ * Creates a single skeleton loading element with appropriate structure.
+ *
+ * @function createSkeletonElement
+ * @returns {HTMLElement} Skeleton element with loading animation
+ */
 function createSkeletonElement() {
     const div = document.createElement('div');
     div.className = 'skeleton-result';
@@ -34,6 +52,23 @@ function createSkeletonElement() {
     return div;
 }
 
+/**
+ * Displays discovery results with summary, individual items, and navigation setup.
+ * Creates interactive result elements with accessibility support.
+ *
+ * @function displayResults
+ * @param {Object} data - Discovery results data
+ * @param {Array} data.results - Array of result objects
+ * @param {Object} data.signature - Original discovery signature
+ * @param {number} data.totalCandidates - Total candidates analyzed
+ * @param {HTMLElement} resultsSection - Results display section
+ * @param {HTMLElement} resultsContainer - Container for result items
+ * @param {HTMLElement} resultsSummary - Summary display element
+ * @param {Function} announceToScreenReader - Accessibility announcement function
+ * @param {Function} manageFocus - Focus management function
+ * @param {Function} saveState - State persistence function
+ * @param {Function} setupResultNavigation - Navigation setup function
+ */
 export function displayResults(data, resultsSection, resultsContainer, resultsSummary, announceToScreenReader, manageFocus, saveState, setupResultNavigation) {
     const { results, signature, totalCandidates } = data;
 
@@ -67,6 +102,17 @@ export function displayResults(data, resultsSection, resultsContainer, resultsSu
         // Set up result navigation and accessibility
         setupResultNavigation(resultsContainer);
 
+        // Update state manager if available
+        if (window.stateManager) {
+            window.stateManager.setState({
+                ui: {
+                    ...window.stateManager.getState('ui'),
+                    resultsVisible: true,
+                    resultsCount: results.length
+                }
+            });
+        }
+
         announceToScreenReader(`Found ${results.length} matches out of ${totalCandidates} candidates. Use arrow keys to navigate results.`, 'assertive');
         
         // Focus management - focus first result after a brief delay
@@ -78,6 +124,16 @@ export function displayResults(data, resultsSection, resultsContainer, resultsSu
     saveState();
 }
 
+/**
+ * Creates a single result element with score display, breakdown, and actions.
+ * Includes accessibility attributes and interactive features.
+ *
+ * @function createResultElement
+ * @param {Object} result - Result object with path, score, and metadata
+ * @param {number} index - Index of this result in the results array
+ * @param {number} totalResults - Total number of results for context
+ * @returns {HTMLElement} Configured result element
+ */
 function createResultElement(result, index, totalResults) {
     const div = document.createElement('div');
     div.className = 'result-item';
@@ -107,8 +163,8 @@ function createResultElement(result, index, totalResults) {
         `;
     }
 
-    const scoreDisplay = result.showScores 
-        ? `<span class="result-score ${scoreClass}" aria-label="Score ${result.score}, ${scoreDescription}">${result.score}</span>` 
+    const scoreDisplay = result.showScores
+        ? `<span class="result-score ${scoreClass}" aria-label="Score ${result.score}, ${scoreDescription}">${result.score}</span>`
         : '';
 
     div.innerHTML = `
@@ -118,12 +174,12 @@ function createResultElement(result, index, totalResults) {
         </div>
         ${breakdownHtml}
         <div class="result-actions" role="group" aria-label="Actions for ${result.path}">
-            <button class="action-btn" 
+            <button class="action-btn"
                     onclick="openFile('${result.absolutePath}')"
                     aria-describedby="open-help-${index}">
                 Open File
             </button>
-            <button class="action-btn" 
+            <button class="action-btn"
                     onclick="scaffoldTest('${result.absolutePath}')"
                     aria-describedby="scaffold-help-${index}">
                 Scaffold Test
@@ -137,14 +193,20 @@ function createResultElement(result, index, totalResults) {
         </div>
     `;
 
-    const ariaLabel = result.showScores 
-        ? `File ${result.path}, score ${result.score}, ${scoreDescription}. Position ${index + 1} of ${totalResults}` 
+    const ariaLabel = result.showScores
+        ? `File ${result.path}, score ${result.score}, ${scoreDescription}. Position ${index + 1} of ${totalResults}`
         : `File ${result.path}. Position ${index + 1} of ${totalResults}`;
     div.setAttribute('aria-label', ariaLabel);
 
     return div;
 }
 
+/**
+ * Hides the results display section.
+ *
+ * @function hideResults
+ * @param {HTMLElement} resultsSection - Results section element to hide
+ */
 export function hideResults(resultsSection) {
     resultsSection.style.display = 'none';
 }

@@ -33,7 +33,12 @@
     "benchmark": "node scripts/demo/benchmark.js",
     "docs:api": "typedoc",
     "build:types": "tsc",
-    "prepublishOnly": "npm run build:types && npm run test && npm run validate && npm run lint:markdown && npm run lint:links"
+    "prepublishOnly": "npm run build:types && npm run test && npm run validate && npm run lint:markdown && npm run lint:links",
+    "release": "./scripts/release.sh",
+    "release:patch": "./scripts/release.sh patch",
+    "release:minor": "./scripts/release.sh minor",
+    "release:major": "./scripts/release.sh major",
+    "release:dry": "./scripts/release.sh patch --dry-run"
   },
   "keywords": [
     "testing",

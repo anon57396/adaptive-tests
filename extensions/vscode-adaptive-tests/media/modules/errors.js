@@ -101,6 +101,13 @@ export function showError(message, errorSection, errorMessage, resultsSection, a
     manageFocus(errorSection, { delay: 100 });
 }
 
+/**
+ * Sets up the enhanced error display structure if not already present.
+ * Transforms basic error elements into structured error display.
+ *
+ * @function setupErrorStructure
+ * @param {HTMLElement} errorSection - Error section element to enhance
+ */
 function setupErrorStructure(errorSection) {
     // Check if enhanced structure already exists
     if (errorSection.querySelector('.error-content')) return;

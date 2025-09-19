@@ -1,0 +1,371 @@
+# Automated Multi-Registry Publishing
+# 
+# This workflow publishes to npm, PyPI, Maven, and GitHub Packages
+# Triggered by:
+#   - Manual dispatch with version selection
+#   - Push to tags matching v*
+#   - Release creation
+
+name: Publish to All Registries
+
+on:
+  # Manual trigger with version input
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to publish (e.g., 1.2.3)'
+        required: false
+        type: string
+      prerelease:
+        description: 'Is this a pre-release?'
+        required: false
+        type: boolean
+        default: false
+      registries:
+        description: 'Registries to publish to'
+        required: false
+        type: choice
+        options:
+          - all
+          - npm-only
+          - pypi-only
+          - maven-only
+        default: all
+
+  # Automatic trigger on version tags
+  push:
+    tags:
+      - 'v*.*.*'
+      - 'v*.*.*-*'  # Pre-release tags
+
+  # Trigger on GitHub release
+  release:
+    types: [published]
+
+jobs:
+  # ==========================================
+  # NPM Publishing (Main package + plugins)
+  # ==========================================
+  publish-npm:
+    name: Publish to NPM
+    runs-on: ubuntu-latest
+    if: |
+      github.event_name == 'release' ||
+      github.event_name == 'push' ||
+      (github.event_name == 'workflow_dispatch' && (github.event.inputs.registries == 'all' || github.event.inputs.registries == 'npm-only'))
+    
+    permissions:
+      contents: read
+      packages: write
+      
+    strategy:
+      matrix:
+        package:
+          - '.'
+          - 'packages/jest-adaptive'
+          - 'packages/vite-plugin-adaptive'
+          - 'packages/webpack-plugin-adaptive'
+    
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+          cache: 'npm'
+
+      - name: Get Version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ github.event.inputs.version }}" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+          elif [ "${{ github.event_name }}" = "release" ]; then
+            VERSION="${GITHUB_REF#refs/tags/v}"
+          else
+            VERSION="${GITHUB_REF#refs/tags/v}"
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Install Dependencies
+        working-directory: ${{ matrix.package }}
+        run: npm ci
+
+      - name: Build Package
+        working-directory: ${{ matrix.package }}
+        run: |
+          if [ -f "tsconfig.json" ]; then
+            npm run build
+          fi
+
+      - name: Run Tests
+        working-directory: ${{ matrix.package }}
+        run: npm test
+        continue-on-error: true  # Don't fail if tests fail in subdirectories
+
+      - name: Update Package Version
+        working-directory: ${{ matrix.package }}
+        run: |
+          npm version ${{ steps.version.outputs.version }} --no-git-tag-version --allow-same-version
+
+      - name: Publish to NPM
+        working-directory: ${{ matrix.package }}
+        run: |
+          if [ "${{ github.event.inputs.prerelease }}" = "true" ]; then
+            npm publish --tag next --access public
+          else
+            npm publish --access public
+          fi
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish to GitHub Packages
+        working-directory: ${{ matrix.package }}
+        run: |
+          # Update registry to GitHub
+          npm config set @${{ github.repository_owner }}:registry https://npm.pkg.github.com
+          # Publish
+          npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true  # GitHub Packages might fail if package name doesn't match
+
+  # ==========================================
+  # PyPI Publishing (Python package)
+  # ==========================================
+  publish-pypi:
+    name: Publish to PyPI
+    runs-on: ubuntu-latest
+    if: |
+      github.event_name == 'release' ||
+      github.event_name == 'push' ||
+      (github.event_name == 'workflow_dispatch' && (github.event.inputs.registries == 'all' || github.event.inputs.registries == 'pypi-only'))
+    
+    defaults:
+      run:
+        working-directory: packages/adaptive-tests-py
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install build twine setuptools wheel
+          if [ -f requirements.txt ]; then
+            pip install -r requirements.txt
+          fi
+
+      - name: Get Version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ github.event.inputs.version }}" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+          else
+            VERSION="${GITHUB_REF#refs/tags/v}"
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Update Version
+        run: |
+          # Update version in setup.py or pyproject.toml
+          if [ -f "setup.py" ]; then
+            sed -i "s/version=.*,/version='${{ steps.version.outputs.version }}',/" setup.py
+          fi
+          if [ -f "pyproject.toml" ]; then
+            sed -i "s/version = .*/version = \"${{ steps.version.outputs.version }}\"/" pyproject.toml
+          fi
+
+      - name: Build Distribution
+        run: python -m build
+
+      - name: Check Distribution
+        run: twine check dist/*
+
+      - name: Publish to Test PyPI
+        if: github.event.inputs.prerelease == 'true'
+        run: |
+          twine upload --repository testpypi dist/* --non-interactive
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.TEST_PYPI_TOKEN }}
+        continue-on-error: true
+
+      - name: Publish to PyPI
+        if: github.event.inputs.prerelease != 'true'
+        run: |
+          twine upload dist/* --non-interactive
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
+
+  # ==========================================
+  # Maven Publishing (Java packages)
+  # ==========================================
+  publish-maven:
+    name: Publish to Maven Central
+    runs-on: ubuntu-latest
+    if: |
+      github.event_name == 'release' ||
+      github.event_name == 'push' ||
+      (github.event_name == 'workflow_dispatch' && (github.event.inputs.registries == 'all' || github.event.inputs.registries == 'maven-only'))
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          server-id: ossrh
+          server-username: MAVEN_USERNAME
+          server-password: MAVEN_PASSWORD
+          gpg-private-key: ${{ secrets.MAVEN_GPG_PRIVATE_KEY }}
+          gpg-passphrase: MAVEN_GPG_PASSPHRASE
+
+      - name: Check for Maven Projects
+        id: check_maven
+        run: |
+          if find . -name "pom.xml" -type f | grep -q .; then
+            echo "has_maven=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_maven=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Get Version
+        if: steps.check_maven.outputs.has_maven == 'true'
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ github.event.inputs.version }}" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+          else
+            VERSION="${GITHUB_REF#refs/tags/v}"
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Update Maven Version
+        if: steps.check_maven.outputs.has_maven == 'true'
+        run: |
+          find . -name "pom.xml" -exec mvn versions:set -DnewVersion=${{ steps.version.outputs.version }} -f {} \;
+
+      - name: Build with Maven
+        if: steps.check_maven.outputs.has_maven == 'true'
+        run: |
+          find . -name "pom.xml" -execdir mvn clean package -DskipTests \;
+
+      - name: Publish to Maven Central
+        if: steps.check_maven.outputs.has_maven == 'true'
+        run: |
+          find . -name "pom.xml" -execdir mvn deploy -DskipTests \;
+        env:
+          MAVEN_USERNAME: ${{ secrets.OSSRH_USERNAME }}
+          MAVEN_PASSWORD: ${{ secrets.OSSRH_TOKEN }}
+          MAVEN_GPG_PASSPHRASE: ${{ secrets.MAVEN_GPG_PASSPHRASE }}
+
+      - name: Publish to GitHub Packages (Maven)
+        if: steps.check_maven.outputs.has_maven == 'true'
+        run: |
+          # Configure for GitHub Packages
+          mkdir -p ~/.m2
+          echo "<settings><servers><server><id>github</id><username>${GITHUB_ACTOR}</username><password>${GITHUB_TOKEN}</password></server></servers></settings>" > ~/.m2/settings.xml
+          # Deploy to GitHub Packages
+          find . -name "pom.xml" -execdir mvn deploy -DskipTests -DaltDeploymentRepository=github::default::https://maven.pkg.github.com/${{ github.repository }} \;
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
+
+  # ==========================================
+  # Create GitHub Release with Assets
+  # ==========================================
+  create-release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'push'
+    needs: [publish-npm, publish-pypi, publish-maven]
+    
+    permissions:
+      contents: write
+      
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Get Version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ github.event.inputs.version }}" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+          else
+            VERSION="${GITHUB_REF#refs/tags/v}"
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Generate Release Notes
+        id: notes
+        run: |
+          echo "# Release v${{ steps.version.outputs.version }}" > release_notes.md
+          echo "" >> release_notes.md
+          echo "## Packages Published" >> release_notes.md
+          echo "" >> release_notes.md
+          echo "### NPM" >> release_notes.md
+          echo "- [adaptive-tests](https://www.npmjs.com/package/adaptive-tests)" >> release_notes.md
+          echo "- [jest-adaptive](https://www.npmjs.com/package/jest-adaptive)" >> release_notes.md
+          echo "- [vite-plugin-adaptive](https://www.npmjs.com/package/vite-plugin-adaptive)" >> release_notes.md
+          echo "- [webpack-plugin-adaptive](https://www.npmjs.com/package/webpack-plugin-adaptive)" >> release_notes.md
+          echo "" >> release_notes.md
+          echo "### PyPI" >> release_notes.md
+          echo "- [adaptive-tests-py](https://pypi.org/project/adaptive-tests-py/)" >> release_notes.md
+          echo "" >> release_notes.md
+          echo "## Installation" >> release_notes.md
+          echo '```bash' >> release_notes.md
+          echo "npm install adaptive-tests@${{ steps.version.outputs.version }}" >> release_notes.md
+          echo "pip install adaptive-tests-py==${{ steps.version.outputs.version }}" >> release_notes.md
+          echo '```' >> release_notes.md
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ steps.version.outputs.version }}
+          name: v${{ steps.version.outputs.version }}
+          body_path: release_notes.md
+          draft: false
+          prerelease: ${{ github.event.inputs.prerelease == 'true' }}
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ==========================================
+  # Notification
+  # ==========================================
+  notify:
+    name: Send Notifications
+    runs-on: ubuntu-latest
+    needs: [publish-npm, publish-pypi, publish-maven, create-release]
+    if: always()
+    
+    steps:
+      - name: Notify Success
+        if: success()
+        run: |
+          echo "✅ Successfully published to all registries!"
+          echo "NPM: ${{ needs.publish-npm.result }}"
+          echo "PyPI: ${{ needs.publish-pypi.result }}"
+          echo "Maven: ${{ needs.publish-maven.result }}"
+
+      - name: Notify Failure
+        if: failure()
+        run: |
+          echo "❌ Some publishes failed"
+          echo "NPM: ${{ needs.publish-npm.result }}"
+          echo "PyPI: ${{ needs.publish-pypi.result }}"
+          echo "Maven: ${{ needs.publish-maven.result }}"

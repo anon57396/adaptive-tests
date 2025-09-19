@@ -571,6 +571,14 @@
         });
     }
 
+    /**
+     * Handles messages from the VS Code extension.
+     * Routes different message types to appropriate handlers.
+     *
+     * @async
+     * @function handleMessage
+     * @param {MessageEvent} event - Message event from VS Code extension
+     */
     async function handleMessage(event) {
         const message = event.data;
 
@@ -591,22 +599,36 @@
         }
     }
 
+    /**
+     * Displays discovery results using the results module.
+     * Updates state and delegates to results module for rendering.
+     *
+     * @async
+     * @function displayResults
+     * @param {Object} data - Results data from discovery
+     */
     async function displayResults(data) {
         const module = await loadResultsModule();
         lastResults = data.results;
         
         module.displayResults(
-            data, 
-            resultsSection, 
-            resultsContainer, 
-            resultsSummary, 
-            announceToScreenReader, 
-            manageFocus, 
-            saveState, 
+            data,
+            resultsSection,
+            resultsContainer,
+            resultsSummary,
+            announceToScreenReader,
+            manageFocus,
+            saveState,
             setupResultNavigation
         );
     }
 
+    /**
+     * Sends a request to open a file in VS Code editor.
+     *
+     * @function openFile
+     * @param {string} path - File path to open
+     */
     function openFile(path) {
         vscode.postMessage({
             command: 'openFile',
@@ -614,6 +636,12 @@
         });
     }
 
+    /**
+     * Sends a request to scaffold a test file for the given path.
+     *
+     * @function scaffoldTest
+     * @param {string} path - File path to scaffold test for
+     */
     function scaffoldTest(path) {
         vscode.postMessage({
             command: 'scaffoldTest',
@@ -621,6 +649,13 @@
         });
     }
 
+    /**
+     * Sets loading state and updates UI elements accordingly.
+     * Manages button state, progress display, and accessibility attributes.
+     *
+     * @function setLoading
+     * @param {boolean} loading - Whether discovery is in loading state
+     */
     function setLoading(loading) {
         isLoading = loading;
         runButton.disabled = loading;
@@ -640,6 +675,11 @@
         }
     }
 
+    /**
+     * Shows the progress indicator with animation.
+     *
+     * @function showProgress
+     */
     function showProgress() {
         if (progressContainer) {
             progressContainer.classList.add('visible');
@@ -647,6 +687,11 @@
         }
     }
 
+    /**
+     * Hides the progress indicator with transition.
+     *
+     * @function hideProgress
+     */
     function hideProgress() {
         if (progressContainer) {
             progressContainer.classList.remove('visible');
@@ -658,6 +703,11 @@
         }
     }
 
+    /**
+     * Resets progress display to initial state.
+     *
+     * @function resetProgress
+     */
     function resetProgress() {
         currentStep = 0;
         progressSteps.forEach(step => {
@@ -668,6 +718,13 @@
         }
     }
 
+    /**
+     * Updates progress display with current step and text.
+     *
+     * @function updateProgress
+     * @param {number} step - Current progress step
+     * @param {string} text - Progress description text
+     */
     function updateProgress(step, text) {
         if (progressText) {
             progressText.textContent = text;
@@ -689,6 +746,11 @@
         currentStep = step;
     }
 
+    /**
+     * Starts simulated progress animation during discovery.
+     *
+     * @function startProgressAnimation
+     */
     function startProgressAnimation() {
         resetProgress();
         
@@ -699,13 +761,25 @@
         setTimeout(() => updateProgress(3, 'Finalizing results...'), 3000);
     }
 
+    /**
+     * Shows error message using the errors module.
+     * Categorizes and displays errors with appropriate user interactions.
+     *
+     * @async
+     * @function showError
+     * @param {string} message - Error message to display
+     * @param {string} [errorType] - Optional error type override
+     */
     async function showError(message, errorType) {
         const module = await loadErrorsModule();
         const category = errorType || module.categorizeError(message);
         module.showError(message, errorSection, errorMessage, resultsSection, announceToScreenReader, manageFocus, category, lastSignature);
     }
 
-    // Make retry function available globally
+    /**
+     * Global retry function for error recovery.
+     * Available to error module for retry functionality.
+     */
     window.retryLastDiscovery = function(signature) {
         if (signature) {
             signatureInput.value = JSON.stringify(signature, null, 2);
@@ -714,10 +788,20 @@
         }
     };
 
+    /**
+     * Hides the error display section.
+     *
+     * @function hideError
+     */
     function hideError() {
         errorSection.style.display = 'none';
     }
 
+    /**
+     * Hides the results display section and resets navigation state.
+     *
+     * @function hideResults
+     */
     function hideResults() {
         resultsSection.style.display = 'none';
         if (navigationModule) {
@@ -725,6 +809,12 @@
         }
     }
 
+    /**
+     * Saves current application state to VS Code webview state.
+     * Persists signature, results, and metadata for restoration.
+     *
+     * @function saveState
+     */
     function saveState() {
         vscode.setState({
             signature: signatureInput.value,
@@ -734,6 +824,11 @@
         });
     }
 
+    /**
+     * Sets up accessibility features for details elements.
+     *
+     * @function setupDetailsAccessibility
+     */
     function setupDetailsAccessibility() {
         const detailsElement = document.querySelector('details');
         const summaryElement = document.querySelector('summary');
