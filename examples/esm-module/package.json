@@ -1,0 +1,19 @@
+{
+  "name": "esm-module-example",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "ESM-only adaptive testing example",
+  "scripts": {
+    "test": "node --experimental-vm-modules node_modules/.bin/jest"
+  },
+  "devDependencies": {
+    "@jest/globals": "^29.7.0",
+    "jest": "^29.7.0"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "extensionsToTreatAsEsm": [".js"],
+    "transform": {},
+    "testMatch": ["**/tests/**/*.test.js"]
+  }
+}
