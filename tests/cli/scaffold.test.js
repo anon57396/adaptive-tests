@@ -46,10 +46,13 @@ describe('CLI scaffold command', () => {
   it('generates a JavaScript adaptive test skeleton from a source path', () => {
     const workspace = createTempWorkspace();
 
-    const result = runCli(['scaffold', 'src/services/UserService.js'], { cwd: workspace });
+    const result = runCli(['scaffold', 'src/services/UserService.js', '--json'], { cwd: workspace });
 
     expect(result.status).toBe(0);
-    expect(result.stdout).toContain('Created tests/adaptive/UserService.test.js');
+    const payload = JSON.parse(result.stdout);
+    expect(payload.created).toContain('tests/adaptive/UserService.test.js');
+    expect(payload.skipped).toEqual([]);
+    expect(payload.errors).toEqual([]);
 
     const generatedTestPath = path.join(workspace, 'tests', 'adaptive', 'UserService.test.js');
     expect(fs.existsSync(generatedTestPath)).toBe(true);
@@ -63,10 +66,11 @@ describe('CLI scaffold command', () => {
   it('supports TypeScript output', () => {
     const workspace = createTempWorkspace();
 
-    const result = runCli(['scaffold', 'src/services/UserService.js', '--typescript'], { cwd: workspace });
+    const result = runCli(['scaffold', 'src/services/UserService.js', '--typescript', '--json'], { cwd: workspace });
 
     expect(result.status).toBe(0);
-    expect(result.stdout).toContain('Created tests/adaptive/UserService.test.ts');
+    const payload = JSON.parse(result.stdout);
+    expect(payload.created).toContain('tests/adaptive/UserService.test.ts');
 
     const generatedTestPath = path.join(workspace, 'tests', 'adaptive', 'UserService.test.ts');
     expect(fs.existsSync(generatedTestPath)).toBe(true);
@@ -81,10 +85,12 @@ describe('CLI scaffold command', () => {
     fs.mkdirSync(path.dirname(generatedTestPath), { recursive: true });
     fs.writeFileSync(generatedTestPath, '// existing test', 'utf8');
 
-    const result = runCli(['scaffold', 'src/services/UserService.js'], { cwd: workspace });
+    const result = runCli(['scaffold', 'src/services/UserService.js', '--json'], { cwd: workspace });
 
     expect(result.status).toBe(0);
-    expect(result.stdout).toContain('Skipping existing file');
+    const payload = JSON.parse(result.stdout);
+    expect(payload.skipped).toContain('tests/adaptive/UserService.test.js');
+    expect(payload.errors).toEqual([]);
   });
 
   it('can apply intelligent assertions when requested', () => {

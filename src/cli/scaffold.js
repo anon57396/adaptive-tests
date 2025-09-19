@@ -389,7 +389,7 @@ async function runScaffold(argv = []) {
     created: [],
     skippedExisting: [],
     skippedNoExport: [],
-    failed: []
+    errors: []
   };
 
   const isPath = targetArg.includes('/') || targetArg.includes('\\') || /\.m?[jt]sx?$/i.test(targetArg);
@@ -421,23 +421,31 @@ async function runScaffold(argv = []) {
     }
   } catch (error) {
     console.error(`${COLORS.red}Error:${COLORS.reset} ${error.message}`);
-    results.failed.push({ target: targetArg, message: error.message });
+    results.errors.push(error.message);
     process.exitCode = 1;
   }
 
   if (options.json) {
-    console.log(JSON.stringify(results, null, 2));
+    const payload = {
+      created: results.created.map((file) => path.relative(root, file)),
+      skipped: [
+        ...results.skippedExisting.map((file) => path.relative(root, file)),
+        ...results.skippedNoExport.map((file) => path.relative(root, file))
+      ],
+      errors: [...results.errors]
+    };
+    console.log(JSON.stringify(payload));
   } else {
     log('\n📊 Scaffold summary:', COLORS.bright + COLORS.cyan, options);
     log(`  ✅ Created: ${results.created.length}`, COLORS.green, options);
     log(`  ⏭️  Skipped (existing): ${results.skippedExisting.length}`, COLORS.yellow, options);
     log(`  ⚠️  Skipped (no exports): ${results.skippedNoExport.length}`, COLORS.yellow, options);
-    if (results.failed.length > 0) {
-      log(`  ❌ Failed: ${results.failed.length}`, COLORS.red, options);
+    if (results.errors.length > 0) {
+      log(`  ❌ Failed: ${results.errors.length}`, COLORS.red, options);
     }
   }
 
-  if (results.failed.length > 0) {
+  if (results.errors.length > 0) {
     process.exitCode = 1;
   }
 }
