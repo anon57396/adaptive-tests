@@ -64,8 +64,8 @@ npm run demo       # quick resilience walkthrough
 
 ## Learn More
 
-- How It Works: HOW_IT_WORKS.html
-- Best Practices: BEST_PRACTICES.html
+- [How It Works](HOW_IT_WORKS.html)
+- [Best Practices](BEST_PRACTICES.html)
 
 That’s it. Adaptive discovery removes brittle import paths from your tests while
 staying compatible with existing runners like Jest, Mocha, or Vitest.

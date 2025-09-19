@@ -1,5 +1,10 @@
 # Adaptive Tests
 
+[![Docs](https://img.shields.io/badge/docs-website-blue)](https://anon57396.github.io/adaptive-tests/)
+[![npm version](https://img.shields.io/npm/v/adaptive-tests.svg)](https://www.npmjs.com/package/adaptive-tests)
+
+Documentation: [https://anon57396.github.io/adaptive-tests/](https://anon57396.github.io/adaptive-tests/)
+
 Adaptive Tests keeps your suites green no matter how you reorganise your code. The
 engine uses **zero-runtime discovery** powered by AST analysis, so test targets are
 resolved without ever `require`-ing application modules during discovery. Move

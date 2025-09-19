@@ -100,7 +100,7 @@
   "bugs": {
     "url": "https://github.com/anon57396/adaptive-tests/issues"
   },
-  "homepage": "https://github.com/anon57396/adaptive-tests#readme",
+  "homepage": "https://anon57396.github.io/adaptive-tests/",
   "types": "types/src/adaptive/index.d.ts",
   "sideEffects": false,
   "files": [
