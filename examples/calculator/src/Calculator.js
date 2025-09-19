@@ -1,6 +1,6 @@
 /**
  * Calculator Class - Canonical Implementation
- * A simple calculator with history tracking
+ * A simple calculator with history tracking.
  */
 
 class Calculator {
@@ -60,3 +60,4 @@ class Calculator {
 }
 
 module.exports = Calculator;
+

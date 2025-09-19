@@ -1,6 +1,6 @@
 # Internal Execution Plan – Adaptive Tests
 
-This document translates our recent prioritization into concrete, actionable work. It is an internal guide for planning, implementation, validation, and release.
+This document translates our recent prioritization into concrete, actionable work. It is an internal guide for planning, implementation, validation, and release. Some sections outline exploratory directions for discussion; they are non-committal and intended to inform, not overstate, our public roadmap.
 
 ## Principles
 
@@ -305,21 +305,21 @@ Objective: Make Adaptive Tests the natural choice for AI agents and automated wo
 
 ### 7. Strategic Partnerships
 
-- **Testing Frameworks**: Official partnerships with Jest/Vitest teams
-- **CI/CD Platforms**: Native integrations with GitHub Actions, CircleCI
-- **Dev Tools**: Bundle with Nx, Turborepo monorepo setups
-- **Education**: Include in FreeCodeCamp, Codecademy curricula
+- **Testing Frameworks**: Collaborations with Jest/Vitest maintainers and communities
+- **CI/CD Platforms**: Integrations with GitHub Actions, CircleCI
+- **Dev Tools**: Optional bundles with Nx, Turborepo monorepo setups
+- **Education**: Guides for curricula and learning platforms
 
 ### 8. Metrics for Success
 
-- **Adoption Velocity**: NPM downloads doubling every 3 months
-- **Community Growth**: 1000 Discord members in 6 months
-- **Enterprise Logos**: 3 Fortune 500 companies as references
-- **Framework Coverage**: 80% of top JS frameworks with recipes
+- **Adoption Velocity**: Steady, compounding growth in npm downloads
+- **Community Growth**: Active, helpful community channels
+- **Customer Proof**: Real-world case studies across teams and companies
+- **Framework Coverage**: Broad recipes across popular JS frameworks
 
 ### 9. Competitive Moat
 
-- **Patent Application**: File for AST-based discovery method
-- **Certification Program**: "Adaptive Testing Certified" badge
-- **Academic Paper**: Publish research on maintenance reduction
-- **Industry Standard**: Submit to TC39/W3C for standardization
+- **Open Techniques**: Document and publish the AST-based discovery method; review prior art
+- **Community Recognition**: Badges or acknowledgements for contributors and adopters
+- **Technical Writing**: Whitepaper and in-depth blog posts on maintenance reduction
+- **Standards Dialogue**: Engage in community standards conversations where relevant; no formal standardization plans

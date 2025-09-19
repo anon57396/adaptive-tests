@@ -88,26 +88,18 @@ npx adaptive-tests scaffold src/services/UserService.js
 npx adaptive-tests scaffold --batch src/  # Scaffold entire directory
 ```
 
-The CLI provides powerful tools for rapid test adoption:
+Use `npx adaptive-tests scaffold --help` for all options. Helpful flags include:
 
-### Smart Test Scaffolding
+- `--typescript` – emit `.test.ts`
+- `--force` – overwrite existing test files
+- `--apply-assertions` – generate starter assertions (defaults to TODOs)
+- `--all-exports` / `--export <Name>` – control multi-export files
+- `--batch <dir>` – scaffold an entire directory
+- `--json` – machine-readable output
 
-The `scaffold` command analyzes your source code and generates intelligent test templates:
-
-- **Automatic signature extraction** from AST analysis
-- **Smart assertion generation** based on method naming patterns
-- **Mock data inference** for common domain objects
-- **Dependency injection detection** with mock setup
-- **Error handling test cases** auto-generated
-- **Interactive mode** for modules with multiple exports
-- **Batch processing** to scaffold entire directories at once
-
-Example output includes:
-- Accurate discovery signatures
-- Test blocks for every public method
-- Intelligent assertions (e.g., `getUser()` → `expect(result).toHaveProperty('id')`)
-- Mock data generation (e.g., methods with "User" → user object mocks)
-- Coverage suggestions and TODO placeholders
+The CLI scaffolds an `adaptive` test directory, drops in example suites, and
+links any missing optional peers (such as `ts-node`). Additional CLI helpers
+include the Discovery Lens (`why`) and refactor scripts documented below.
 
 Need visibility into why a signature matched (or didn’t)? Use the Discovery
 Lens companion:
@@ -147,6 +139,7 @@ The script runs four scenarios:
 - [Common Issues & Troubleshooting](docs/COMMON_ISSUES.md)
 - [How It Works](docs/HOW_IT_WORKS.md)
 - [Best Practices](docs/BEST_PRACTICES.md)
+- Prompt Guide (AIs & automation): PROMPT_GUIDE.md
 - [API Reference](https://anon57396.github.io/adaptive-tests/api/)
 - [Proof & Demo Scripts](PROOF.md)
 - [Examples](examples/) (`calculator`, `api-service`, `todo-app`, `typescript`, `python`)

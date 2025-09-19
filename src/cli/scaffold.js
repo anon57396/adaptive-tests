@@ -1,18 +1,9 @@
 #!/usr/bin/env node
 
-/**
- * Smart Test Scaffolding - Generates perfect adaptive test skeletons from source files
- *
- * This tool analyzes your source code and generates test files with:
- * - Accurate discovery signatures based on actual exports
- * - Test blocks for every public method
- * - TypeScript support
- * - Framework-aware templates (Jest, Mocha, Vitest)
- */
-
 const fs = require('fs');
 const path = require('path');
-const { getDiscoveryEngine } = require('../adaptive/discovery-engine');
+const os = require('os');
+const { DiscoveryEngine, getDiscoveryEngine } = require('../adaptive/discovery-engine');
 
 const COLORS = {
   reset: '\x1b[0m',
@@ -20,278 +11,439 @@ const COLORS = {
   dim: '\x1b[2m',
   green: '\x1b[32m',
   yellow: '\x1b[33m',
-  blue: '\x1b[34m',
-  red: '\x1b[31m',
   cyan: '\x1b[36m',
-  magenta: '\x1b[35m',
+  red: '\x1b[31m'
 };
 
-function log(message, color = '') {
-  console.log(color + message + COLORS.reset);
-}
-
-function detectTestFramework() {
-  const packagePath = path.join(process.cwd(), 'package.json');
-  if (!fs.existsSync(packagePath)) {
-    return 'jest'; // default
+const ensureDirSync = (dirPath) => {
+  if (!fs.existsSync(dirPath)) {
+    fs.mkdirSync(dirPath, { recursive: true });
   }
+};
 
-  const pkg = JSON.parse(fs.readFileSync(packagePath, 'utf8'));
-  const deps = { ...pkg.dependencies, ...pkg.devDependencies };
+const toArray = (value) => {
+  if (!value) return [];
+  if (Array.isArray(value)) return value;
+  if (value instanceof Set) return Array.from(value);
+  return [value];
+};
 
-  if (deps.vitest) return 'vitest';
-  if (deps.mocha) return 'mocha';
-  if (deps.jest) return 'jest';
-  if (deps.jasmine) return 'jasmine';
-  if (deps.ava) return 'ava';
+const log = (message, color = COLORS.reset, options = {}) => {
+  if (options.json) return;
+  console.log(color + message + COLORS.reset);
+};
 
-  return 'jest'; // default
-}
-
-function analyzeSourceFile(filePath) {
-  const engine = getDiscoveryEngine(process.cwd());
-  const content = fs.readFileSync(filePath, 'utf8');
-  const fileName = path.basename(filePath, path.extname(filePath));
-
-  try {
-    const metadata = engine.analyzeModuleExports(content, fileName);
-    if (!metadata || !metadata.exports || metadata.exports.length === 0) {
-      return null;
-    }
-
-    // Pick the most significant export
-    const exports = metadata.exports;
-    let selected = exports.find(e => e.access.type === 'default') ||
-                   exports.find(e => e.info.kind === 'class') ||
-                   exports.find(e => e.info.kind === 'function') ||
-                   exports[0];
-
-    return selected;
-  } catch (error) {
+const pickBestExport = (exports, fallbackName) => {
+  if (!exports || exports.length === 0) {
     return null;
   }
-}
+  const priority = (entry) => {
+    const info = entry.info || {};
+    let score = 0;
+    if (info.kind === 'class') score += 3;
+    if (info.kind === 'function') score += 2;
+    if (entry.access && entry.access.type === 'default') score += 1;
+    if (entry.exportedName && entry.exportedName === fallbackName) score += 3;
+    if (info.methods && info.methods.length > 0) score += Math.min(info.methods.length, 3);
+    return score;
+  };
+  return [...exports].sort((a, b) => priority(b) - priority(a))[0];
+};
 
-function buildSignature(exportInfo) {
+const buildSignature = (exportEntry) => {
+  if (!exportEntry) return {};
+  const info = exportEntry.info || {};
   const signature = {};
-  const info = exportInfo.info;
-  const access = exportInfo.access;
-
-  // Name
-  if (info.name) {
-    signature.name = info.name;
-  } else if (access.name) {
-    signature.name = access.name;
+  if (info.name) signature.name = info.name;
+  if (info.kind && info.kind !== 'unknown') signature.type = info.kind;
+  if (exportEntry.access && exportEntry.access.type === 'named' && exportEntry.access.name) {
+    signature.exports = exportEntry.access.name;
   }
-
-  // Type
-  if (info.kind && info.kind !== 'unknown') {
-    signature.type = info.kind;
-  }
-
-  // Export name for named exports
-  if (access.type === 'named' && access.name) {
-    signature.exports = access.name;
-  }
-
-  // Methods
-  const methods = Array.from(info.methods || []).filter(m => !m.startsWith('_'));
+  const methods = toArray(info.methods).filter(Boolean);
   if (methods.length > 0) {
     signature.methods = methods;
   }
-
-  // Properties (only include if no methods)
-  if (!signature.methods || signature.methods.length === 0) {
-    const properties = Array.from(info.properties || []).filter(p => !p.startsWith('_'));
-    if (properties.length > 0) {
-      signature.properties = properties;
-    }
+  const properties = toArray(info.properties).filter(Boolean);
+  if (!signature.methods && properties.length > 0) {
+    signature.properties = properties;
   }
-
-  // Inheritance
-  if (info.extends) {
-    signature.extends = info.extends;
-  }
-
+  if (info.extends) signature.extends = info.extends;
   return signature;
-}
+};
 
-function generateTestTemplate(sourceFile, exportInfo, options = {}) {
-  const { framework = 'jest', typescript = false } = options;
-  const signature = buildSignature(exportInfo);
-  const info = exportInfo.info;
-  const name = signature.name || path.basename(sourceFile, path.extname(sourceFile));
-  const ext = typescript ? 'ts' : 'js';
-
-  // Import statements
-  const importStatement = typescript
-    ? `import { discover } from 'adaptive-tests';
-import type { ${name} as ${name}Type } from '${path.relative(path.dirname(options.outputPath || ''), sourceFile).replace(/\\/g, '/')}';`
-    : `const { discover } = require('adaptive-tests');`;
-
-  // Test framework specific syntax
-  const describeWord = framework === 'jest' || framework === 'vitest' ? 'describe' : 'suite';
-  const testWord = framework === 'jest' || framework === 'vitest' ? 'test' : 'it';
-  const beforeAllWord = framework === 'jest' || framework === 'vitest' ? 'beforeAll' : 'before';
-  const expectFn = framework === 'vitest' ? 'expect' : 'expect';
-
-  // Method test blocks
-  const methods = Array.from(info.methods || []).filter(m => !m.startsWith('_'));
-  const methodTests = methods.map(method => {
-    const isAsync = ['create', 'fetch', 'get', 'post', 'delete', 'update', 'save', 'load'].some(prefix =>
-      method.toLowerCase().includes(prefix)
-    );
-
-    return `
-  ${testWord}('should ${humanizeMethodName(method)}', ${isAsync ? 'async ' : ''}() => {
-    // TODO: Implement test for ${method}
-    ${signature.type === 'class' ? `const instance = new ${name}();` : ''}
-    ${signature.type === 'class'
-      ? `${isAsync ? 'await ' : ''}${expectFn}(instance.${method}()).toBeDefined();`
-      : `${isAsync ? 'await ' : ''}${expectFn}(${name}.${method}()).toBeDefined();`
+const formatSignatureLines = (signature, indent = '    ') => {
+  const lines = [];
+  const push = (key, value) => {
+    if (value === undefined || value === null) return;
+    if (Array.isArray(value)) {
+      if (value.length === 0) return;
+      lines.push(`${indent}${key}: [${value.map(v => `'${v}'`).join(', ')}],`);
+      return;
     }
+    lines.push(`${indent}${key}: '${value}',`);
+  };
+  push('name', signature.name);
+  push('type', signature.type);
+  push('exports', signature.exports);
+  push('extends', signature.extends);
+  push('methods', signature.methods);
+  push('properties', signature.properties);
+  if (lines.length > 0) {
+    lines[lines.length - 1] = lines[lines.length - 1].replace(/,$/, '');
+  }
+  return lines.join('\n');
+};
+
+const inferAssertions = (method) => {
+  const assertions = [];
+  if (method.match(/^(get|fetch|load)/i)) {
+    assertions.push('expect(result).toBeDefined();');
+    assertions.push("// expect(result).toHaveProperty('id');");
+  } else if (method.match(/^(is|has|can)/i)) {
+    assertions.push('expect(typeof result).toBe(\'boolean\');');
+    assertions.push('// expect(result).toBe(true);');
+  } else if (method.match(/create|add|insert/i)) {
+    assertions.push('expect(result).toBeDefined();');
+    assertions.push("expect(result).toHaveProperty('id');");
+  } else if (method.match(/delete|remove/i)) {
+    assertions.push('expect(result).toBeDefined();');
+    assertions.push('// expect(result).toBe(true);');
+  } else if (method.match(/count|size|length/i)) {
+    assertions.push('expect(typeof result).toBe(\'number\');');
+  } else {
+    assertions.push('expect(result).toBeDefined();');
+    assertions.push('// Add specific assertions based on expected behaviour');
+  }
+  return assertions;
+};
+
+const generateMethodBlocks = (signature, methods, options) => {
+  if (!methods || methods.length === 0) {
+    return '  // No public methods detected\n';
+  }
+
+  if (!options.applyAssertions) {
+    return `  describe('methods', () => {\n${methods.map(method => `    it.todo('TODO: ${method}');`).join('\n')}\n  });\n`;
+  }
+
+  const blocks = methods.map((method) => {
+    const assertions = inferAssertions(method);
+    const invokeTarget = signature.type === 'class'
+      ? `const instance = createInstance();\n      const result = ${options.asyncHint && method.match(/get|fetch|load|create|update|delete/i) ? 'await ' : ''}instance.${method}();`
+      : `const result = ${options.asyncHint && method.match(/get|fetch|load|create|update|delete/i) ? 'await ' : ''}${signature.name}.${method}();`;
+    const awaitNeeded = /await /.test(invokeTarget);
+    return `  describe('${method}', () => {
+    it('should handle ${method}', ${awaitNeeded ? 'async ' : ''}() => {
+      // Arrange
+      const createInstance = () => new ${signature.name || 'Target'}(/* TODO: dependencies */);
+      // Act
+      ${invokeTarget}
+      // Assert
+      ${assertions.join('\n      ')}
+    });
   });`;
-  }).join('\n');
+  }).join('\n\n');
 
-  // Generate template
-  const template = `${importStatement}
+  return blocks + '\n';
+};
 
-/**
- * Adaptive Tests for ${name}
- *
- * These tests will automatically find ${name} even if it moves.
- * Generated from: ${path.relative(process.cwd(), sourceFile)}
- */
+const generateTestContent = ({
+  signature,
+  methods,
+  isTypeScript,
+  applyAssertions
+}) => {
+  const lines = formatSignatureLines(signature);
+  const importLine = isTypeScript
+    ? `import { getDiscoveryEngine } from 'adaptive-tests';`
+    : `const { getDiscoveryEngine } = require('adaptive-tests');`;
 
-${describeWord}('${name}', () => {
-  let ${name}${typescript ? `: ${name}Type` : ''};
+  const targetVar = signature.name || 'Target';
+  const methodBlocks = generateMethodBlocks(signature, methods, { applyAssertions, asyncHint: true });
 
-  ${beforeAllWord}(async () => {
-    // Discover the module using its signature
-    ${name} = await discover(${JSON.stringify(signature, null, 4).split('\n').join('\n    ')});
+  return `${importLine}
+
+describe('${targetVar} – adaptive discovery', () => {
+  const engine = getDiscoveryEngine();
+  let ${targetVar};
+
+  beforeAll(async () => {
+    ${targetVar} = await engine.discoverTarget({
+${lines ? `${lines}\n` : ''}    });
   });
 
-  ${testWord}('should discover ${name}', () => {
-    ${expectFn}(${name}).toBeDefined();
-    ${signature.type === 'class' ? `${expectFn}(typeof ${name}).toBe('function');` : ''}
-    ${signature.type === 'function' ? `${expectFn}(typeof ${name}).toBe('function');` : ''}
+  it('discovers the target', () => {
+    expect(${targetVar}).toBeDefined();
   });
-${methods.length > 0 ? `
-  ${describeWord}('Methods', () => {${methodTests}
-  });` : ''}
+
+${methodBlocks || ''}  // TODO: add domain-specific assertions here
 });
 `;
+};
 
-  return template;
-}
+const analyzeSourceFile = (engine, filePath) => {
+  const content = fs.readFileSync(filePath, 'utf8');
+  const fileName = path.basename(filePath, path.extname(filePath));
+  const metadata = engine.analyzeModuleExports(content, fileName);
+  if (!metadata || !metadata.exports || metadata.exports.length === 0) {
+    return null;
+  }
+  return metadata.exports;
+};
 
-function humanizeMethodName(method) {
-  // Convert camelCase to human readable
-  return method
-    .replace(/([A-Z])/g, ' $1')
-    .toLowerCase()
-    .trim()
-    .replace(/^get /, 'get ')
-    .replace(/^set /, 'set ')
-    .replace(/^is /, 'check if ')
-    .replace(/^has /, 'check if it has ')
-    .replace(/^create /, 'create ')
-    .replace(/^delete /, 'delete ')
-    .replace(/^update /, 'update ');
-}
+const parseArgs = (argv) => {
+  const options = {
+    root: process.cwd(),
+    isTypeScript: false,
+    force: false,
+    batch: false,
+    exportName: null,
+    allExports: false,
+    json: false,
+    applyAssertions: false,
+    outputDir: null,
+    targetArg: null
+  };
 
-async function runScaffold(args) {
-  const sourceFile = args[0];
-  const outputPath = args.find(arg => arg.startsWith('--output='))?.split('=')[1];
-  const typescript = args.includes('--typescript') || args.includes('--ts');
-  const framework = args.find(arg => arg.startsWith('--framework='))?.split('=')[1] || detectTestFramework();
-
-  if (!sourceFile) {
-    log('❌ Error: Please provide a source file path', COLORS.red);
-    log('Usage: npx adaptive-tests scaffold <source-file> [--output=path] [--typescript]', COLORS.dim);
-    process.exit(1);
+  const args = [...argv];
+  for (let i = 0; i < args.length; i += 1) {
+    const arg = args[i];
+    if (arg === '--root') {
+      const next = args[i + 1];
+      if (!next) throw new Error('Missing value for --root');
+      options.root = path.resolve(next);
+      i += 1;
+      continue;
+    }
+    if (arg.startsWith('--root=')) {
+      options.root = path.resolve(arg.split('=')[1]);
+      continue;
+    }
+    if (arg === '--typescript' || arg === '--ts') {
+      options.isTypeScript = true;
+      continue;
+    }
+    if (arg === '--force' || arg === '--overwrite' || arg === '-f') {
+      options.force = true;
+      continue;
+    }
+    if (arg === '--batch' || arg === '-b') {
+      options.batch = true;
+      continue;
+    }
+    if (arg === '--all-exports') {
+      options.allExports = true;
+      continue;
+    }
+    if (arg === '--apply-assertions') {
+      options.applyAssertions = true;
+      continue;
+    }
+    if (arg === '--json') {
+      options.json = true;
+      continue;
+    }
+    if (arg.startsWith('--export=')) {
+      options.exportName = arg.split('=')[1];
+      continue;
+    }
+    if (arg === '--export') {
+      const next = args[i + 1];
+      if (!next) throw new Error('Missing value for --export');
+      options.exportName = next;
+      i += 1;
+      continue;
+    }
+    if (arg.startsWith('--output-dir=')) {
+      options.outputDir = path.resolve(options.root, arg.split('=')[1]);
+      continue;
+    }
+    if (!options.targetArg) {
+      options.targetArg = arg;
+    }
   }
 
-  const fullPath = path.resolve(sourceFile);
+  if (!options.targetArg) {
+    throw new Error('Please provide a source path or component name.');
+  }
 
-  if (!fs.existsSync(fullPath)) {
-    // Try discovery by name
-    log(`📍 File not found at path, searching for '${sourceFile}'...`, COLORS.yellow);
+  return options;
+};
 
-    const engine = getDiscoveryEngine(process.cwd());
-    try {
-      const candidates = await engine.collectCandidates(process.cwd(), { name: sourceFile });
-      if (candidates.length > 0) {
-        const selected = candidates[0];
-        log(`✅ Found: ${selected.relativePath}`, COLORS.green);
-        return runScaffold([selected.path, ...args.slice(1)]);
-      }
-    } catch (error) {
-      // Continue to error message
+const resolveSourceByName = async (engine, name) => {
+  const normalized = engine.normalizeSignature({ name });
+  const candidates = await engine.collectCandidates(engine.rootPath, normalized);
+  if (!candidates || candidates.length === 0) {
+    return null;
+  }
+  candidates.sort((a, b) => b.score - a.score || a.path.localeCompare(b.path));
+  return candidates[0];
+};
+
+const generateOutputPath = (root, sourcePath, options, exportName) => {
+  const baseDir = options.outputDir || path.join(root, 'tests', 'adaptive');
+  ensureDirSync(baseDir);
+  const baseName = exportName || path.basename(sourcePath, path.extname(sourcePath));
+  const ext = options.isTypeScript ? 'ts' : 'js';
+  return path.join(baseDir, `${baseName}.test.${ext}`);
+};
+
+const gatherSourceFiles = (dir, extensions) => {
+  const files = [];
+  const entries = fs.readdirSync(dir, { withFileTypes: true });
+  entries.forEach((entry) => {
+    const fullPath = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      files.push(...gatherSourceFiles(fullPath, extensions));
+      return;
+    }
+    if (!entry.isFile()) {
+      return;
+    }
+    const ext = path.extname(entry.name);
+    if (!extensions.includes(ext)) {
+      return;
+    }
+    if (entry.name.includes('.test.') || entry.name.includes('.spec.')) {
+      return;
+    }
+    files.push(fullPath);
+  });
+  return files;
+};
+
+const processSingleFile = (engine, filePath, options, results) => {
+  const exports = analyzeSourceFile(engine, filePath);
+  if (!exports || exports.length === 0) {
+    results.skippedNoExport.push(filePath);
+    log(`⚠️  No exports found in ${path.relative(options.root, filePath)}`, COLORS.yellow, options);
+    return;
+  }
+
+  let selectedExports;
+  if (options.allExports) {
+    selectedExports = exports;
+  } else if (options.exportName) {
+    selectedExports = exports.filter((entry) => {
+      const infoName = entry.info && entry.info.name;
+      return infoName === options.exportName || (entry.access && entry.access.name === options.exportName);
+    });
+    if (selectedExports.length === 0) {
+      selectedExports = [pickBestExport(exports, options.exportName)];
+    }
+  } else {
+    selectedExports = [pickBestExport(exports, path.basename(filePath, path.extname(filePath)))];
+  }
+
+  selectedExports.forEach((exportEntry, index) => {
+    const signature = buildSignature(exportEntry) || {};
+    if (!signature.name) {
+      signature.name = exportEntry.exportedName || `Export${index + 1}`;
+    }
+    const methods = signature.methods || [];
+    const outputPath = generateOutputPath(options.root, filePath, options, options.allExports ? signature.name : null);
+
+    if (fs.existsSync(outputPath) && !options.force) {
+      results.skippedExisting.push(outputPath);
+      log(`⏭️  Skipping existing file ${path.relative(options.root, outputPath)} (use --force to overwrite)`, COLORS.yellow, options);
+      return;
     }
 
-    log(`❌ Error: File not found: ${sourceFile}`, COLORS.red);
-    process.exit(1);
-  }
+    const content = generateTestContent({
+      signature,
+      methods,
+      isTypeScript: options.isTypeScript,
+      applyAssertions: options.applyAssertions
+    });
 
-  log(`\n🔍 Analyzing: ${path.relative(process.cwd(), fullPath)}`, COLORS.cyan);
-
-  const exportInfo = analyzeSourceFile(fullPath);
-
-  if (!exportInfo) {
-    log('❌ Error: Could not analyze exports from file', COLORS.red);
-    log('Make sure the file exports a class, function, or module', COLORS.dim);
-    process.exit(1);
-  }
-
-  const signature = buildSignature(exportInfo);
-  log(`✅ Found export: ${signature.name || 'default'} (${exportInfo.info.kind})`, COLORS.green);
-
-  if (signature.methods && signature.methods.length > 0) {
-    log(`   Methods: ${signature.methods.join(', ')}`, COLORS.dim);
-  }
-
-  // Determine output path
-  const ext = typescript ? 'ts' : 'js';
-  const testFileName = `${path.basename(fullPath, path.extname(fullPath))}.test.${ext}`;
-  const defaultOutput = path.join(
-    path.dirname(fullPath).replace(/src/, 'tests/adaptive'),
-    testFileName
-  );
-  const finalOutput = outputPath || defaultOutput;
-
-  // Generate test
-  const testContent = generateTestTemplate(fullPath, exportInfo, {
-    framework,
-    typescript,
-    outputPath: finalOutput
+    ensureDirSync(path.dirname(outputPath));
+    fs.writeFileSync(outputPath, content, 'utf8');
+    results.created.push(outputPath);
+    log(`✅ Created ${path.relative(options.root, outputPath)}`, COLORS.green, options);
   });
+};
 
-  // Create directory if needed
-  const outputDir = path.dirname(finalOutput);
-  if (!fs.existsSync(outputDir)) {
-    fs.mkdirSync(outputDir, { recursive: true });
+const runBatch = (engine, entryPath, options, results) => {
+  const extensions = engine.config.discovery.extensions || ['.js', '.ts', '.tsx'];
+  const files = fs.statSync(entryPath).isDirectory()
+    ? gatherSourceFiles(entryPath, extensions)
+    : [entryPath];
+
+  files.forEach((file) => processSingleFile(engine, file, options, results));
+};
+
+async function runScaffold(argv = []) {
+  let options;
+  try {
+    options = parseArgs(argv);
+  } catch (error) {
+    console.error(`${COLORS.red}Error:${COLORS.reset} ${error.message}`);
+    process.exitCode = 1;
+    return;
   }
 
-  // Write file
-  fs.writeFileSync(finalOutput, testContent);
+  const root = options.root;
+  const targetArg = options.targetArg;
+  const discoveryEngine = new DiscoveryEngine(root);
+  const results = {
+    created: [],
+    skippedExisting: [],
+    skippedNoExport: [],
+    failed: []
+  };
 
-  log(`\n✨ Generated adaptive test: ${path.relative(process.cwd(), finalOutput)}`, COLORS.bright + COLORS.green);
-  log(`\n📊 Discovery signature:`, COLORS.yellow);
-  console.log(COLORS.dim + JSON.stringify(signature, null, 2) + COLORS.reset);
+  const isPath = targetArg.includes('/') || targetArg.includes('\\') || /\.m?[jt]sx?$/i.test(targetArg);
 
-  log(`\n🎯 Next steps:`, COLORS.cyan);
-  log(`  1. Review the generated test file`, COLORS.dim);
-  log(`  2. Implement the TODO sections with actual test logic`, COLORS.dim);
-  log(`  3. Run your tests with: ${framework === 'jest' ? 'npm test' : `npx ${framework}`}`, COLORS.dim);
+  try {
+    if (options.batch || (isPath && fs.existsSync(path.resolve(root, targetArg)) && fs.statSync(path.resolve(root, targetArg)).isDirectory())) {
+      const directory = isPath ? path.resolve(root, targetArg) : path.join(root, 'src');
+      if (!fs.existsSync(directory)) {
+        throw new Error(`Directory not found: ${targetArg}`);
+      }
+      log(`🔄 Batch scaffolding ${path.relative(root, directory)}`, COLORS.cyan, options);
+      runBatch(discoveryEngine, directory, { ...options, targetArg: directory }, results);
+    } else {
+      let filePath = null;
+      if (isPath) {
+        filePath = path.resolve(root, targetArg);
+        if (!fs.existsSync(filePath)) {
+          throw new Error(`Source file not found: ${targetArg}`);
+        }
+      } else {
+        const resolved = await resolveSourceByName(discoveryEngine, targetArg);
+        if (!resolved) {
+          throw new Error(`Unable to find a component named '${targetArg}'.`);
+        }
+        filePath = resolved.path;
+        log(`🔍 Found component at ${path.relative(root, filePath)}`, COLORS.dim, options);
+      }
+      processSingleFile(discoveryEngine, filePath, options, results);
+    }
+  } catch (error) {
+    console.error(`${COLORS.red}Error:${COLORS.reset} ${error.message}`);
+    results.failed.push({ target: targetArg, message: error.message });
+    process.exitCode = 1;
+  }
 
-  log(`\n💡 Tip: This test will keep working even if you move ${signature.name}!`, COLORS.magenta);
+  if (options.json) {
+    console.log(JSON.stringify(results, null, 2));
+  } else {
+    log('\n📊 Scaffold summary:', COLORS.bright + COLORS.cyan, options);
+    log(`  ✅ Created: ${results.created.length}`, COLORS.green, options);
+    log(`  ⏭️  Skipped (existing): ${results.skippedExisting.length}`, COLORS.yellow, options);
+    log(`  ⚠️  Skipped (no exports): ${results.skippedNoExport.length}`, COLORS.yellow, options);
+    if (results.failed.length > 0) {
+      log(`  ❌ Failed: ${results.failed.length}`, COLORS.red, options);
+    }
+  }
+
+  if (results.failed.length > 0) {
+    process.exitCode = 1;
+  }
 }
 
-// Export for use by init.js
 module.exports = { runScaffold };
 
-// Run directly if called as script
 if (require.main === module) {
   runScaffold(process.argv.slice(2)).catch(error => {
     console.error('Error:', error);

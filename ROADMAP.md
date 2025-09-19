@@ -4,12 +4,12 @@
 
 ## 🎯 Vision
 
-Adaptive Tests will become the standard way to write resilient test suites. We envision a world where:
+Adaptive Tests aims to be a widely adopted way to write resilient test suites. We envision a world where:
 
 - Tests never break due to file reorganization
 - Refactoring is fearless and frequent
-- Test maintenance drops from 30% to near 0% of dev time
-- Every major framework has adaptive testing built-in
+- Test maintenance time is significantly reduced
+- Popular frameworks offer integrations and recipes
 
 ## ✅ Recently Shipped (0.2.2)
 
@@ -56,7 +56,7 @@ We plan in three tracks. Each item links to an issue once opened.
   - Optional IDE integrations (VS Code panel for Lens/Visualizer) once CLI is stable
   - Python companion: keep “lightweight companion” scope unless parity investment is planned
 
-## 🔮 Future Ideas
+## 🔭 Exploratory Ideas
 
 ### Adaptive Tests Cloud
 
@@ -72,12 +72,11 @@ We plan in three tracks. Each item links to an issue once opened.
 - Smart test selection based on changes
 - Natural language test specifications
 
-### Standards & Specifications
+### Standards & Collaboration
 
-- Propose adaptive testing standard to TC39
-- Work with test framework maintainers
-- Create formal specification
-- Reference implementation
+- Participate in community discussions with framework maintainers
+- Document shared patterns and best practices
+- Maintain a high-quality reference implementation
 
 ## 🤝 How to Contribute
 
@@ -107,13 +106,13 @@ We need help in several areas:
 
 ## 📊 Success Metrics
 
-We'll know we've succeeded when:
+We'll track progress using practical indicators:
 
-- 100K+ weekly npm downloads
-- 10K+ GitHub stars
-- Major frameworks adopt adaptive patterns
-- "Adaptive testing" becomes industry standard term
-- Test maintenance time industry-wide drops by 50%
+- Growing weekly npm downloads
+- Increasing GitHub stars and community engagement
+- Integrations and recipes across popular frameworks
+- "Adaptive testing" recognized as a useful approach
+- Case studies showing reduced test maintenance time
 
 ## 💬 Get Involved
 
