@@ -225,12 +225,14 @@ function printUsage() {
   console.log(`Commands:`);
   console.log(`  init            Interactive setup wizard (default)`);
   console.log(`  why <signature> Inspect candidate scoring for a signature`);
+  console.log(`  scaffold <src>  Generate an adaptive test skeleton from source`);
   console.log(`  help            Show this message\n`);
   console.log(`Examples:`);
   console.log(`  npx adaptive-tests`);
   console.log(`  npx adaptive-tests init`);
   console.log(`  npx adaptive-tests why '{"name":"UserService"}'`);
   console.log(`  npx adaptive-tests why '{"name":"UserService"}' --json\n`);
+  console.log(`  npx adaptive-tests scaffold src/services/UserService.js`);
 }
 
 async function runWhy(args = []) {
@@ -238,11 +240,17 @@ async function runWhy(args = []) {
   await runDiscoveryLens(args);
 }
 
+async function runScaffold(args = []) {
+  const { runScaffold } = require('./scaffold');
+  await runScaffold(args);
+}
+
 async function main(argv = process.argv) {
   const [, , maybeCommand, ...rest] = argv;
   const handlers = {
     init: () => runInit(),
     why: (args) => runWhy(args),
+    scaffold: (args) => runScaffold(args),
     help: () => printUsage(),
     '--help': () => printUsage(),
     '-h': () => printUsage()

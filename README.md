@@ -84,10 +84,13 @@ const engine = getDiscoveryEngine(process.cwd());
 
 ```bash
 npx adaptive-tests init
+npx adaptive-tests scaffold src/services/UserService.js
 ```
 
 The CLI scaffolds an `adaptive` test directory, drops in example suites, and
-links any missing optional peers (such as `ts-node`).
+links any missing optional peers (such as `ts-node`). The `scaffold` command
+generates an adaptive test skeleton with a discovery signature and method
+placeholders for the specified source file.
 
 Need visibility into why a signature matched (or didn’t)? Use the Discovery
 Lens companion:

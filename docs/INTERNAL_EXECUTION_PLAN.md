@@ -194,3 +194,67 @@ This document translates our recent prioritization into concrete, actionable wor
 
 - Draft release notes per milestone; include demo GIFs and a 60–90s Lens/Visualizer video.
 - Keep “free + support” message: add gentle Sponsor/tip note to new CLI outputs (once per session).
+
+## Python Parity Initiative
+
+Goal: Bring the Python adaptive-tests package to feature parity with the JavaScript engine and ship it as a first-class, OSS-friendly package. Leverage patterns already explored in `CodeCypher/core/tests/infrastructure`.
+
+### Phase 1 – Core Parity
+
+- Configuration
+  - Support `.adaptive-tests.yml` / `.adaptive-testsrc` / env overrides mirroring JS defaults.
+  - Honor include/exclude globs, scoring config sections (paths, fileName, extensions, typeHints, methods, exports, names, recency).
+- Scoring Engine
+  - Port heuristics from JS `ScoringEngine`; expose `calculate_score_detailed` to feed Discovery Lens.
+  - Implement path/file/name/type/method/export signal extraction for Python AST (classes, functions, attributes).
+- Caching & knowledge
+  - Implement persistent discovery cache (`.test-discovery-cache.json` equivalent).
+  - Optional knowledge store per test (JSON) storing last-known module paths & successful patterns (inspired by `TestKnowledge`).
+- CLI parity
+  - Provide `python -m adaptive_tests why` with identical JSON schema to JS `why`.
+  - Ensure `AdaptiveTest` base class + `discover()` API align with Node version for identical test authoring experience.
+- Fixture parity
+  - Add Python fixtures similar to JS examples (Flask/FastAPI service, util functions, classes) to validate heuristics.
+
+### Phase 2 – Advanced Features from CodeCypher Infra
+
+- Audit / instrumentation abstraction (default to structured logging; allow injection).
+- Async validation and multi-signature tests as baked into base class (`run_adaptive_test`).
+- Self-healing knowledge persistence (opt-in) with JSON store for last-known paths, performance benchmarks.
+
+### Phase 3 – Bundled Tooling
+
+- Python equivalents for `visualize`, `gaps`, `refactor`, sharing schema with JS outputs.
+- Unified CLI story so mixed-language repos can run adaptive commands via one pipeline (JS CLI wrapper invoking Python modules when needed).
+- Additional recipes (Django/FastAPI) and docs to highlight parity.
+
+### Tasks & Checks
+
+- Port `DiscoveryEngine`/`TargetSignature`/`DiscoveredTarget` from CodeCypher infra, removing proprietary dependencies (audit, runtime_paths) or providing adapters.
+- Build shared config loader (YAML/JSON/env) with typed dataclasses.
+- Add pytest fixtures + snapshot tests covering heuristics and knowledge flows.
+- Provide packaging updates (`packages/adaptive-tests-py`) with new entry points, docs, CI build/upload.
+
+## AI-First Adoption Strategy
+
+Objective: Make Adaptive Tests the natural choice for AI agents and automated workflows.
+
+- Prompt-Friendly Docs
+  - Maintain a concise `PROMPT_GUIDE.md` with: what adaptive tests are, example signature, CLI commands (`why`, `gaps`, `visualize`, `scaffold`, `refactor`), and typical failure fixes.
+  - Keep AGENTS.md updated with “playbook” instructions.
+- Machine-Readable CLI Output
+  - Ensure every CLI command offers `--json`; keep schema versioned.
+  - Provide `--quiet/--no-ansi` modes for deterministic logs.
+- Deterministic, Idempotent commands
+  - Dry-run default for mutating commands (`refactor`), explicit `--apply` to mutate.
+  - Consistent exit codes (0 success, 1 failure, 2 recoverable warnings, etc.).
+- Structured Errors & Suggestions
+  - For discovery failures, return both human-readable message and JSON payload (`reason`, `topCandidates`, `nextSteps`).
+- CI Playbooks
+  - Publish ready-to-use GitHub Actions / scripts (e.g., `npm run adaptive:diagnose`) that run tests + `why --json` + `gaps` and upload artifacts—AI agents can invoke a single command.
+- Package Defaults
+  - Ensure `pip install adaptive-tests` mirrors npm package; document minimal `pyproject.toml` snippet for quick adoption.
+- Adoption Metrics
+  - Track CLI usage counts (opt-in telemetry or “anonymous ping file” behind config); if not, rely on user feedback/issues.
+- Future Consideration
+  - Optional hosted hint JSON (static) enumerating known scoring tweaks or sample signatures so agents can query known solutions.
