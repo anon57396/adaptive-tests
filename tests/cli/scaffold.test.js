@@ -227,7 +227,7 @@ describe('CLI scaffold command', () => {
   (RUBY_AVAILABLE ? it : it.skip)('scaffolds RSpec specs alongside sources', () => {
     const workspace = createRubyWorkspace();
 
-    const result = runCli(['scaffold', 'lib/services/account_service.rb', '--json'], { cwd: workspace });
+    const result = runCli(['scaffold', 'app/services/account_service.rb', '--json'], { cwd: workspace });
 
     expect(result.status).toBe(0);
     const payload = JSON.parse(result.stdout);
@@ -237,7 +237,7 @@ describe('CLI scaffold command', () => {
     expect(fs.existsSync(generatedPath)).toBe(true);
 
     const content = fs.readFileSync(generatedPath, 'utf8');
-    expect(content).toContain("require_relative '../lib/services/account_service'");
+    expect(content).toContain("require_relative '../app/services/account_service'");
     expect(content).toContain('RSpec.describe Services::AccountService');
     expect(content).toContain("describe '#create_account'");
   });

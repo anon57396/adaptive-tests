@@ -21,12 +21,15 @@ jest.mock('adaptive-tests', () => ({
 
 describe('jest-adaptive setup', () => {
   beforeEach(() => {
+    jest.resetModules();
+
     // Clear any previous global assignments
     delete global.discover;
     delete global.adaptiveTest;
     delete global.getDiscoveryEngine;
     delete global.lazyDiscover;
     delete global.discoverAll;
+
     // Clear module cache to ensure fresh require
     delete require.cache[require.resolve('../setup')];
   });
@@ -124,6 +127,8 @@ describe('jest-adaptive setup', () => {
   });
 
   test('toBeDiscovered matcher should work', () => {
+    const jestExpect = global.expect;
+
     global.expect = {
       extend: jest.fn(),
     };
@@ -133,26 +138,30 @@ describe('jest-adaptive setup', () => {
     const matchers = global.expect.extend.mock.calls[0][0];
     const toBeDiscovered = matchers.toBeDiscovered;
 
+    global.expect = jestExpect;
+
     // Test with discovered value
-    expect(toBeDiscovered({ someValue: true })).toEqual({
+    jestExpect(toBeDiscovered({ someValue: true })).toEqual({
       pass: true,
-      message: expect.any(Function),
+      message: jestExpect.any(Function),
     });
 
     // Test with null
-    expect(toBeDiscovered(null)).toEqual({
+    jestExpect(toBeDiscovered(null)).toEqual({
       pass: false,
-      message: expect.any(Function),
+      message: jestExpect.any(Function),
     });
 
     // Test with undefined
-    expect(toBeDiscovered(undefined)).toEqual({
+    jestExpect(toBeDiscovered(undefined)).toEqual({
       pass: false,
-      message: expect.any(Function),
+      message: jestExpect.any(Function),
     });
   });
 
   test('toHaveMethods matcher should work', () => {
+    const jestExpect = global.expect;
+
     global.expect = {
       extend: jest.fn(),
     };
@@ -162,6 +171,8 @@ describe('jest-adaptive setup', () => {
     const matchers = global.expect.extend.mock.calls[0][0];
     const toHaveMethods = matchers.toHaveMethods;
 
+    global.expect = jestExpect;
+
     // Create a mock class
     class TestClass {
       method1() {}
@@ -169,21 +180,21 @@ describe('jest-adaptive setup', () => {
     }
 
     // Test with correct methods
-    expect(toHaveMethods(TestClass, ['method1', 'method2'])).toEqual({
+    jestExpect(toHaveMethods(TestClass, ['method1', 'method2'])).toEqual({
       pass: true,
-      message: expect.any(Function),
+      message: jestExpect.any(Function),
     });
 
     // Test with missing methods
-    expect(toHaveMethods(TestClass, ['method1', 'method3'])).toEqual({
+    jestExpect(toHaveMethods(TestClass, ['method1', 'method3'])).toEqual({
       pass: false,
-      message: expect.any(Function),
+      message: jestExpect.any(Function),
     });
 
     // Test with non-function
-    expect(toHaveMethods({}, ['method1'])).toEqual({
+    jestExpect(toHaveMethods({}, ['method1'])).toEqual({
       pass: false,
-      message: expect.any(Function),
+      message: jestExpect.any(Function),
     });
   });
 });

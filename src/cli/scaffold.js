@@ -46,10 +46,11 @@ const pickBestExport = (exports, fallbackName) => {
   const priority = (entry) => {
     const info = entry.info || {};
     let score = 0;
-    if (info.kind === 'class' || info.kind === 'struct') score += 3;
+    if (info.kind === 'class' || info.kind === 'struct' || info.kind === 'module') score += 5;
     if (info.kind === 'function') score += 2;
     if (entry.access && entry.access.type === 'default') score += 1;
     if (entry.exportedName && entry.exportedName === fallbackName) score += 3;
+    if (entry.exportedName && fallbackName && entry.exportedName.toLowerCase() === fallbackName.toLowerCase()) score += 2;
     if (info.methods && info.methods.length > 0) score += Math.min(info.methods.length, 3);
     return score;
   };

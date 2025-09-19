@@ -11,6 +11,7 @@
     "lib",
     "bin",
     "preset.js",
+    "jest-preset.js",
     "setup.js",
     "transformer.js",
     "README.md"

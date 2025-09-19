@@ -6,20 +6,20 @@
  */
 
 const path = require('path');
+const { BaseLanguageIntegration } = require('../base-language-integration');
 const { GoDiscoveryCollector } = require('./go-discovery-collector');
 
-class GoDiscoveryIntegration {
+class GoDiscoveryIntegration extends BaseLanguageIntegration {
   constructor(discoveryEngine) {
-    this.engine = discoveryEngine;
+    super(discoveryEngine, 'go');
     this.collector = new GoDiscoveryCollector();
+  }
 
-    // Add Go extensions to config if not present
-    if (this.engine && this.engine.config && this.engine.config.discovery) {
-      const { extensions } = this.engine.config.discovery;
-      if (Array.isArray(extensions) && !extensions.includes('.go')) {
-        extensions.push('.go');
-      }
-    }
+  /**
+   * Get the file extension for Go files
+   */
+  getFileExtension() {
+    return '.go';
   }
 
   /**

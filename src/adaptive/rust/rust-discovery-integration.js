@@ -8,107 +8,77 @@
  */
 
 const path = require('path');
+const { BaseLanguageIntegration } = require('../base-language-integration');
 const { RustDiscoveryCollector } = require('./rust-discovery-collector');
 
-class RustDiscoveryIntegration {
+class RustDiscoveryIntegration extends BaseLanguageIntegration {
   constructor(discoveryEngine) {
-    this.engine = discoveryEngine;
+    super(discoveryEngine, 'rust');
     this.collector = new RustDiscoveryCollector();
-
-    // Add Rust extensions to config if not present
-    if (this.engine && this.engine.config && this.engine.config.discovery) {
-      const { extensions } = this.engine.config.discovery;
-      if (Array.isArray(extensions) && !extensions.includes('.rs')) {
-        extensions.push('.rs');
-      }
-    }
   }
 
   /**
-   * Evaluate a Rust file as a candidate
+   * Get the file extension for Rust files
    */
-  async evaluateRustCandidate(filePath, signature = {}) {
-    const metadata = await this.collector.parseFile(filePath);
-    if (!metadata) {
-      return null;
-    }
-
-    const evaluation = this.calculateRustScore(metadata, signature);
-    if (!evaluation || evaluation.score <= 0) {
-      return null;
-    }
-
-    return {
-      path: filePath,
-      score: evaluation.score,
-      metadata,
-      match: evaluation.match,
-      language: 'rust'
-    };
+  getFileExtension() {
+    return '.rs';
   }
 
   /**
-   * Calculate score for Rust candidate
+   * Parse a Rust file and extract metadata
    */
-  calculateRustScore(metadata, signature = {}) {
-    const candidates = [
+  async parseFile(filePath) {
+    return await this.collector.parseFile(filePath);
+  }
+
+  /**
+   * Extract candidates from Rust metadata
+   */
+  extractCandidates(metadata) {
+    return [
       ...metadata.structs,
       ...metadata.enums,
       ...metadata.traits,
       ...metadata.functions,
       ...metadata.types
     ];
-
-    if (candidates.length === 0) {
-      return null;
-    }
-
-    const targetName = signature.name || signature.typeName || null;
-    const normalizedTarget = targetName ? targetName.toLowerCase() : null;
-
-    let best = { score: 0, match: null };
-
-    candidates.forEach(candidate => {
-      const score = this.scoreCandidate(candidate, signature, normalizedTarget, metadata);
-      if (score > best.score) {
-        best = {
-          score,
-          match: candidate
-        };
-      }
-    });
-
-    return best;
   }
 
-  scoreCandidate(candidate, signature, normalizedTargetName, metadata) {
+  /**
+   * Get candidate methods for Rust scoring
+   * Includes methods from impl blocks for structs
+   */
+  getCandidateMethods(candidate, metadata) {
+    const methods = new Set();
+
+    // Add methods directly on candidate
+    if (candidate.methods) {
+      candidate.methods.forEach(method => {
+        methods.add(method.name.toLowerCase());
+      });
+    }
+
+    // For structs, also check methods from metadata.impls
+    if (candidate.type === 'struct') {
+      metadata.impls
+        .filter(impl => {
+          const implType = impl.type?.replace(/^&/, '').replace(/^mut\\s+/, '');
+          return implType === candidate.name;
+        })
+        .forEach(impl => {
+          impl.methods.forEach(method => methods.add(method.name.toLowerCase()));
+        });
+    }
+
+    return methods;
+  }
+
+  /**
+   * Rust-specific package matching (crate names)
+   */
+  scorePackageMatching(candidate, signature, metadata) {
     let score = 0;
-    const candidateName = candidate.name.toLowerCase();
 
-    // Name matching
-    if (normalizedTargetName) {
-      if (candidateName === normalizedTargetName) {
-        score += 50;
-      } else if (candidateName.includes(normalizedTargetName)) {
-        score += 25;
-      } else {
-        score -= 15;
-      }
-    } else {
-      score += 5;
-    }
-
-    // Type matching
-    const signatureType = signature.type?.toLowerCase();
-    if (signatureType) {
-      if (this.matchesType(candidate.type, signatureType)) {
-        score += 20;
-      } else {
-        score -= 25;
-      }
-    }
-
-    // Crate matching
     if (signature.crate && metadata && metadata.crateName) {
       if (metadata.crateName === signature.crate) {
         score += 15;
@@ -117,40 +87,14 @@ class RustDiscoveryIntegration {
       }
     }
 
-    // Method matching for structs, enums, and traits
-    if (signature.methods && signature.methods.length > 0) {
-      const candidateMethods = new Set();
+    return score;
+  }
 
-      if (candidate.methods) {
-        candidate.methods.forEach(method => candidateMethods.add(method.name.toLowerCase()));
-      }
-
-      // For structs, also check methods from metadata.impls
-      if (candidate.type === 'struct') {
-        metadata.impls
-          .filter(impl => {
-            const implType = impl.type?.replace(/^&/, '').replace(/^mut\s+/, '');
-            return implType === candidate.name;
-          })
-          .forEach(impl => {
-            impl.methods.forEach(method => candidateMethods.add(method.name.toLowerCase()));
-          });
-      }
-
-      let hits = 0;
-      signature.methods.forEach(method => {
-        if (candidateMethods.has(method.toLowerCase())) {
-          hits += 1;
-        }
-      });
-
-      score += hits * 10;
-      if (hits === 0 && signature.methods.length > 0) {
-        score -= 12;
-      }
-    } else if (candidate.methods && candidate.methods.length > 0) {
-      score += Math.min(candidate.methods.length * 2, 10);
-    }
+  /**
+   * Rust-specific scoring extensions
+   */
+  scoreLanguageSpecific(candidate, signature, metadata) {
+    let score = 0;
 
     // Trait bounds matching (Rust's trait system)
     if (signature.traits && signature.traits.length > 0) {
@@ -265,29 +209,12 @@ class RustDiscoveryIntegration {
       }
     }
 
-    // Visibility preference (public items preferred)
-    if (candidate.visibility) {
-      if (candidate.visibility === 'public') {
-        score += 5;
-      } else if (candidate.visibility === 'crate') {
-        score += 2;
-      } else {
-        score -= 2; // private items get slight penalty
-      }
-    }
-
-    // Exported preference
-    if (candidate.exported !== undefined) {
-      if (candidate.exported) {
-        score += 3;
-      } else {
-        score -= 1;
-      }
-    }
-
     return score;
   }
 
+  /**
+   * Check if candidate type matches signature type
+   */
   matchesType(candidateType, signatureType) {
     if (!candidateType) {
       return false;
@@ -296,6 +223,20 @@ class RustDiscoveryIntegration {
       return true;
     }
     return candidateType === signatureType;
+  }
+
+  /**
+   * Evaluate a Rust file as a candidate
+   */
+  async evaluateRustCandidate(filePath, signature = {}) {
+    return await this.evaluateCandidate(filePath, signature);
+  }
+
+  /**
+   * Calculate score for Rust candidate
+   */
+  calculateRustScore(metadata, signature = {}) {
+    return this.calculateScore(metadata, signature);
   }
 
   /**
@@ -592,6 +533,13 @@ mod tests {
     if (normalized.startsWith('&')) return '/* TODO: reference */';
 
     return '/* TODO */';
+  }
+
+  /**
+   * Generate test content for a target (required by base class)
+   */
+  generateTestContent(target, options = {}) {
+    return this.generateRustTest(target, options);
   }
 }
 

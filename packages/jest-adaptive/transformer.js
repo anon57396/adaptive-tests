@@ -15,10 +15,7 @@ module.exports = {
     }
 
     // Check if adaptive-tests is already imported
-    const hasAdaptiveImport = 
-      sourceText.includes('adaptive-tests') ||
-      sourceText.includes('discover') ||
-      sourceText.includes('adaptiveTest');
+    const hasAdaptiveImport = /['"]adaptive-tests['"]/i.test(sourceText);
 
     if (hasAdaptiveImport) {
       // Already has imports, don't modify

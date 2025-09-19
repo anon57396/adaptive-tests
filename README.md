@@ -1,6 +1,7 @@
 # Adaptive Tests: AI-Ready Testing Infrastructure
 
 [![Docs](https://img.shields.io/badge/docs-website-blue)](https://anon57396.github.io/adaptive-tests/)
+[![Coverage](https://img.shields.io/codecov/c/github/anon57396/adaptive-tests?label=coverage)](https://codecov.io/gh/anon57396/adaptive-tests)
 [![npm version](https://img.shields.io/npm/v/adaptive-tests.svg)](https://www.npmjs.com/package/adaptive-tests)
 [![PyPI version](https://img.shields.io/pypi/v/adaptive-tests-py.svg)](https://pypi.org/project/adaptive-tests-py/)
 [![VS Code Extension](https://img.shields.io/badge/VS%20Code-Development%20Alpha-yellow)](extensions/vscode-adaptive-tests/README.md)
