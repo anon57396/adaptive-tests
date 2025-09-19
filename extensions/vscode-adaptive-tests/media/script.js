@@ -163,6 +163,7 @@
     function createResultElement(result, index) {
         const div = document.createElement('div');
         div.className = 'result-item';
+        div.setAttribute('role', 'listitem');
 
         // Determine score class
         let scoreClass = 'score-low';
@@ -197,6 +198,8 @@
                 </button>
             </div>
         `;
+        const ariaLabel = result.showScores ? `${result.path} score ${result.score}` : `${result.path}`;
+        div.setAttribute('aria-label', ariaLabel);
 
         return div;
     }

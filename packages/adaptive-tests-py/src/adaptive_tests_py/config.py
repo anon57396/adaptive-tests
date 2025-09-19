@@ -73,7 +73,7 @@ DEFAULT_CONFIG: Dict[str, Any] = {
         "cache": {
             "enabled": True,
             "file": ".adaptive-tests-cache.json",
-            "ttl_seconds": None,
+            "ttl_seconds": 60 * 60 * 24,
             "log_warnings": False,
         },
     }

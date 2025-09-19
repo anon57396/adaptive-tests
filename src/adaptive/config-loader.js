@@ -115,7 +115,7 @@ const DEFAULT_CONFIG = {
     cache: {
       enabled: true,
       file: '.test-discovery-cache.json',
-      ttl: null, // No TTL by default
+      ttl: 24 * 60 * 60, // 24 hour TTL by default
       logWarnings: false
     },
 

@@ -108,6 +108,8 @@ class DiscoveryEngine {
 
     const cacheConfig = this.config.discovery.cache || {};
     this.cacheLogWarnings = Boolean(cacheConfig.logWarnings);
+    const ttlSeconds = Number(cacheConfig.ttl ?? 0);
+    this.cacheTTLMs = Number.isFinite(ttlSeconds) && ttlSeconds > 0 ? ttlSeconds * 1000 : 0;
 
     // Runtime caches with size limits
     this.discoveryCache = new LRUCache(200); // Limit discovery cache
@@ -175,32 +177,41 @@ class DiscoveryEngine {
     // Check runtime cache first
     if (this.discoveryCache.has(cacheKey)) {
       const cached = this.discoveryCache.get(cacheKey);
-      try {
-        return this.loadModule(cached, normalizedSig);
-      } catch (error) {
+      if (this.isCacheEntryExpired(cached)) {
         this.discoveryCache.delete(cacheKey);
+      } else {
+        try {
+          return this.loadModule(cached, normalizedSig);
+        } catch (error) {
+          this.discoveryCache.delete(cacheKey);
+        }
       }
     }
 
     // Check persistent cache
     if (this.persistentCache[cacheKey]) {
-      try {
-        // Convert relative path back to absolute
-        const cacheEntry = { ...this.persistentCache[cacheKey] };
-        if (cacheEntry.relativePath) {
-          cacheEntry.path = path.join(this.rootPath, cacheEntry.relativePath);
-        }
-
-        // Validate that the file still exists
-        if (!fs.existsSync(cacheEntry.path)) {
-          delete this.persistentCache[cacheKey];
-        } else {
-          const module = this.loadModule(cacheEntry, normalizedSig);
-          this.discoveryCache.set(cacheKey, cacheEntry);
-          return module;
-        }
-      } catch (error) {
+      const persistentEntry = this.persistentCache[cacheKey];
+      if (this.isCacheEntryExpired(persistentEntry)) {
         delete this.persistentCache[cacheKey];
+      } else {
+        try {
+          // Convert relative path back to absolute
+          const cacheEntry = { ...persistentEntry };
+          if (cacheEntry.relativePath) {
+            cacheEntry.path = path.join(this.rootPath, cacheEntry.relativePath);
+          }
+
+          // Validate that the file still exists
+          if (!fs.existsSync(cacheEntry.path)) {
+            delete this.persistentCache[cacheKey];
+          } else {
+            const module = this.loadModule(cacheEntry, normalizedSig);
+            this.discoveryCache.set(cacheKey, cacheEntry);
+            return module;
+          }
+        } catch (error) {
+          delete this.persistentCache[cacheKey];
+        }
       }
     }
 
@@ -278,6 +289,9 @@ class DiscoveryEngine {
       return candidates;
     }
 
+    const directoryTasks = [];
+    const fileTasks = [];
+
     for (const entry of entries) {
       const fullPath = path.join(dir, entry.name);
 
@@ -285,7 +299,7 @@ class DiscoveryEngine {
         if (this.shouldSkipDirectory(entry.name)) {
           continue;
         }
-        await this.collectCandidates(fullPath, signature, depth + 1, candidates);
+        directoryTasks.push(this.collectCandidates(fullPath, signature, depth + 1, candidates));
         continue;
       }
 
@@ -298,7 +312,6 @@ class DiscoveryEngine {
         continue;
       }
 
-      // Skip test files (case-insensitive for cross-platform compatibility)
       const lowerName = entry.name.toLowerCase();
       if (lowerName.includes('.test.') || lowerName.includes('.spec.')) {
         continue;
@@ -312,16 +325,25 @@ class DiscoveryEngine {
         continue;
       }
 
-      const normalizedName = entry.name.toLowerCase();
       if (/(?:\s(?:copy|copy\s\d+)|\s\d+)(?=\.[^.]+$)/i.test(entry.name)) {
         continue;
       }
 
-      const candidate = await this.evaluateCandidate(fullPath, signature);
-      const minScore = this.config.discovery.scoring.minCandidateScore ?? 0;
-      if (candidate && candidate.score > minScore) {
-        candidates.push(candidate);
-      }
+      fileTasks.push((async () => {
+        const candidate = await this.evaluateCandidate(fullPath, signature);
+        const minScore = this.config.discovery.scoring.minCandidateScore ?? 0;
+        if (candidate && candidate.score > minScore) {
+          candidates.push(candidate);
+        }
+      })());
+    }
+
+    if (directoryTasks.length > 0) {
+      await Promise.allSettled(directoryTasks);
+    }
+
+    if (fileTasks.length > 0) {
+      await Promise.allSettled(fileTasks);
     }
 
     return candidates;
@@ -1252,6 +1274,16 @@ class DiscoveryEngine {
     console.warn(`[adaptive-tests] ${message}${details}`);
   }
 
+  isCacheEntryExpired(entry) {
+    if (!this.cacheTTLMs) {
+      return false;
+    }
+    if (!entry || !entry.timestamp) {
+      return true;
+    }
+    return (Date.now() - entry.timestamp) > this.cacheTTLMs;
+  }
+
   analyzeModuleExports(content, fileName) {
     return parseModuleExports(content, fileName);
   }
@@ -1295,11 +1327,15 @@ class DiscoveryEngine {
           }
         }
 
-        // Validate that the file exists
+        // Validate that the file exists and cache entry is fresh
         const absolutePath = path.join(this.rootPath, entry.relativePath);
-        if (fs.existsSync(absolutePath)) {
-          this.persistentCache[key] = entry;
+        if (!fs.existsSync(absolutePath)) {
+          continue;
         }
+        if (this.isCacheEntryExpired(entry)) {
+          continue;
+        }
+        this.persistentCache[key] = entry;
       }
     } catch (error) {
       if (error && error.code !== 'ENOENT') {

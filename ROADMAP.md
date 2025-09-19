@@ -45,6 +45,7 @@ We plan in three tracks. Each item links to an issue once opened.
   - Vitest/Mocha recipes; TS templates for scaffolding
   - Java parity (adaptive-tests-java core + CLI, Spring Boot example)
   - **Java Parity** — adaptive-tests-java core + CLI, Spring Boot example, Maven/Gradle workflow guidance
+  - Publish adaptive-tests-java artifacts to Maven Central with contributor guide
 
 ### Later
 

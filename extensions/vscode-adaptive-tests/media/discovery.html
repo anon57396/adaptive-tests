@@ -34,11 +34,11 @@
 
         <section class="results-section" style="display: none;">
             <h2>Discovery Results</h2>
-            <div class="results-summary"></div>
-            <div id="results-container"></div>
+            <div class="results-summary" role="status" aria-live="polite"></div>
+            <div id="results-container" role="list" aria-label="Discovery results"></div>
         </section>
 
-        <section class="error-section" style="display: none;">
+        <section class="error-section" style="display: none;" role="alert">
             <div class="error-message"></div>
         </section>
 

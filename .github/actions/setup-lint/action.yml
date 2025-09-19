@@ -1,0 +1,31 @@
+name: 'Setup multi-language lint environment'
+description: 'Configure Node.js, Python, and Java tooling for lint workflows'
+inputs:
+  node-version:
+    description: 'Node.js version'
+    default: '20'
+  python-version:
+    description: 'Python version'
+    default: '3.11'
+  java-version:
+    description: 'Java version'
+    default: '17'
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ inputs.node-version }}
+        cache: 'npm'
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ inputs.python-version }}
+        cache: 'pip'
+    - name: Setup Java
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: ${{ inputs.java-version }}
+        cache: 'maven'

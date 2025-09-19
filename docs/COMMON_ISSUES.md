@@ -54,6 +54,7 @@ await engine.clearCache();           // wipe discovery + runtime cache
 ```
 
 Need extra diagnostics? Set `discovery.cache.logWarnings` to `true` in your config to surface read/write issues with the persistent cache (mirrored in the Python engine as `log_warnings`).
+Default cache entries now expire after 24 hours; adjust `discovery.cache.ttl` (or `ttl_seconds` in Python) if your workflows require longer persistence.
 
 
 You should rarely need to touch `require.cache` manually now that the engine
