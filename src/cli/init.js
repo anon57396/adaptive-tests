@@ -7,6 +7,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const readline = require('readline');
 const { execSync } = require('child_process');
 
 const COLORS = {
@@ -19,6 +20,9 @@ const COLORS = {
   magenta: '\x1b[35m',
   cyan: '\x1b[36m',
 };
+
+const CONFIG_FILENAME = 'adaptive-tests.config.js';
+const KNOWN_FRAMEWORKS = ['jest', 'mocha', 'vitest', 'jasmine', 'ava'];
 
 function log(message, color = '') {
   console.log(color + message + COLORS.reset);
@@ -53,97 +57,362 @@ function detectLanguage() {
   return hasTypeScript ? 'typescript' : 'javascript';
 }
 
-function createBaseTestFile(framework, language) {
-  const ext = language === 'typescript' ? 'ts' : 'js';
-  const importStatement = language === 'typescript'
-    ? "import { AdaptiveTest, discover } from 'adaptive-tests';"
-    : "const { AdaptiveTest, discover } = require('adaptive-tests');";
+function detectSourceDirectory() {
+  const candidates = ['src', 'app', 'lib', 'services', 'packages'];
+  for (const candidate of candidates) {
+    if (fs.existsSync(path.join(process.cwd(), candidate))) {
+      return candidate;
+    }
+  }
+  return 'src';
+}
 
-  const template = `${importStatement}
+function detectTestDirectory(framework) {
+  const key = (framework || '').toLowerCase();
+  if (key === 'mocha' || key === 'jasmine' || key === 'ava') {
+    return 'test';
+  }
+  return 'tests';
+}
 
-/**
- * Example Adaptive Test
- *
- * This test will automatically find your component/service
- * even if you move it to a different location.
+function isInteractiveSession() {
+  return Boolean(process.stdin.isTTY && process.stdout.isTTY);
+}
+
+function sanitiseDir(dir, fallback) {
+  const trimmed = (dir || '').trim();
+  if (!trimmed) return fallback;
+  const withoutDots = trimmed.replace(/^\.\/+/, '');
+  const segments = withoutDots.split(/[\\/]+/).filter(Boolean);
+  const normalised = segments.join('/');
+  return normalised || fallback;
+}
+
+function toClassName(value) {
+  const safe = (value || '').replace(/[^a-zA-Z0-9]+/g, ' ');
+  const parts = safe.split(/\s+/).filter(Boolean);
+  if (parts.length === 0) {
+    return 'ExampleService';
+  }
+  return parts.map(part => part.charAt(0).toUpperCase() + part.slice(1)).join('');
+}
+
+function toFileSlug(value) {
+  const className = toClassName(value);
+  return className
+    .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
+    .replace(/\s+/g, '-')
+    .toLowerCase();
+}
+
+function createPrompter() {
+  const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+
+  const ask = (question, defaultValue = '') => new Promise((resolve) => {
+    const hint = defaultValue ? ` [${defaultValue}]` : '';
+    rl.question(`${COLORS.cyan}?${COLORS.reset} ${question}${hint}: `, (answer) => {
+      const response = (answer || '').trim();
+      resolve(response || defaultValue);
+    });
+  });
+
+  const askYesNo = async (question, defaultValue) => {
+    const hint = defaultValue ? 'Y/n' : 'y/N';
+    const response = (await ask(`${question} (${hint})`, '')).toLowerCase();
+    if (!response) return defaultValue;
+    if (['y', 'yes'].includes(response)) return true;
+    if (['n', 'no'].includes(response)) return false;
+    return defaultValue;
+  };
+
+  const close = () => rl.close();
+
+  return { ask, askYesNo, close };
+}
+
+function normaliseFramework(answer, fallback) {
+  const response = (answer || '').trim();
+  if (!response) {
+    return fallback;
+  }
+  const lower = response.toLowerCase();
+  if (KNOWN_FRAMEWORKS.includes(lower)) {
+    return lower;
+  }
+  return response;
+}
+
+function getTestSyntax(framework) {
+  const key = (framework || '').toLowerCase();
+  if (key === 'mocha' || key === 'jasmine') {
+    return { describe: 'describe', test: 'it' };
+  }
+  if (key === 'vitest' || key === 'jest') {
+    return { describe: 'describe', test: 'test' };
+  }
+  return { describe: 'describe', test: 'test' };
+}
+
+function supportsAdaptiveTestBase(framework) {
+  const key = (framework || '').toLowerCase();
+  return key === 'jest' || key === 'vitest';
+}
+
+async function gatherSetupOptions(context) {
+  const interactive = isInteractiveSession();
+  const defaultFramework = context.detectedFramework || 'jest';
+  const defaultTypeScript = context.detectedLanguage === 'typescript';
+  const defaultSourceDir = context.defaultSourceDir;
+  const defaultTestDir = detectTestDirectory(defaultFramework);
+
+  let framework = defaultFramework;
+  let useTypeScript = defaultTypeScript;
+  let sourceDir = defaultSourceDir;
+  let testDir = defaultTestDir;
+  let generateConfig = !context.configExists;
+  let overwriteConfig = !context.configExists;
+  let generateExamples = true;
+  let sampleName = 'ExampleService';
+
+  if (interactive) {
+    const prompter = createPrompter();
+
+    framework = normaliseFramework(
+      await prompter.ask('Which test framework are you using (Jest, Mocha, etc.)?', defaultFramework),
+      defaultFramework
+    );
+
+    useTypeScript = await prompter.askYesNo('Are you using TypeScript?', defaultTypeScript);
+
+    sourceDir = sanitiseDir(
+      await prompter.ask('Where are your source files located (e.g., src, lib)?', defaultSourceDir),
+      defaultSourceDir
+    );
+
+    testDir = sanitiseDir(
+      await prompter.ask('Where should adaptive tests be created?', detectTestDirectory(framework)),
+      detectTestDirectory(framework)
+    );
+
+    sampleName = toClassName(await prompter.ask('Name for the sample target (class/function)?', sampleName));
+
+    if (context.configExists) {
+      overwriteConfig = await prompter.askYesNo('Update existing adaptive-tests.config.js with recommended defaults?', false);
+      generateConfig = overwriteConfig;
+    } else {
+      generateConfig = await prompter.askYesNo('Generate adaptive-tests.config.js with recommended defaults?', true);
+      overwriteConfig = generateConfig;
+    }
+
+    generateExamples = await prompter.askYesNo('Generate an example adaptive test and discovery snippet?', true);
+
+    prompter.close();
+  }
+
+  return {
+    framework,
+    useTypeScript,
+    sourceDir,
+    testDir,
+    generateConfig,
+    overwriteConfig,
+    generateExamples,
+    sampleName,
+  };
+}
+
+function createConfigContent(options) {
+  const extensions = options.useTypeScript
+    ? "['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs']"
+    : "['.js', '.jsx', '.mjs', '.cjs']";
+
+  return `/**
+ * Generated by adaptive-tests init.
+ * Adjust scoring weights to match your project's architecture.
  */
 
-class ExampleAdaptiveTest extends AdaptiveTest {
+module.exports = {
+  discovery: {
+    extensions: ${extensions},
+    maxDepth: 10,
+    skipDirectories: ['node_modules', 'coverage', 'dist', '${options.testDir}', '__tests__'],
+    scoring: {
+      paths: {
+        positive: {
+          '/${options.sourceDir}/': 18
+        },
+        negative: {
+          '/${options.testDir}/': -40,
+          '/__tests__/': -45
+        }
+      }
+    }
+  }
+};
+`;
+}
+
+function writeConfigFile(options) {
+  const configPath = path.join(process.cwd(), CONFIG_FILENAME);
+  if (!options.generateConfig) {
+    return false;
+  }
+
+  if (fs.existsSync(configPath) && !options.overwriteConfig) {
+    log(`⚠️  ${CONFIG_FILENAME} already exists. Skipping generation.`, COLORS.yellow);
+    return false;
+  }
+
+  fs.writeFileSync(configPath, createConfigContent(options));
+  log(`🧩 Created ${CONFIG_FILENAME}`, COLORS.green);
+  return true;
+}
+
+function createBaseTestFile(framework, language, options) {
+  const className = toClassName(options.sampleName);
+  const frameworkKey = (framework || '').toLowerCase();
+  const methodsComment = "// Add the methods your target exposes";
+
+  if (supportsAdaptiveTestBase(frameworkKey)) {
+    const keywords = getTestSyntax(framework);
+    const importStatement = language === 'typescript'
+      ? "import { AdaptiveTest, discover } from 'adaptive-tests';"
+      : "const { AdaptiveTest, discover } = require('adaptive-tests');";
+
+    const targetParam = language === 'typescript' ? `Target: any` : 'Target';
+
+    return `${importStatement}
+
+class ${className}AdaptiveTest extends AdaptiveTest {
   getTargetSignature() {
     return {
-      // Adjust these to match your target module
-      name: 'YourComponentName',
-      type: 'class', // or 'function'
-      methods: ['methodName'], // optional: required methods
-      exports: 'YourComponentName' // optional: specific export name
+      name: '${className}',
+      type: 'class',
+      methods: ['methodName'] // ${methodsComment}
     };
   }
 
-  async runTests(YourComponent) {
-    ${framework === 'jest' ? 'describe' : 'suite'}('Adaptive Tests Example', () => {
-      ${framework === 'jest' ? 'test' : 'it'}('should find and test the component', () => {
-        expect(YourComponent).toBeDefined();
-        // Add your actual tests here
+  async runTests(${targetParam}) {
+    ${keywords.describe}('${className}', () => {
+      ${keywords.test}('should be discoverable', () => {
+        const instance = new Target();
+        expect(instance).toBeDefined();
       });
     });
   }
 }
 
-// Initialize the test
-new ExampleAdaptiveTest();
+// Initialize the adaptive test runner
+new ${className}AdaptiveTest();
 `;
+  }
 
-  return template;
-}
-
-function createDiscoveryExample(language) {
-  const ext = language === 'typescript' ? 'ts' : 'js';
   const importStatement = language === 'typescript'
     ? "import { discover } from 'adaptive-tests';"
     : "const { discover } = require('adaptive-tests');";
 
-  return `${importStatement}
+  const keywords = getTestSyntax(framework);
+  const assertionComment = frameworkKey === 'mocha'
+    ? "// Replace with your assertion library (e.g., chai expect)"
+    : "// Replace with your preferred assertions";
 
-/**
- * Direct Discovery Example
- *
- * Use discover() to find modules dynamically in your tests
- */
+  if (frameworkKey === 'ava') {
+    const avaImport = language === 'typescript'
+      ? "import test from 'ava';\nimport { discover } from 'adaptive-tests';"
+      : "const test = require('ava');\nconst { discover } = require('adaptive-tests');";
 
-async function runTests() {
-  // Find a module by its signature
-  const MyService = await discover({
-    name: 'UserService',
+    return `${avaImport}
+
+test('${className} is discoverable', async (t) => {
+  const Target = await discover({
+    name: '${className}',
     type: 'class',
-    methods: ['createUser', 'deleteUser']
+    methods: ['methodName'] // ${methodsComment}
   });
 
-  // Use it normally
-  const service = new MyService();
-  const user = service.createUser('Alice');
-  console.log('Created user:', user);
+  t.truthy(Target);
+});
+`;
+  }
+
+  return `${importStatement}
+
+${keywords.describe}('${className}', () => {
+  ${keywords.test}('should discover the implementation', async () => {
+    const Target = await discover({
+      name: '${className}',
+      type: 'class',
+      methods: ['methodName'] // ${methodsComment}
+    });
+
+    ${assertionComment}
+    // expect(new Target()).toBeDefined();
+  });
+});
+`;
 }
 
-// For async test runners
-${language === 'typescript' ? '(async () => {' : '(async function() {'}
-  await runTests();
-})();
+function createDiscoveryExample(language, options) {
+  const className = toClassName(options.sampleName);
+  const importStatement = language === 'typescript'
+    ? "import { discover } from 'adaptive-tests';"
+    : "const { discover } = require('adaptive-tests');";
+
+  const asyncWrapperStart = language === 'typescript' ? 'async function main(): Promise<void> {' : 'async function main() {';
+
+  return `${importStatement}
+
+${asyncWrapperStart}
+  const Target = await discover({
+    name: '${className}',
+    type: 'class',
+    methods: ['methodName'] // Update with real structure
+  });
+
+  console.log('Discovered ${className} from ${options.sourceDir}/', Target);
+}
+
+main().catch((error) => {
+  console.error('Discovery failed', error);
+});
 `;
 }
 
 async function runInit() {
   header();
 
-  // Detect environment
-  const framework = detectTestFramework();
-  const language = detectLanguage();
+  const detectedFramework = detectTestFramework();
+  const detectedLanguage = detectLanguage();
+  const defaultSourceDir = detectSourceDirectory();
+  const configExists = fs.existsSync(path.join(process.cwd(), CONFIG_FILENAME));
 
   log('📋 Detected Environment:', COLORS.yellow);
-  log(`   Test Framework: ${framework || 'None detected'}`, COLORS.dim);
-  log(`   Language: ${language}`, COLORS.dim);
+  log(`   Test Framework: ${detectedFramework || 'None detected'}`, COLORS.dim);
+  log(`   Language: ${detectedLanguage}`, COLORS.dim);
+  log(`   Suggested source directory: ${defaultSourceDir}`, COLORS.dim);
   console.log();
 
-  // Check if already installed
+  const setupOptions = await gatherSetupOptions({
+    detectedFramework,
+    detectedLanguage,
+    defaultSourceDir,
+    configExists,
+  });
+
+  const framework = setupOptions.framework || detectedFramework || 'jest';
+  const language = setupOptions.useTypeScript ? 'typescript' : 'javascript';
+  const sourceDir = setupOptions.sourceDir || defaultSourceDir;
+  const testDir = setupOptions.testDir || detectTestDirectory(framework);
+
+  log('🎛️  Setup selections:', COLORS.yellow);
+  log(`   Test Framework: ${framework}`, COLORS.dim);
+  log(`   TypeScript: ${setupOptions.useTypeScript ? 'Yes' : 'No'}`, COLORS.dim);
+  log(`   Source Directory: ${sourceDir}`, COLORS.dim);
+  log(`   Adaptive Tests Directory: ${testDir}/adaptive`, COLORS.dim);
+  log(`   Sample Target: ${toClassName(setupOptions.sampleName)}`, COLORS.dim);
+  console.log();
+
+  // Check if adaptive-tests is already installed
   const packagePath = path.join(process.cwd(), 'package.json');
   if (fs.existsSync(packagePath)) {
     const pkg = JSON.parse(fs.readFileSync(packagePath, 'utf8'));
@@ -162,7 +431,7 @@ async function runInit() {
       log('✅ adaptive-tests is already installed', COLORS.green);
     }
 
-    if (language === 'typescript' && !deps['ts-node']) {
+    if (setupOptions.useTypeScript && !deps['ts-node']) {
       log('📦 Installing ts-node for TypeScript support...', COLORS.blue);
       try {
         execSync('npm install --save-dev ts-node', { stdio: 'inherit' });
@@ -172,48 +441,61 @@ async function runInit() {
     }
   }
 
-  // Create example files
-  const testDir = framework === 'jest' ? 'tests' : 'test';
+  // Ensure adaptive test directory exists
   const adaptiveDir = path.join(process.cwd(), testDir, 'adaptive');
 
   if (!fs.existsSync(adaptiveDir)) {
     fs.mkdirSync(adaptiveDir, { recursive: true });
   }
 
-  // Create base test file
   const ext = language === 'typescript' ? 'ts' : 'js';
-  const baseTestPath = path.join(adaptiveDir, `example.test.${ext}`);
+  const fileSlug = toFileSlug(setupOptions.sampleName);
 
-  if (!fs.existsSync(baseTestPath)) {
-    fs.writeFileSync(baseTestPath, createBaseTestFile(framework, language));
-    log(`📝 Created example test: ${path.relative(process.cwd(), baseTestPath)}`, COLORS.green);
+  if (setupOptions.generateExamples) {
+    const baseTestPath = path.join(adaptiveDir, `${fileSlug || 'example'}-adaptive.test.${ext}`);
+    if (!fs.existsSync(baseTestPath)) {
+      fs.writeFileSync(baseTestPath, createBaseTestFile(framework, language, setupOptions));
+      log(`📝 Created example test: ${path.relative(process.cwd(), baseTestPath)}`, COLORS.green);
+    } else {
+      log(`ℹ️  Example test already exists: ${path.relative(process.cwd(), baseTestPath)}`, COLORS.dim);
+    }
+
+    const discoveryExamplePath = path.join(adaptiveDir, `${fileSlug || 'example'}-discovery.${ext}`);
+    if (!fs.existsSync(discoveryExamplePath)) {
+      fs.writeFileSync(discoveryExamplePath, createDiscoveryExample(language, setupOptions));
+      log(`📝 Created discovery example: ${path.relative(process.cwd(), discoveryExamplePath)}`, COLORS.green);
+    } else {
+      log(`ℹ️  Discovery example already exists: ${path.relative(process.cwd(), discoveryExamplePath)}`, COLORS.dim);
+    }
+
+    if (supportsAdaptiveTestBase(framework)) {
+      const baseClassPath = path.join(adaptiveDir, `base.${ext}`);
+      if (!fs.existsSync(baseClassPath)) {
+        const baseContent = language === 'typescript'
+          ? "export { AdaptiveTest, adaptiveTest } from 'adaptive-tests';"
+          : "module.exports = require('adaptive-tests');";
+        fs.writeFileSync(baseClassPath, baseContent);
+      }
+    }
+  } else {
+    log('ℹ️  Skipped example files (per your selection).', COLORS.dim);
   }
 
-  // Create discovery example
-  const discoveryExamplePath = path.join(adaptiveDir, `discovery-example.${ext}`);
-
-  if (!fs.existsSync(discoveryExamplePath)) {
-    fs.writeFileSync(discoveryExamplePath, createDiscoveryExample(language));
-    log(`📝 Created discovery example: ${path.relative(process.cwd(), discoveryExamplePath)}`, COLORS.green);
-  }
-
-  // Create adaptive test base if needed
-  const baseClassPath = path.join(adaptiveDir, `base.${ext}`);
-
-  if (!fs.existsSync(baseClassPath)) {
-    const baseContent = language === 'typescript'
-      ? `export { AdaptiveTest, adaptiveTest } from 'adaptive-tests';`
-      : `module.exports = require('adaptive-tests');`;
-    fs.writeFileSync(baseClassPath, baseContent);
-  }
+  const configCreated = writeConfigFile(setupOptions);
 
   console.log();
   log('🎉 Setup Complete!', COLORS.bright + COLORS.green);
   console.log();
   log('Next steps:', COLORS.yellow);
-  log(`  1. Check the examples in ${testDir}/adaptive/`, COLORS.dim);
-  log('  2. Update example.test.js with your actual component signatures', COLORS.dim);
-  log('  3. Run your tests with your existing test command', COLORS.dim);
+  if (setupOptions.generateExamples) {
+    log(`  • Review ${path.posix.join(testDir, 'adaptive')} for generated examples.`, COLORS.dim);
+  } else {
+    log(`  • Add your first adaptive test under ${path.posix.join(testDir, 'adaptive')}.`, COLORS.dim);
+  }
+  if (configCreated) {
+    log(`  • Tweak ${CONFIG_FILENAME} scoring to match your codebase.`, COLORS.dim);
+  }
+  log('  • Run your existing test command to confirm everything passes.', COLORS.dim);
   console.log();
   log('📚 Documentation: https://github.com/anon57396/adaptive-tests', COLORS.cyan);
   log('⭐ Star us on GitHub if this helps!', COLORS.magenta);
