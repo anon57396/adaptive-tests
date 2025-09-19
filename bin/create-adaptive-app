@@ -1,0 +1,430 @@
+#!/usr/bin/env node
+
+/**
+ * Create Adaptive App
+ * Scaffolds a new project with adaptive testing pre-configured
+ */
+
+const fs = require('fs');
+const path = require('path');
+const { execSync } = require('child_process');
+const readline = require('readline');
+
+const rl = readline.createInterface({
+  input: process.stdin,
+  output: process.stdout
+});
+
+const templates = {
+  'express-js': 'Express.js API with JavaScript',
+  'nextjs': 'Next.js with React',
+  'cra': 'Create React App',
+  'vite-react': 'Vite + React',
+  'vite-react-ts': 'Vite + React + TypeScript',
+  'flask-python': 'Flask API with Python',
+  'spring-boot-java': 'Spring Boot with Java',
+  'node-ts': 'Node.js with TypeScript'
+};
+
+const colors = {
+  reset: '\x1b[0m',
+  bright: '\x1b[1m',
+  green: '\x1b[32m',
+  cyan: '\x1b[36m',
+  yellow: '\x1b[33m',
+  red: '\x1b[31m'
+};
+
+function log(message, color = 'reset') {
+  console.log(`${colors[color]}${message}${colors.reset}`);
+}
+
+function copyRecursiveSync(src, dest) {
+  const exists = fs.existsSync(src);
+  const stats = exists && fs.statSync(src);
+  const isDirectory = exists && stats.isDirectory();
+
+  if (isDirectory) {
+    if (!fs.existsSync(dest)) {
+      fs.mkdirSync(dest, { recursive: true });
+    }
+    fs.readdirSync(src).forEach(childItemName => {
+      copyRecursiveSync(
+        path.join(src, childItemName),
+        path.join(dest, childItemName)
+      );
+    });
+  } else {
+    fs.copyFileSync(src, dest);
+  }
+}
+
+function question(prompt) {
+  return new Promise(resolve => {
+    rl.question(prompt, resolve);
+  });
+}
+
+async function main() {
+  log('🚀 Create Adaptive App', 'bright');
+  log('Set up a new project with adaptive testing\n', 'cyan');
+
+  // Get project name
+  const projectName = process.argv[2] || await question('Project name: ');
+
+  if (!projectName) {
+    log('❌ Project name is required', 'red');
+    process.exit(1);
+  }
+
+  // Check if directory exists
+  const projectPath = path.join(process.cwd(), projectName);
+  if (fs.existsSync(projectPath)) {
+    log(`❌ Directory ${projectName} already exists`, 'red');
+    process.exit(1);
+  }
+
+  // Select template
+  log('\nAvailable templates:', 'cyan');
+  Object.entries(templates).forEach(([key, desc], index) => {
+    log(`  ${index + 1}. ${key} - ${desc}`);
+  });
+
+  const templateChoice = await question('\nSelect template (number or name): ');
+
+  let selectedTemplate;
+  const templateKeys = Object.keys(templates);
+
+  if (/^\d+$/.test(templateChoice)) {
+    const index = parseInt(templateChoice) - 1;
+    selectedTemplate = templateKeys[index];
+  } else {
+    selectedTemplate = templateChoice;
+  }
+
+  if (!templates[selectedTemplate]) {
+    log('❌ Invalid template selection', 'red');
+    process.exit(1);
+  }
+
+  log(`\n📦 Creating ${projectName} with ${templates[selectedTemplate]}...`, 'green');
+
+  // Create project directory
+  fs.mkdirSync(projectPath, { recursive: true });
+
+  // Copy template files
+  const templatePath = path.join(__dirname, '..', 'templates', selectedTemplate);
+
+  if (!fs.existsSync(templatePath)) {
+    // Create basic template structure if doesn't exist
+    createBasicTemplate(projectPath, selectedTemplate);
+  } else {
+    copyRecursiveSync(templatePath, projectPath);
+  }
+
+  // Update package.json with project name
+  const packageJsonPath = path.join(projectPath, 'package.json');
+  if (fs.existsSync(packageJsonPath)) {
+    const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+    packageJson.name = projectName;
+    fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
+  }
+
+  log('\n📦 Installing dependencies...', 'cyan');
+
+  try {
+    execSync('npm install', {
+      cwd: projectPath,
+      stdio: 'inherit'
+    });
+  } catch (error) {
+    log('⚠️  Failed to install dependencies automatically', 'yellow');
+    log('   Please run "npm install" manually', 'yellow');
+  }
+
+  log('\n✅ Project created successfully!', 'green');
+  log(`\n📂 Next steps:`, 'cyan');
+  log(`   cd ${projectName}`);
+  log(`   npm test        # Run tests`);
+  log(`   npm run validate # Validate adaptive tests`);
+  log(`   npm run dev     # Start development\n`);
+
+  rl.close();
+}
+
+function createBasicTemplate(projectPath, templateType) {
+  // Create basic structure
+  const dirs = ['src', 'tests', 'tests/adaptive', 'tests/traditional'];
+  dirs.forEach(dir => {
+    fs.mkdirSync(path.join(projectPath, dir), { recursive: true });
+  });
+
+  // Create package.json
+  const packageJson = {
+    name: path.basename(projectPath),
+    version: '1.0.0',
+    description: 'Adaptive testing project',
+    main: 'src/index.js',
+    scripts: {
+      test: 'jest',
+      'test:adaptive': 'jest tests/adaptive',
+      'test:traditional': 'jest tests/traditional',
+      validate: 'npm run test:traditional && npm run test:adaptive',
+      dev: templateType.includes('react') ? 'vite' : 'node src/index.js'
+    },
+    dependencies: {
+      'adaptive-tests': '^0.2.0'
+    },
+    devDependencies: {
+      jest: '^29.7.0'
+    }
+  };
+
+  // Add template-specific dependencies
+  if (templateType.includes('ts')) {
+    packageJson.devDependencies.typescript = '^5.0.0';
+    packageJson.devDependencies['@types/jest'] = '^29.5.0';
+    packageJson.devDependencies['ts-jest'] = '^29.1.0';
+    packageJson.devDependencies['@types/node'] = '^20.0.0';
+  }
+
+  if (templateType.includes('react')) {
+    packageJson.dependencies.react = '^18.2.0';
+    packageJson.dependencies['react-dom'] = '^18.2.0';
+    packageJson.devDependencies['@testing-library/react'] = '^14.0.0';
+    packageJson.devDependencies['@testing-library/jest-dom'] = '^6.0.0';
+  }
+
+  if (templateType.includes('python')) {
+    // Create Python-specific files
+    createPythonTemplate(projectPath);
+    return;
+  }
+
+  if (templateType.includes('java')) {
+    // Create Java-specific files
+    createJavaTemplate(projectPath);
+    return;
+  }
+
+  fs.writeFileSync(
+    path.join(projectPath, 'package.json'),
+    JSON.stringify(packageJson, null, 2)
+  );
+
+  // Create basic source file
+  const indexContent = templateType.includes('ts')
+    ? `export function add(a: number, b: number): number {
+  return a + b;
+}
+
+export function subtract(a: number, b: number): number {
+  return a - b;
+}`
+    : `function add(a, b) {
+  return a + b;
+}
+
+function subtract(a, b) {
+  return a - b;
+}
+
+module.exports = { add, subtract };`;
+
+  fs.writeFileSync(
+    path.join(projectPath, 'src', templateType.includes('ts') ? 'index.ts' : 'index.js'),
+    indexContent
+  );
+
+  // Create adaptive test
+  const testContent = `const { getDiscoveryEngine } = require('adaptive-tests');
+
+describe('Adaptive Math Tests', () => {
+  let math;
+
+  beforeAll(async () => {
+    const engine = getDiscoveryEngine();
+    math = await engine.discoverTarget({
+      name: 'index',
+      methods: ['add', 'subtract']
+    });
+  });
+
+  test('should add numbers', () => {
+    expect(math.add(2, 3)).toBe(5);
+  });
+
+  test('should subtract numbers', () => {
+    expect(math.subtract(5, 3)).toBe(2);
+  });
+});`;
+
+  fs.writeFileSync(
+    path.join(projectPath, 'tests/adaptive/math.test.js'),
+    testContent
+  );
+}
+
+function createPythonTemplate(projectPath) {
+  // Create Python project structure
+  const dirs = ['src', 'tests', 'tests/adaptive', 'tests/traditional'];
+  dirs.forEach(dir => {
+    fs.mkdirSync(path.join(projectPath, dir), { recursive: true });
+  });
+
+  // Create requirements.txt
+  const requirements = `flask==2.3.0
+pytest==7.4.0
+pytest-cov==4.1.0
+adaptive-tests-python==0.1.0`;
+
+  fs.writeFileSync(path.join(projectPath, 'requirements.txt'), requirements);
+
+  // Create setup.py
+  const setupPy = `from setuptools import setup, find_packages
+
+setup(
+    name="${path.basename(projectPath)}",
+    version="1.0.0",
+    packages=find_packages(),
+    install_requires=[
+        'flask>=2.3.0',
+    ],
+    test_suite='tests',
+)`;
+
+  fs.writeFileSync(path.join(projectPath, 'setup.py'), setupPy);
+
+  // Create main app
+  const appPy = `from flask import Flask, jsonify
+
+app = Flask(__name__)
+
+class Calculator:
+    def add(self, a, b):
+        return a + b
+
+    def subtract(self, a, b):
+        return a - b
+
+@app.route('/health')
+def health():
+    return jsonify({'status': 'healthy'})
+
+if __name__ == '__main__':
+    app.run(debug=True)`;
+
+  fs.writeFileSync(path.join(projectPath, 'src/app.py'), appPy);
+
+  // Create Makefile
+  const makefile = `install:
+\tpip install -r requirements.txt
+
+test:
+\tpytest tests/
+
+test-adaptive:
+\tpytest tests/adaptive/
+
+test-traditional:
+\tpytest tests/traditional/
+
+validate: test-traditional test-adaptive
+
+run:
+\tpython src/app.py`;
+
+  fs.writeFileSync(path.join(projectPath, 'Makefile'), makefile);
+}
+
+function createJavaTemplate(projectPath) {
+  // Create Maven project structure
+  const dirs = [
+    'src/main/java/com/example',
+    'src/test/java/com/example/adaptive',
+    'src/test/java/com/example/traditional'
+  ];
+  dirs.forEach(dir => {
+    fs.mkdirSync(path.join(projectPath, dir), { recursive: true });
+  });
+
+  // Create pom.xml
+  const pomXml = `<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+         http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.example</groupId>
+    <artifactId>${path.basename(projectPath)}</artifactId>
+    <version>1.0.0</version>
+    <packaging>jar</packaging>
+
+    <properties>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
+        <spring.boot.version>3.1.0</spring.boot.version>
+        <junit.version>5.9.3</junit.version>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+            <version>\${spring.boot.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>\${junit.version}</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <version>\${spring.boot.version}</version>
+            </plugin>
+        </plugins>
+    </build>
+</project>`;
+
+  fs.writeFileSync(path.join(projectPath, 'pom.xml'), pomXml);
+
+  // Create main application
+  const mainApp = `package com.example;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication
+public class Application {
+    public static void main(String[] args) {
+        SpringApplication.run(Application.class, args);
+    }
+}
+
+class Calculator {
+    public int add(int a, int b) {
+        return a + b;
+    }
+
+    public int subtract(int a, int b) {
+        return a - b;
+    }
+}`;
+
+  fs.writeFileSync(
+    path.join(projectPath, 'src/main/java/com/example/Application.java'),
+    mainApp
+  );
+}
+
+main().catch(error => {
+  log(`\n❌ Error: ${error.message}`, 'red');
+  process.exit(1);
+});

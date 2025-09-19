@@ -148,13 +148,15 @@
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
     "pretest": "npm run compile",
-    "test": "node ./out/test/runTest.js"
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "devDependencies": {
     "@types/vscode": "^1.74.0",
     "@types/node": "^18.x",
     "@vscode/test-electron": "^2.3.0",
-    "typescript": "^5.0.0"
+    "typescript": "^5.0.0",
+    "vitest": "^1.6.0"
   },
   "dependencies": {
     "adaptive-tests": "^0.2.2"

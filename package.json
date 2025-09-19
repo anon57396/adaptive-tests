@@ -4,7 +4,8 @@
   "description": "Adaptive test discovery that survives refactors without losing real bug coverage.",
   "main": "src/adaptive/index.js",
   "bin": {
-    "adaptive-tests": "src/cli/init.js"
+    "adaptive-tests": "src/cli/init.js",
+    "create-adaptive-app": "bin/create-adaptive-app"
   },
   "scripts": {
     "test": "jest",
@@ -97,6 +98,10 @@
       "jsx",
       "json",
       "node"
+    ],
+    "testPathIgnorePatterns": [
+      "<rootDir>/examples/",
+      "<rootDir>/extensions/"
     ]
   },
   "repository": {

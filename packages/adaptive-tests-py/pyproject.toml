@@ -33,3 +33,13 @@ line-length = 88
 target-version = "py38"
 select = ["E", "F", "I", "B"]
 ignore = ["E501"]
+
+[project.optional-dependencies]
+test = [
+  "pytest>=7.4",
+  "pytest-cov>=4.1"
+]
+
+[tool.pytest.ini_options]
+addopts = "--cov=adaptive_tests_py --cov-report=term-missing"
+testpaths = ["tests"]
