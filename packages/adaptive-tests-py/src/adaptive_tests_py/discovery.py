@@ -13,11 +13,14 @@ import ast
 import importlib
 import importlib.util
 import json
+import logging
 import os
 import re
 import sys
 import time
 from dataclasses import dataclass, field, asdict
+
+logger = logging.getLogger(__name__)
 from hashlib import sha1
 from pathlib import Path
 from typing import Any, Dict, Iterable, Iterator, List, MutableMapping, Optional, Sequence, Tuple
@@ -162,6 +165,7 @@ class DiscoveryEngine:
         self._cache_enabled = bool(cache_config.get("enabled", True))
         self._cache_file = self.root / cache_config.get("file", ".adaptive-tests-cache.json")
         self._cache_ttl = cache_config.get("ttl_seconds")
+        self._cache_log_warnings = bool(cache_config.get("log_warnings", False))
         self._runtime_cache: Dict[str, DiscoveryResult] = {}
         self._persistent_cache: Dict[str, Dict[str, Any]] = {}
         self._cache_loaded = False
@@ -354,8 +358,10 @@ class DiscoveryEngine:
         if self._cache_file.exists():
             try:
                 self._persistent_cache = json.loads(self._cache_file.read_text(encoding="utf-8"))
-            except json.JSONDecodeError:
+            except (json.JSONDecodeError, OSError) as exc:
                 self._persistent_cache = {}
+                if self._cache_log_warnings:
+                    logger.warning("[adaptive-tests-py] Failed to load discovery cache %s: %s", self._cache_file, exc)
         self._cache_loaded = True
 
     def _get_cached_result(self, cache_key: str) -> Optional[DiscoveryResult]:
@@ -414,8 +420,9 @@ class DiscoveryEngine:
         self._persistent_cache[cache_key] = entry
         try:
             self._cache_file.write_text(json.dumps(self._persistent_cache, indent=2, sort_keys=True), encoding="utf-8")
-        except OSError:
-            pass
+        except OSError as exc:
+            if self._cache_log_warnings:
+                logger.warning("[adaptive-tests-py] Failed to persist discovery cache %s: %s", self._cache_file, exc)
 
     # ------------------------------------------------------------------
     # Helpers

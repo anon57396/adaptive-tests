@@ -115,7 +115,8 @@ const DEFAULT_CONFIG = {
     cache: {
       enabled: true,
       file: '.test-discovery-cache.json',
-      ttl: null // No TTL by default
+      ttl: null, // No TTL by default
+      logWarnings: false
     },
 
     // Security configuration

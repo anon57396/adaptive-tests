@@ -4,6 +4,7 @@
  * MIT License - Use this anywhere
  */
 
+const assert = require('assert');
 const { getDiscoveryEngine } = require('./discovery-engine');
 
 /**
@@ -91,53 +92,146 @@ class AdaptiveTest {
   }
 }
 
+
+function createJestRuntime(globals, framework) {
+  const describeFn = globals.describe;
+  const testFn = globals.test;
+  const beforeAllFn = globals.beforeAll;
+  if (typeof describeFn !== 'function' || typeof testFn !== 'function' || typeof beforeAllFn !== 'function') {
+    throw new Error(`Unable to bind ${framework} runtime: missing global hooks.`);
+  }
+  return {
+    framework,
+    describe: describeFn,
+    test: testFn,
+    beforeAll: beforeAllFn
+  };
+}
+
+function createMochaRuntime(globals) {
+  const describeFn = globals.describe;
+  const testFn = globals.it || globals.test;
+  const beforeAllFn = globals.beforeAll || globals.before;
+  if (typeof describeFn !== 'function' || typeof testFn !== 'function' || typeof beforeAllFn !== 'function') {
+    throw new Error('Unable to bind Mocha runtime: missing global hooks.');
+  }
+  return {
+    framework: 'mocha',
+    describe: describeFn,
+    test: testFn,
+    beforeAll: beforeAllFn
+  };
+}
+
+function resolveTestRuntime(forcedFramework) {
+  const globals = globalThis;
+  const desired = forcedFramework ? String(forcedFramework).toLowerCase() : null;
+
+  if (desired === 'mocha') {
+    return createMochaRuntime(globals);
+  }
+  if (desired === 'jest') {
+    return createJestRuntime(globals, 'jest');
+  }
+  if (desired === 'vitest') {
+    return createJestRuntime(globals, 'vitest');
+  }
+
+  if (typeof globals.describe === 'function' && typeof globals.test === 'function') {
+    const framework = typeof globals.vitest !== 'undefined' ? 'vitest' : 'jest';
+    return createJestRuntime(globals, framework);
+  }
+
+  if (typeof globals.describe === 'function' && typeof (globals.it || globals.test) === 'function') {
+    return createMochaRuntime(globals);
+  }
+
+  throw new Error('Adaptive tests require Jest, Vitest, or Mocha globals to be available.');
+}
+
+function createAssertions() {
+  return {
+    ensureDefined(value, message) {
+      assert.ok(value !== undefined && value !== null, message);
+    },
+    ensureFunction(value, message) {
+      assert.strictEqual(typeof value, 'function', message);
+    },
+    ensureTruthy(value, message) {
+      assert.ok(Boolean(value), message);
+    }
+  };
+}
+
+
 /**
- * A Jest/Mocha compatible test runner for adaptive tests.
+ * A Jest/Mocha/Vitest compatible test runner for adaptive tests.
  * @template {new () => AdaptiveTest} T
  * @param {T} TestClass - The AdaptiveTest class to run.
+ * @param {{framework?: 'jest' | 'mocha' | 'vitest'}} [options] - Optional runtime override.
  * @returns {void}
  */
-function adaptiveTest(TestClass) {
+function adaptiveTest(TestClass, options = {}) {
   const testInstance = new TestClass();
   const signature = testInstance.getTargetSignature();
   const testName = TestClass.name || 'AdaptiveTest';
+  const runtime = resolveTestRuntime(options.framework);
+  const assertions = createAssertions();
+  const requestedExport = signature.exports || signature.name;
 
-  describe(`${testName} - Adaptive Discovery`, () => {
+  runtime.describe(`${testName} - Adaptive Discovery`, () => {
     let target;
 
-    beforeAll(async () => {
+    runtime.beforeAll(async () => {
       const engine = getDiscoveryEngine();
       target = await engine.discoverTarget(signature);
     });
 
-    test('should discover target module', () => {
-      expect(target).toBeDefined();
+    runtime.test('should discover target module', () => {
+      assertions.ensureDefined(target, 'Discovery engine did not resolve a target for the provided signature.');
     });
 
-    test('should validate target has expected structure', () => {
-      if (signature.type === 'class') {
-        const TargetClass = testInstance.getExport(target, signature.exports || signature.name);
-        expect(typeof TargetClass).toBe('function');
-        expect(TargetClass.prototype).toBeDefined();
+    runtime.test('should validate target has expected structure', () => {
+      if (!target) {
+        assertions.ensureDefined(target, 'Discovery engine did not resolve a target for the provided signature.');
+        return;
       }
 
-      if (signature.methods) {
-        const TargetClass = testInstance.getExport(target, signature.exports || signature.name);
+      if (signature.type === 'class') {
+        const TargetClass = testInstance.getExport(target, requestedExport);
+        assertions.ensureFunction(TargetClass, 'Expected discovered export to be a constructor or function.');
+        assertions.ensureDefined(
+          TargetClass && TargetClass.prototype,
+          'Expected discovered export to expose a prototype.'
+        );
+      }
+
+      if (Array.isArray(signature.methods) && signature.methods.length > 0) {
+        const TargetClass = testInstance.getExport(target, requestedExport);
+        assertions.ensureDefined(
+          TargetClass && TargetClass.prototype,
+          'Expected discovered export to expose methods on its prototype.'
+        );
         signature.methods.forEach(method => {
-          expect(TargetClass.prototype[method]).toBeDefined();
+          assertions.ensureDefined(
+            TargetClass.prototype[method],
+            `Expected method '${method}' to exist on the discovered target.`
+          );
+          assertions.ensureFunction(
+            TargetClass.prototype[method],
+            `Expected method '${method}' to be callable.`
+          );
         });
       }
     });
 
-    describe('Functional Tests', () => {
-      // This is where the actual test implementation runs
-      beforeAll(async () => {
+    runtime.describe('Functional Tests', () => {
+      runtime.beforeAll(async () => {
         await testInstance.runTests(target);
       });
 
-      test('placeholder for dynamic tests', () => {
-        // The runTests method will create the actual test cases
-        expect(true).toBe(true);
+      runtime.test('adaptive test placeholder', () => {
+        assertions.ensureTruthy(true, 'Placeholder assertion executed.');
       });
     });
   });

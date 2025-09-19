@@ -5,31 +5,55 @@
 
 const path = require('path');
 const fs = require('fs');
-const { execSync } = require('child_process');
+const os = require('os');
 const { getDiscoveryEngine } = require('../../src/adaptive/discovery-engine');
 
-const engine = getDiscoveryEngine(path.resolve(__dirname, '../..'));
-const fixturesRoot = path.resolve(__dirname, '../../fixtures');
-const modulesRoot = path.join(fixturesRoot, 'modules');
+function copyDirectorySync(source, destination) {
+  const stat = fs.statSync(source);
+  if (!stat.isDirectory()) {
+    fs.mkdirSync(path.dirname(destination), { recursive: true });
+    fs.copyFileSync(source, destination);
+    return;
+  }
+
+  fs.mkdirSync(destination, { recursive: true });
+  for (const entry of fs.readdirSync(source)) {
+    const srcEntry = path.join(source, entry);
+    const destEntry = path.join(destination, entry);
+    const entryStat = fs.statSync(srcEntry);
+    if (entryStat.isDirectory()) {
+      copyDirectorySync(srcEntry, destEntry);
+    } else {
+      fs.copyFileSync(srcEntry, destEntry);
+    }
+  }
+}
 
 describe('Adaptive Testing Resilience Demo', () => {
-  const originalPath = path.join(modulesRoot, 'StringUtils.js');
-  const movedPath1 = path.join(fixturesRoot, 'StringUtilsRenamed.js');
-  const movedPath2 = path.join(fixturesRoot, 'deep', 'StringUtilsMoved.js');
+  let sandboxRoot;
+  let fixturesRoot;
+  let modulesRoot;
+  let engine;
+  let originalPath;
+  let movedPath1;
+  let movedPath2;
+
+  beforeAll(() => {
+    sandboxRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'adaptive-tests-resilience-'));
+    const sourceFixturesRoot = path.resolve(__dirname, '../../fixtures');
+    fixturesRoot = path.join(sandboxRoot, 'fixtures');
+    copyDirectorySync(sourceFixturesRoot, fixturesRoot);
+    modulesRoot = path.join(fixturesRoot, 'modules');
+    engine = getDiscoveryEngine(sandboxRoot);
+
+    originalPath = path.join(modulesRoot, 'StringUtils.js');
+    movedPath1 = path.join(fixturesRoot, 'StringUtilsRenamed.js');
+    movedPath2 = path.join(fixturesRoot, 'deep', 'StringUtilsMoved.js');
+  });
 
   afterAll(() => {
-    // Ensure file is back in original location
-    if (fs.existsSync(movedPath1)) {
-      fs.renameSync(movedPath1, originalPath);
-    }
-    if (fs.existsSync(movedPath2)) {
-      fs.renameSync(movedPath2, originalPath);
-      // Clean up the deep directory if empty
-      try {
-        fs.rmdirSync(path.join(fixturesRoot, 'deep'));
-      } catch (e) {
-        // Directory not empty or doesn't exist
-      }
+    if (sandboxRoot && fs.existsSync(sandboxRoot)) {
+      fs.rmSync(sandboxRoot, { recursive: true, force: true });
     }
   });
 
@@ -46,13 +70,10 @@ describe('Adaptive Testing Resilience Demo', () => {
   });
 
   test('should find StringUtils after file rename', async () => {
-    // Rename the file
     fs.renameSync(originalPath, movedPath1);
 
-    // Clear cache to force re-discovery
     await engine.clearCache();
 
-    // Try to discover StringUtils - should still find it!
     const StringUtils = await engine.discoverTarget({
       name: 'StringUtils',
       type: 'class'
@@ -62,24 +83,19 @@ describe('Adaptive Testing Resilience Demo', () => {
     const utils = new StringUtils();
     expect(utils.reverse('adaptive')).toBe('evitpada');
 
-    // Move it back
     fs.renameSync(movedPath1, originalPath);
   });
 
   test('should find StringUtils after moving to different directory', async () => {
-    // Create deep directory
     const deepDir = path.join(fixturesRoot, 'deep');
     if (!fs.existsSync(deepDir)) {
       fs.mkdirSync(deepDir, { recursive: true });
     }
 
-    // Move the file to a different directory
     fs.renameSync(originalPath, movedPath2);
 
-    // Clear cache
     await engine.clearCache();
 
-    // Discover StringUtils - should find it in new location!
     const StringUtils = await engine.discoverTarget({
       name: 'StringUtils',
       type: 'class',
@@ -90,14 +106,12 @@ describe('Adaptive Testing Resilience Demo', () => {
     const utils = new StringUtils();
     expect(utils.isPalindrome('racecar')).toBe(true);
 
-    // Move it back
     fs.renameSync(movedPath2, originalPath);
   });
 
   test('should find class by method signature alone', async () => {
     await engine.clearCache();
 
-    // Don't even specify the name - just the methods!
     const SomeClass = await engine.discoverTarget({
       type: 'class',
       methods: ['capitalize', 'reverse', 'truncate', 'countWords']
@@ -112,7 +126,6 @@ describe('Adaptive Testing Resilience Demo', () => {
   test('should handle simultaneous discovery of multiple targets', async () => {
     await engine.clearCache();
 
-    // Discover multiple targets in parallel
     const [StringClass, EventClass] = await Promise.all([
       engine.discoverTarget({ name: 'StringUtils', type: 'class' }),
       engine.discoverTarget({ name: 'EventEmitter', type: 'class' })
@@ -121,7 +134,6 @@ describe('Adaptive Testing Resilience Demo', () => {
     expect(StringClass.name).toBe('StringUtils');
     expect(EventClass.name).toBe('EventEmitter');
 
-    // Use them all
     const str = new StringClass();
     const emitter = new EventClass();
 
@@ -131,11 +143,6 @@ describe('Adaptive Testing Resilience Demo', () => {
 
   describe('Performance Comparison', () => {
     test('traditional import vs adaptive discovery', async () => {
-      // Traditional approach would break if file moves:
-      // const StringUtils = require('../fixtures/modules/StringUtils');
-      // ❌ This breaks when file is moved!
-
-      // Adaptive approach always works:
       await engine.clearCache();
       const start = Date.now();
       const StringUtils = await engine.discoverTarget({
@@ -144,7 +151,6 @@ describe('Adaptive Testing Resilience Demo', () => {
       });
       const discoveryTime = Date.now() - start;
 
-      // Second discovery uses cache (much faster)
       const start2 = Date.now();
       const StringUtils2 = await engine.discoverTarget({
         name: 'StringUtils',
@@ -158,7 +164,7 @@ describe('Adaptive Testing Resilience Demo', () => {
         ${discoveryTime > cachedTime ? '✅ Cache is working!' : '⚠️ Cache may not be working'}
       `);
 
-      expect(StringUtils).toBe(StringUtils2); // Same reference from cache
+      expect(StringUtils).toBe(StringUtils2);
     });
   });
 });

@@ -29,61 +29,49 @@ CLI flags such as `--output-dir`, `--all-exports`, and `--force` behave the same
 
 ## Writing Adaptive Tests with JUnit 5
 
-Once you've scaffolded a test, you can use the adaptive discovery system to make your tests resilient to refactoring. Here's a complete example:
+Subclass `AdaptiveTestBase` from the core package to keep your tests resilient to refactors. The base discovers the target before any assertions run and exposes helpers to load the class, create instances, and hook into discovery events.
 
 ```java
 import static org.junit.jupiter.api.Assertions.*;
-import org.junit.jupiter.api.BeforeAll;
+
+import io.adaptivetests.java.discovery.Signature;
+import io.adaptivetests.java.testing.AdaptiveTestBase;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 
-public class CalculatorTest {
-    private static Class<?> Calculator;
-
-    @BeforeAll
-    static void setUp() throws Exception {
-        // Discover Calculator by signature - survives package moves
-        Calculator = AdaptiveTestUtils.discover(
-            DiscoverySignature.builder()
-                .name("Calculator")
-                .type("class")
-                .methods("add", "subtract", "multiply", "divide")
-                .build()
-        );
+class CalculatorAdaptiveTest extends AdaptiveTestBase {
+    @Override
+    protected Signature signature() {
+        return Signature.builder()
+            .name("Calculator")
+            .methods(List.of("add", "subtract", "multiply", "divide"))
+            .build();
     }
 
     @Test
-    void testAddition() throws Exception {
-        Object calculator = Calculator.getDeclaredConstructor().newInstance();
-
-        // Use reflection to call discovered methods
-        var addMethod = Calculator.getMethod("add", double.class, double.class);
-        var result = (Double) addMethod.invoke(calculator, 5.0, 3.0);
-
-        assertEquals(8.0, result, 0.001);
+    void addsNumbers() throws ReflectiveOperationException, NoSuchMethodException {
+        Object calculator = newInstance();
+        var add = targetClass().getMethod("add", double.class, double.class);
+        assertEquals(8.0, (double) add.invoke(calculator, 5.0, 3.0), 0.001);
     }
 
     @Test
-    void testDivision() throws Exception {
-        Object calculator = Calculator.getDeclaredConstructor().newInstance();
-
-        var divideMethod = Calculator.getMethod("divide", double.class, double.class);
-        var result = (Double) divideMethod.invoke(calculator, 10.0, 2.0);
-
-        assertEquals(5.0, result, 0.001);
-    }
-
-    @Test
-    void testDivisionByZero() throws Exception {
-        Object calculator = Calculator.getDeclaredConstructor().newInstance();
-
-        var divideMethod = Calculator.getMethod("divide", double.class, double.class);
-
-        assertThrows(ArithmeticException.class, () -> {
-            divideMethod.invoke(calculator, 10.0, 0.0);
-        });
+    void dividesSafely() throws ReflectiveOperationException, NoSuchMethodException {
+        Object calculator = newInstance();
+        var divide = targetClass().getMethod("divide", double.class, double.class);
+        assertThrows(ArithmeticException.class, () -> divide.invoke(calculator, 10.0, 0.0));
     }
 }
 ```
+
+`AdaptiveTestBase` provides:
+
+- `signature()` – required override that defines the discovery signature.
+- `targetClass()` – the discovered `Class<?>` for reflection-based assertions.
+- `newInstance()` – convenience helper that calls the default constructor.
+- `onTargetDiscovered(...)` – optional hook for class-level setup or dependency injection.
+
+Override `projectRoot()` or `createEngine()` if your modules live outside the default working directory or require custom configuration overrides.
 
 ## Discovery Signatures for Java
 

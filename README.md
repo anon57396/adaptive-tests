@@ -3,7 +3,7 @@
 [![Docs](https://img.shields.io/badge/docs-website-blue)](https://anon57396.github.io/adaptive-tests/)
 [![npm version](https://img.shields.io/npm/v/adaptive-tests.svg)](https://www.npmjs.com/package/adaptive-tests)
 [![PyPI version](https://img.shields.io/pypi/v/adaptive-tests-py.svg)](https://pypi.org/project/adaptive-tests-py/)
-[![VS Code Extension](https://img.shields.io/badge/VS%20Code-Coming%20Soon-orange)](extensions/vscode-adaptive-tests/README.md)
+[![VS Code Extension](https://img.shields.io/badge/VS%20Code-Development%20Alpha-yellow)](extensions/vscode-adaptive-tests/README.md)
 
 Documentation: [https://anon57396.github.io/adaptive-tests/](https://anon57396.github.io/adaptive-tests/)
 
@@ -127,6 +127,107 @@ const engine = getDiscoveryEngine(process.cwd());
 
 ---
 
+## Framework Templates
+
+Jumpstart your adaptive testing with pre-configured templates for popular frameworks:
+
+### Available Templates
+
+| Template | Framework | Features |
+|----------|-----------|----------|
+| `nextjs-adaptive` | Next.js 13+ | App Router, TypeScript, React Server Components ready |
+| `vite-adaptive` | Vite + React | Lightning fast HMR, TypeScript, modern tooling |
+| `cra-adaptive` | Create React App | Classic React setup, TypeScript support |
+| `express-adaptive` | Express.js | REST API, middleware testing, async route handlers |
+
+### Quick Setup
+
+```bash
+# Interactive CLI (coming soon)
+npx create-adaptive-app my-project
+
+# Manual template usage
+git clone https://github.com/anon57396/adaptive-tests.git
+cp -r adaptive-tests/templates/nextjs-adaptive my-project
+cd my-project
+npm install
+```
+
+### What's Included
+
+Each template comes with:
+
+- ✅ **Pre-configured adaptive tests** - Example components with adaptive test suites
+- ✅ **Jest setup** - Configured for both traditional and adaptive testing
+- ✅ **TypeScript support** - Full type definitions and tsconfig
+- ✅ **VS Code integration** - Recommended extensions and settings
+- ✅ **Best practices** - Folder structure and naming conventions
+- ✅ **CI/CD ready** - GitHub Actions workflows included
+
+### Template Details
+
+#### Next.js Template
+```bash
+templates/nextjs-adaptive/
+├── src/
+│   └── components/       # Example components with tests
+├── tests/
+│   ├── adaptive/         # Adaptive test suites
+│   └── traditional/      # Traditional test comparison
+├── jest.config.js        # Dual-mode Jest configuration
+└── package.json          # Pre-configured dependencies
+```
+
+#### Vite Template
+```bash
+templates/vite-adaptive/
+├── src/
+│   ├── components/       # React components
+│   └── test/
+│       └── setup.ts      # Vitest/Jest setup
+├── tests/
+│   └── adaptive/         # Adaptive tests
+└── vite.config.ts        # Test configuration
+```
+
+#### Express Template
+```bash
+templates/express-adaptive/
+├── src/
+│   ├── routes/           # API routes
+│   ├── middleware/       # Express middleware
+│   └── services/         # Business logic
+├── tests/
+│   └── adaptive/         # API and service tests
+└── package.json          # Node.js dependencies
+```
+
+### Customizing Templates
+
+After copying a template:
+
+1. **Update package.json** with your project details
+2. **Modify the example components** to match your needs
+3. **Run tests** to ensure everything works: `npm test`
+4. **Add your own adaptive tests** using the examples as guides
+
+### Creating Your Own Template
+
+To create a custom template:
+
+```bash
+# Start with any existing project
+npx adaptive-tests init
+
+# Add example components and tests
+npx adaptive-tests scaffold src/components/MyComponent.tsx
+
+# Configure Jest for dual-mode testing
+# (See templates/*/jest.config.js for examples)
+```
+
+---
+
 ## CLI Helper
 
 ```bash
@@ -228,15 +329,27 @@ You don't need complex test selection for adaptive tests because:
 
 ## Documentation & Examples
 
+### Getting Started
 - [Quick Start Guide](docs/QUICK_START.md)
-- [Common Issues & Troubleshooting](docs/COMMON_ISSUES.md)
+- [Migration Guide](docs/MIGRATION_GUIDE.md)
+- [Troubleshooting Guide](docs/TROUBLESHOOTING.md)
+- [Common Issues](docs/COMMON_ISSUES.md)
+
+### Framework Guides
+- [React Quick Start](docs/REACT_QUICKSTART.md)
+- [Vue.js Quick Start](docs/VUE_QUICKSTART.md)
+- [Express Quick Start](docs/EXPRESS_QUICKSTART.md)
+- [Java Quick Start](docs/JAVA_QUICKSTART.md)
+- [PHP Quick Start](docs/PHP_QUICKSTART.md)
+
+### Technical Documentation
 - [How It Works](docs/HOW_IT_WORKS.md)
+- [API Reference](docs/API_REFERENCE.md)
 - [Best Practices](docs/BEST_PRACTICES.md)
 - [CI/CD Strategy](docs/CI_STRATEGY.md)
 - Prompt Guide (AIs & automation): PROMPT_GUIDE.md
-- [API Reference](https://anon57396.github.io/adaptive-tests/api/)
-- [Java Quick Start](docs/JAVA_QUICKSTART.md)
-- [PHP Quick Start](docs/PHP_QUICKSTART.md)
+
+### Extensions & Tools
 - [VS Code Extension](extensions/vscode-adaptive-tests/README.md)
 - [Proof & Demo Scripts](PROOF.md)
 - [Examples](examples/) (`calculator`, `api-service`, `todo-app`, `typescript`, `python`, `php`, `java`)

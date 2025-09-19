@@ -53,6 +53,9 @@ without updating the timestamp, force a clear:
 await engine.clearCache();           // wipe discovery + runtime cache
 ```
 
+Need extra diagnostics? Set `discovery.cache.logWarnings` to `true` in your config to surface read/write issues with the persistent cache (mirrored in the Python engine as `log_warnings`).
+
+
 You should rarely need to touch `require.cache` manually now that the engine
 tracks modification times and recompiles changed modules.
 

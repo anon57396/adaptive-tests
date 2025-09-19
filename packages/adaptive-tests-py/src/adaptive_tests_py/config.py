@@ -74,6 +74,7 @@ DEFAULT_CONFIG: Dict[str, Any] = {
             "enabled": True,
             "file": ".adaptive-tests-cache.json",
             "ttl_seconds": None,
+            "log_warnings": False,
         },
     }
 }
