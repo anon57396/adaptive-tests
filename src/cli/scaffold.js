@@ -5,6 +5,7 @@ const path = require('path');
 const os = require('os');
 const { DiscoveryEngine, getDiscoveryEngine } = require('../adaptive/discovery-engine');
 const { PHPDiscoveryIntegration } = require('../adaptive/php/php-discovery-integration');
+const { PythonDiscoveryIntegration } = require('../adaptive/python/python-discovery-integration');
 const { JavaDiscoveryIntegration } = require('../adaptive/java/java-discovery-integration');
 
 const COLORS = {
@@ -149,6 +150,16 @@ const generateMethodBlocks = (signature, methods, options) => {
   return blocks + '\n';
 };
 
+const slugify = (value) => {
+  return (value || '')
+    .replace(/([a-z0-9])([A-Z])/g, '$1_$2')
+    .replace(/[-\s]+/g, '_')
+    .replace(/[^a-zA-Z0-9_]/g, '_')
+    .replace(/_+/g, '_')
+    .replace(/^_+|_+$/g, '')
+    .toLowerCase() || 'target';
+};
+
 const generatePHPTestContent = ({ signature, phpMetadata }) => {
   const phpIntegration = new PHPDiscoveryIntegration(null);
 
@@ -191,6 +202,7 @@ const generatePHPTestContent = ({ signature, phpMetadata }) => {
 
 
 const javaIntegration = new JavaDiscoveryIntegration(null);
+const pythonIntegration = new PythonDiscoveryIntegration();
 
 const analyzeJavaFile = async (filePath) => {
   const javaMetadata = await javaIntegration.collector.parseFile(filePath);
@@ -248,20 +260,37 @@ const generateJavaOutputPath = (root, filePath, options, targetName, javaMetadat
   const baseName = targetName || path.basename(filePath, '.java');
   const testFileName = `${baseName}Test.java`;
   const relative = path.relative(root, filePath);
-  const normalized = relative.split(path.sep).join('/');
 
-  if (normalized.includes('src/main/java/')) {
-    const replaced = normalized.replace('src/main/java/', 'src/test/java/');
-    const destination = replaced.replace(/[^/]+$/, testFileName);
-    return path.join(root, ...destination.split('/'));
+  // Convert to segments for cross-platform compatibility
+  const segments = relative.split(path.sep);
+
+  // Check for Maven/Gradle structure (src/main/java)
+  const mainJavaIndex = segments.findIndex((seg, i) =>
+    i < segments.length - 2 &&
+    seg === 'src' &&
+    segments[i + 1] === 'main' &&
+    segments[i + 2] === 'java'
+  );
+
+  if (mainJavaIndex !== -1) {
+    // Replace 'main' with 'test' in the path
+    const testSegments = [...segments];
+    testSegments[mainJavaIndex + 1] = 'test';
+    testSegments[testSegments.length - 1] = testFileName;
+    return path.join(root, ...testSegments);
   }
 
-  if (normalized.includes('src/main/')) {
-    const afterMain = normalized.substring(normalized.indexOf('src/main/') + 'src/main/'.length);
-    const segments = afterMain.split('/');
-    const pkgSegments = segments.slice(1, -1); // drop original language folder and file
-    const destination = path.join(root, 'src', 'test', 'java', ...pkgSegments, testFileName);
-    return destination;
+  // Check for src/main structure (any language)
+  const mainIndex = segments.findIndex((seg, i) =>
+    i < segments.length - 1 &&
+    seg === 'src' &&
+    segments[i + 1] === 'main'
+  );
+
+  if (mainIndex !== -1) {
+    const langFolder = segments[mainIndex + 2]; // The language folder after src/main/
+    const pkgSegments = segments.slice(mainIndex + 3, -1); // Package structure
+    return path.join(root, 'src', 'test', 'java', ...pkgSegments, testFileName);
   }
 
   const packageName = javaMetadata && javaMetadata.packageName;
@@ -286,6 +315,50 @@ const generateJavaTestContent = ({ signature, javaMetadata, javaType, options = 
       testClassName: `${target.name}Test`
     }
   });
+};
+
+const analyzePythonFile = async (filePath) => {
+  const result = pythonIntegration.parseFile(filePath);
+  if (!result) {
+    return null;
+  }
+
+  return {
+    exports: result.exports,
+    pythonMetadata: result.pythonMetadata
+  };
+};
+
+const generatePythonOutputPath = (root, filePath, options, targetName) => {
+  const baseDir = options.outputDir || path.join(root, 'tests', 'adaptive');
+  ensureDirSync(baseDir);
+  const slug = slugify(targetName || path.basename(filePath, '.py'));
+  return path.join(baseDir, `test_${slug}.py`);
+};
+
+const generatePythonTestContent = ({ signature, moduleName, pythonKind, depth }) => {
+  return pythonIntegration.generatePytestTest({
+    signature,
+    moduleName,
+    targetKind: pythonKind,
+    depth
+  });
+};
+
+const computePythonModule = (root, filePath) => {
+  const relative = path.relative(root, filePath).replace(/\\/g, '/');
+  if (!relative) {
+    return path.basename(filePath, '.py');
+  }
+  const withoutSuffix = relative.replace(/\.py$/, '');
+  const parts = withoutSuffix.split('/').filter(Boolean);
+  if (parts.length === 0) {
+    return path.basename(filePath, '.py');
+  }
+  if (parts[parts.length - 1] === '__init__') {
+    parts.pop();
+  }
+  return parts.join('.') || path.basename(filePath, '.py');
 };
 
 
@@ -522,8 +595,9 @@ const processSingleFile = async (engine, filePath, options, results) => {
   const ext = path.extname(filePath);
   const isPHP = ext === '.php';
   const isJava = ext === '.java';
+  const isPython = ext === '.py';
 
-  let exports, phpMetadata, javaMetadata;
+  let exports, phpMetadata, javaMetadata, pythonMetadata;
 
   if (isJava) {
     const javaResult = await analyzeJavaFile(filePath);
@@ -534,6 +608,15 @@ const processSingleFile = async (engine, filePath, options, results) => {
     }
     exports = javaResult.exports;
     javaMetadata = javaResult.javaMetadata;
+  } else if (isPython) {
+    const pythonResult = await analyzePythonFile(filePath);
+    if (!pythonResult || !pythonResult.exports || pythonResult.exports.length === 0) {
+      results.skippedNoExport.push(filePath);
+      log(`⚠️  No Python symbols found in ${path.relative(options.root, filePath)}`, COLORS.yellow, options);
+      return;
+    }
+    exports = pythonResult.exports;
+    pythonMetadata = pythonResult.pythonMetadata;
   } else if (isPHP) {
     const phpResult = await analyzePHPFile(filePath);
     if (!phpResult || !phpResult.exports || phpResult.exports.length === 0) {
@@ -600,6 +683,21 @@ const processSingleFile = async (engine, filePath, options, results) => {
           packageName: javaMetadata?.packageName
         }
       });
+    } else if (isPython) {
+      const pythonInfo = exportEntry.info.python;
+      signature.module = signature.module || computePythonModule(options.root, filePath);
+      const targetName = signature.name || path.basename(filePath, path.extname(filePath));
+      outputPath = generatePythonOutputPath(options.root, filePath, options, targetName);
+
+      const relativeDir = path.relative(options.root, path.dirname(outputPath));
+      const depth = relativeDir ? relativeDir.split(path.sep).filter(Boolean).length : 0;
+
+      content = generatePythonTestContent({
+        signature,
+        moduleName: signature.module,
+        pythonKind: pythonInfo?.type || signature.type || 'class',
+        depth
+      });
     } else {
       outputPath = generateOutputPath(options.root, filePath, options, options.allExports ? signature.name : null);
 
@@ -626,12 +724,15 @@ const processSingleFile = async (engine, filePath, options, results) => {
 
 const runBatch = async (engine, entryPath, options, results) => {
   const extensions = engine.config.discovery.extensions || ['.js', '.ts', '.tsx'];
-  // Add PHP and Java extensions if not already included
+  // Add PHP, Java, and Python extensions if not already included
   if (!extensions.includes('.php')) {
     extensions.push('.php');
   }
   if (!extensions.includes('.java')) {
     extensions.push('.java');
+  }
+  if (!extensions.includes('.py')) {
+    extensions.push('.py');
   }
   const files = fs.statSync(entryPath).isDirectory()
     ? gatherSourceFiles(entryPath, extensions)

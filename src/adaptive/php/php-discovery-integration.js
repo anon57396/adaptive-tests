@@ -159,15 +159,17 @@ class PHPDiscoveryIntegration {
       score += 15;
     }
 
-    // Penalize vendor directory
-    if (normalizedPath.includes('/vendor/')) {
+    // Penalize vendor directory (cross-platform)
+    const pathSegments = normalizedPath.split(path.sep);
+    if (pathSegments.includes('vendor')) {
       score -= 50;
     }
 
-    // Penalize test files
-    if (normalizedPath.includes('/tests/') ||
-        normalizedPath.includes('/Tests/') ||
-        fileName.endsWith('Test')) {
+    // Penalize test files (case-insensitive for cross-platform)
+    const hasTestDir = pathSegments.some(seg =>
+      seg.toLowerCase() === 'tests' || seg.toLowerCase() === 'test'
+    );
+    if (hasTestDir || fileName.endsWith('Test')) {
       score -= 30;
     }
 

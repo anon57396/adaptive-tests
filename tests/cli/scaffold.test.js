@@ -7,6 +7,7 @@ const CLI_PATH = path.resolve(__dirname, '../../src/cli/init.js');
 const FIXTURE_ROOT = path.resolve(__dirname, '../fixtures/scaffold');
 const JAVA_FIXTURE_ROOT = path.resolve(__dirname, '../fixtures/java-scaffold');
 const JAVA_GRADLE_FIXTURE_ROOT = path.resolve(__dirname, '../fixtures/java-gradle');
+const PYTHON_FIXTURE_ROOT = path.resolve(__dirname, '../fixtures/python-scaffold');
 
 function runCli(args, options = {}) {
   const result = spawnSync('node', [CLI_PATH, ...args], {
@@ -48,6 +49,7 @@ describe('CLI scaffold command', () => {
   const createTempWorkspace = () => createWorkspaceFrom(FIXTURE_ROOT);
   const createJavaWorkspace = () => createWorkspaceFrom(JAVA_FIXTURE_ROOT);
   const createGradleWorkspace = () => createWorkspaceFrom(JAVA_GRADLE_FIXTURE_ROOT);
+  const createPythonWorkspace = () => createWorkspaceFrom(PYTHON_FIXTURE_ROOT);
 
   it('generates a JavaScript adaptive test skeleton from a source path', () => {
     const workspace = createTempWorkspace();
@@ -181,6 +183,23 @@ describe('CLI scaffold command', () => {
     expect(fs.existsSync(generatedPath)).toBe(true);
     const content = fs.readFileSync(generatedPath, 'utf8');
     expect(content).toContain('package com.example.order;');
+  });
+
+  it('scaffolds pytest stubs for Python modules', () => {
+    const workspace = createPythonWorkspace();
+
+    const result = runCli(['scaffold', 'src/services/customer_service.py', '--json'], { cwd: workspace });
+
+    expect(result.status).toBe(0);
+    const payload = JSON.parse(result.stdout);
+    expect(payload.created).toContain('tests/adaptive/test_customer_service.py');
+
+    const generatedPath = path.join(workspace, 'tests', 'adaptive', 'test_customer_service.py');
+    expect(fs.existsSync(generatedPath)).toBe(true);
+
+    const content = fs.readFileSync(generatedPath, 'utf8');
+    expect(content).toContain('from adaptive_tests_py import DiscoveryEngine, Signature');
+    expect(content).toContain('def test_customer_service_is_discoverable');
   });
 
 });

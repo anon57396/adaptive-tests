@@ -17,11 +17,56 @@ const COLORS = {
   green: '\x1b[32m',
   yellow: '\x1b[33m',
   blue: '\x1b[34m',
+  red: '\x1b[31m',
   magenta: '\x1b[35m',
   cyan: '\x1b[36m',
 };
 
 const CONFIG_FILENAME = 'adaptive-tests.config.js';
+
+/**
+ * Detect which package manager is being used
+ * @returns {{name: string, install: string, add: string, addDev: string}}
+ */
+function detectPackageManager() {
+  const cwd = process.cwd();
+
+  // Check for lock files
+  if (fs.existsSync(path.join(cwd, 'yarn.lock'))) {
+    return {
+      name: 'yarn',
+      install: 'yarn install',
+      add: 'yarn add',
+      addDev: 'yarn add --dev'
+    };
+  }
+
+  if (fs.existsSync(path.join(cwd, 'pnpm-lock.yaml'))) {
+    return {
+      name: 'pnpm',
+      install: 'pnpm install',
+      add: 'pnpm add',
+      addDev: 'pnpm add --save-dev'
+    };
+  }
+
+  if (fs.existsSync(path.join(cwd, 'bun.lockb'))) {
+    return {
+      name: 'bun',
+      install: 'bun install',
+      add: 'bun add',
+      addDev: 'bun add --dev'
+    };
+  }
+
+  // Default to npm
+  return {
+    name: 'npm',
+    install: 'npm install',
+    add: 'npm install',
+    addDev: 'npm install --save-dev'
+  };
+}
 const KNOWN_FRAMEWORKS = ['jest', 'mocha', 'vitest', 'jasmine', 'ava'];
 
 function log(message, color = '') {
@@ -418,13 +463,15 @@ async function runInit() {
     const pkg = JSON.parse(fs.readFileSync(packagePath, 'utf8'));
     const deps = { ...pkg.dependencies, ...pkg.devDependencies };
 
+    const pm = detectPackageManager();
+
     if (!deps['adaptive-tests']) {
-      log('📦 Installing adaptive-tests...', COLORS.blue);
+      log(`📦 Installing adaptive-tests using ${pm.name}...`, COLORS.blue);
       try {
-        execSync('npm install --save-dev adaptive-tests', { stdio: 'inherit' });
+        execSync(`${pm.addDev} adaptive-tests`, { stdio: 'inherit' });
         log('✅ Package installed successfully!', COLORS.green);
       } catch (error) {
-        log('❌ Failed to install package. Please run: npm install adaptive-tests', COLORS.red);
+        log(`❌ Failed to install package. Please run: ${pm.addDev} adaptive-tests`, COLORS.red);
         process.exit(1);
       }
     } else {
@@ -432,9 +479,9 @@ async function runInit() {
     }
 
     if (setupOptions.useTypeScript && !deps['ts-node']) {
-      log('📦 Installing ts-node for TypeScript support...', COLORS.blue);
+      log(`📦 Installing ts-node for TypeScript support using ${pm.name}...`, COLORS.blue);
       try {
-        execSync('npm install --save-dev ts-node', { stdio: 'inherit' });
+        execSync(`${pm.addDev} ts-node`, { stdio: 'inherit' });
       } catch (error) {
         log('⚠️  Could not install ts-node. TypeScript discovery may not work.', COLORS.yellow);
       }

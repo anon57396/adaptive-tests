@@ -3,6 +3,7 @@ const { spawnSync } = require('child_process');
 
 const CLI_PATH = path.resolve(__dirname, '../../src/cli/init.js');
 const FIXTURE_ROOT = path.resolve(__dirname, '../fixtures/discovery-lens');
+const PYTHON_FIXTURE_ROOT = path.resolve(__dirname, '../fixtures/python-lens');
 
 function runCli(args, options = {}) {
   const result = spawnSync('node', [CLI_PATH, ...args], {
@@ -57,5 +58,23 @@ describe('Discovery Lens CLI (why)', () => {
     expect(output).toContain('src/services/UserService.js');
     expect(output).toContain('UserService');
     expect(output).toContain('Suggested signature');
+  });
+});
+
+describe('Discovery Lens CLI (why) - Python', () => {
+  const signatureArg = JSON.stringify({
+    name: 'CustomerService',
+    type: 'class',
+    module: 'src.services.customer_service',
+    methods: ['create', 'cancel']
+  });
+
+  it('includes python candidates in JSON mode', () => {
+    const result = runCli(['why', signatureArg, '--json'], { cwd: PYTHON_FIXTURE_ROOT });
+    expect(result.status).toBe(0);
+    const parsed = JSON.parse(result.stdout);
+    const pythonCandidate = parsed.candidates.find((candidate) => candidate.language === 'python');
+    expect(pythonCandidate).toBeDefined();
+    expect(pythonCandidate.relativePath).toBe('src/services/customer_service.py');
   });
 });

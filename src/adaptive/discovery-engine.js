@@ -18,8 +18,72 @@ const parser = require('@babel/parser');
 const { ScoringEngine } = require('./scoring-engine');
 const { createTsconfigResolver } = require('./tsconfig-resolver');
 
-// Cache for module requirements
-const moduleCache = new Map();
+// Cache for module requirements with size limit
+const MAX_MODULE_CACHE_SIZE = 100;
+
+class LRUCache {
+  constructor(maxSize) {
+    this.maxSize = maxSize;
+    this.cache = new Map();
+  }
+
+  get(key) {
+    if (!this.cache.has(key)) return undefined;
+
+    // Move to end (most recently used)
+    const value = this.cache.get(key);
+    this.cache.delete(key);
+    this.cache.set(key, value);
+    return value;
+  }
+
+  set(key, value) {
+    // Remove if exists and re-add to end
+    if (this.cache.has(key)) {
+      this.cache.delete(key);
+    } else if (this.cache.size >= this.maxSize) {
+      // Remove oldest (first) entry
+      const firstKey = this.cache.keys().next().value;
+      this.cache.delete(firstKey);
+    }
+
+    this.cache.set(key, value);
+  }
+
+  has(key) {
+    return this.cache.has(key);
+  }
+
+  delete(key) {
+    return this.cache.delete(key);
+  }
+
+  clear() {
+    this.cache.clear();
+  }
+
+  get size() {
+    return this.cache.size;
+  }
+
+  keys() {
+    return this.cache.keys();
+  }
+
+  values() {
+    return this.cache.values();
+  }
+
+  entries() {
+    return this.cache.entries();
+  }
+
+  forEach(callback, thisArg) {
+    this.cache.forEach(callback, thisArg);
+  }
+}
+
+const moduleCache = new LRUCache(MAX_MODULE_CACHE_SIZE);
 
 function toArray(value) {
   if (!value) return [];
@@ -42,13 +106,17 @@ class DiscoveryEngine {
     // Optional TypeScript path resolver
     this.tsconfigResolver = createTsconfigResolver(this.rootPath);
 
-    // Runtime caches
-    this.discoveryCache = new Map();
+    // Runtime caches with size limits
+    this.discoveryCache = new LRUCache(200); // Limit discovery cache
     this.persistentCache = {};
     this.cacheLoaded = false;
     this.cacheLoadPromise = null;
     this.cachedModules = new Set();
-    this.moduleVersions = new Map();
+    this.moduleVersions = new LRUCache(50); // Limit version cache
+    this.MAX_CACHED_MODULES = 100; // Limit cached module paths
+
+    // Periodically clean up cachedModules to prevent unbounded growth
+    this.cleanupCachedModules();
   }
 
   detectCallerExtension() {
@@ -114,9 +182,20 @@ class DiscoveryEngine {
     // Check persistent cache
     if (this.persistentCache[cacheKey]) {
       try {
-        const module = this.loadModule(this.persistentCache[cacheKey], normalizedSig);
-        this.discoveryCache.set(cacheKey, this.persistentCache[cacheKey]);
-        return module;
+        // Convert relative path back to absolute
+        const cacheEntry = { ...this.persistentCache[cacheKey] };
+        if (cacheEntry.relativePath) {
+          cacheEntry.path = path.join(this.rootPath, cacheEntry.relativePath);
+        }
+
+        // Validate that the file still exists
+        if (!fs.existsSync(cacheEntry.path)) {
+          delete this.persistentCache[cacheKey];
+        } else {
+          const module = this.loadModule(cacheEntry, normalizedSig);
+          this.discoveryCache.set(cacheKey, cacheEntry);
+          return module;
+        }
       } catch (error) {
         delete this.persistentCache[cacheKey];
       }
@@ -166,7 +245,7 @@ class DiscoveryEngine {
         this.discoveryCache.set(cacheKey, cacheEntry);
 
         this.persistentCache[cacheKey] = {
-          path: candidate.path,
+          relativePath: path.relative(this.rootPath, candidate.path),
           access: resolved.access,
           score: candidate.score,
           timestamp: cacheEntry.timestamp,
@@ -216,7 +295,9 @@ class DiscoveryEngine {
         continue;
       }
 
-      if (entry.name.includes('.test.') || entry.name.includes('.spec.')) {
+      // Skip test files (case-insensitive for cross-platform compatibility)
+      const lowerName = entry.name.toLowerCase();
+      if (lowerName.includes('.test.') || lowerName.includes('.spec.')) {
         continue;
       }
 
@@ -339,7 +420,7 @@ class DiscoveryEngine {
     ];
 
     for (const token of blockedTokens) {
-      if (candidate.content && candidate.content.includes(token)) {
+      if (candidate.content && candidate.content.toLowerCase().includes(token.toLowerCase())) {
         return false;
       }
     }
@@ -831,16 +912,16 @@ class DiscoveryEngine {
         if (tokens.length === 0) {
           return true;
         }
-        if (tokens.some(token => content.includes(token))) {
+        if (tokens.some(token => content.toLowerCase().includes(token.toLowerCase()))) {
           return true;
         }
       }
     }
 
-    // Check export match
+    // Check export match (case-insensitive)
     if (signature.exports) {
       const exportLower = signature.exports.toLowerCase();
-      if (content.includes(exportLower)) {
+      if (content.toLowerCase().includes(exportLower)) {
         return true;
       }
     }
@@ -888,6 +969,7 @@ class DiscoveryEngine {
           this.moduleVersions.delete(resolvedPath);
         }
         this.cachedModules.add(resolvedPath);
+        this.cleanupCachedModules(); // Prevent unbounded growth
 
         if (metadataMatch) {
           const target = this.extractExportByAccess(moduleExports, metadataMatch.access);
@@ -914,6 +996,7 @@ class DiscoveryEngine {
       }
 
       this.cachedModules.add(resolvedPath);
+      this.cleanupCachedModules(); // Prevent unbounded growth
 
       if (metadataMatch) {
         const target = this.extractExportByAccess(moduleExports, metadataMatch.access);
@@ -1500,7 +1583,38 @@ class DiscoveryEngine {
 
     try {
       const data = await fsPromises.readFile(cacheFile, 'utf8');
-      this.persistentCache = JSON.parse(data);
+      const rawCache = JSON.parse(data);
+
+      // Validate and clean cache entries
+      this.persistentCache = {};
+      for (const [key, entry] of Object.entries(rawCache)) {
+        // Skip invalid entries
+        if (!entry || typeof entry !== 'object') continue;
+
+        // Check if entry has required fields
+        if (!entry.relativePath && !entry.path) continue;
+
+        // Convert old absolute path entries to relative
+        if (entry.path && !entry.relativePath) {
+          // Check if it's an absolute path
+          if (path.isAbsolute(entry.path)) {
+            // Skip entries from different machines
+            if (!entry.path.startsWith(this.rootPath)) continue;
+            entry.relativePath = path.relative(this.rootPath, entry.path);
+            delete entry.path;
+          } else {
+            // Already relative, just rename the field
+            entry.relativePath = entry.path;
+            delete entry.path;
+          }
+        }
+
+        // Validate that the file exists
+        const absolutePath = path.join(this.rootPath, entry.relativePath);
+        if (fs.existsSync(absolutePath)) {
+          this.persistentCache[key] = entry;
+        }
+      }
     } catch (error) {
       if (error && error.code !== 'ENOENT') {
         this.persistentCache = {};
@@ -1541,6 +1655,23 @@ class DiscoveryEngine {
     this.cacheLoaded = true;
     this.cacheLoadPromise = null;
     await this.saveCache();
+  }
+
+  /**
+   * Clean up cached modules to prevent unbounded growth
+   */
+  cleanupCachedModules() {
+    if (this.cachedModules.size > this.MAX_CACHED_MODULES) {
+      // Convert to array, keep most recent half
+      const moduleArray = Array.from(this.cachedModules);
+      const keepCount = Math.floor(this.MAX_CACHED_MODULES / 2);
+      const toRemove = moduleArray.slice(0, moduleArray.length - keepCount);
+
+      toRemove.forEach(modulePath => {
+        delete require.cache[modulePath];
+        this.cachedModules.delete(modulePath);
+      });
+    }
   }
 
   /**

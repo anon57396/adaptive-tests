@@ -2,6 +2,7 @@
 
 const path = require('path');
 const { getDiscoveryEngine } = require('../adaptive/discovery-engine');
+const { explainPythonSignature } = require('../adaptive/python/python-why');
 
 const COLORS = {
   reset: '\x1b[0m',
@@ -162,6 +163,9 @@ function formatCandidateOutput(root, candidate, index) {
   const lines = [];
 
   lines.push(`${rankLabel} ${relativePath}`);
+  if (candidate.language) {
+    lines.push(`${COLORS.dim}   Language:${COLORS.reset} ${candidate.language}`);
+  }
   lines.push(`${COLORS.dim}   Score:${COLORS.reset} ${formatNumber(candidate.score)}${candidate.recency ? ` (recency ${formatSigned(candidate.recency)})` : ''}`);
 
   if (Array.isArray(candidate.details) && candidate.details.length > 0) {
@@ -278,6 +282,7 @@ async function runWhy(args = []) {
     const finalScore = totalScore + recencyBonus;
 
     enrichedCandidates.push({
+      language: 'javascript',
       path: candidate.path,
       relativePath: path.relative(options.root, candidate.path) || candidate.path,
       fileName: candidate.fileName,
@@ -299,21 +304,41 @@ async function runWhy(args = []) {
     ? deriveSuggestedSignature(engine, { ...topCandidate, metadata: topCandidate.metadata }, normalizedSignature)
     : null;
 
+  const pythonCandidates = explainPythonSignature(options.signatureInput, {
+    root: options.root,
+    limit: 5
+  });
+
+  const candidateGroups = [];
+  if (enrichedCandidates.length > 0) {
+    candidateGroups.push({ language: 'javascript', candidates: enrichedCandidates });
+  }
+  if (pythonCandidates.length > 0) {
+    candidateGroups.push({ language: 'python', candidates: pythonCandidates });
+  }
+
+  const combinedCandidates = candidateGroups.flatMap((group) => group.candidates.map((candidate, index) => ({
+    language: group.language,
+    index,
+    data: candidate
+  })));
+
   if (outputAsJson) {
     const jsonOutput = {
       root: options.root,
       signatureInput: options.signatureInput,
       signature: options.signature,
-      candidates: enrichedCandidates.map((candidate, index) => ({
-        rank: index + 1,
-        path: candidate.path,
-        relativePath: candidate.relativePath,
-        score: candidate.score,
-        rawScore: candidate.rawScore,
-        recency: candidate.recency,
-        breakdown: candidate.breakdown,
-        details: candidate.details,
-        exports: candidate.exports
+      candidates: combinedCandidates.map((entry, overallIndex) => ({
+        language: entry.data.language || entry.language,
+        rank: overallIndex + 1,
+        path: entry.data.path,
+        relativePath: entry.data.relativePath,
+        score: entry.data.score,
+        rawScore: entry.data.rawScore,
+        recency: entry.data.recency,
+        breakdown: entry.data.breakdown,
+        details: entry.data.details,
+        exports: entry.data.exports
       }))
     };
 
@@ -321,7 +346,7 @@ async function runWhy(args = []) {
       jsonOutput.suggestedSignature = suggestedSignature;
     }
 
-    if (enrichedCandidates.length === 0) {
+    if (combinedCandidates.length === 0) {
       jsonOutput.message = 'No candidates matched the given signature.';
     }
 
@@ -329,7 +354,7 @@ async function runWhy(args = []) {
     return;
   }
 
-  if (enrichedCandidates.length === 0) {
+  if (combinedCandidates.length === 0) {
     console.log(`${COLORS.yellow}No candidates matched the signature.${COLORS.reset}`);
     console.log(`Signature: ${options.signatureInput}`);
     return;
@@ -340,10 +365,18 @@ async function runWhy(args = []) {
   console.log(`${COLORS.dim}Signature:${COLORS.reset} ${options.signatureInput}`);
   console.log('');
 
-  enrichedCandidates.forEach((candidate, index) => {
-    console.log(formatCandidateOutput(options.root, candidate, index));
-    if (index < enrichedCandidates.length - 1) {
-      console.log('');
+  candidateGroups.forEach((group, groupIndex) => {
+    if (candidateGroups.length > 1) {
+      console.log(`${COLORS.bright}${COLORS.blue}${group.language.toUpperCase()}${COLORS.reset}`);
+    }
+    group.candidates.forEach((candidate, index) => {
+      console.log(formatCandidateOutput(options.root, candidate, index));
+      if (index < group.candidates.length - 1) {
+        console.log('');
+      }
+    });
+    if (groupIndex < candidateGroups.length - 1) {
+      console.log('\n');
     }
   });
 

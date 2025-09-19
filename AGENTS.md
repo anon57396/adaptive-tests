@@ -28,6 +28,22 @@ This project, while standalone, is a foundational component of the "Cypher Suite
 4. **Respect documentation** – README, Quick Start guides, and `docs/` are part
    of the public story. Keep them aligned with the code.
 
+## Multi-Agent Collaboration Contract
+
+We often have several AI agents working **simultaneously on `main`**. To keep the
+experience sane for humans and bots alike:
+
+1. **Never delete, revert, or rewrite someone else's work-in-progress.** If a file
+   already has uncommitted edits, assume they are intentional. Do not stage reverts
+   or remove paths from the working tree unless explicitly instructed.
+2. **Stay scoped.** Limit edits to the files relevant to your assigned task. Avoid
+   opportunistic "drive-by" cleanups that could interfere with parallel efforts.
+3. **Surface conflicts, don't resolve silently.** When you detect contradictory
+   modifications, stop and ask for guidance instead of force-merging, deleting, or
+   undoing other agents' changes.
+4. **Document assumptions in the final summary** so other agents (and humans)
+   understand what you touched and what you deliberately left alone.
+
 ## Useful Commands
 
 ### Testing
