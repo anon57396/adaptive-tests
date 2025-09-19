@@ -15,12 +15,28 @@ The crown jewel of this extension - a beautiful, interactive webview that visual
 ![Discovery Lens Demo](media/discovery-lens-demo.gif)
 
 ### 📝 Smart Scaffolding
-Generate adaptive test files with a single click:
+Generate adaptive test files with incredible flexibility:
 
-- **Context Menu**: Right-click any file to scaffold its test
+- **Smart Context Menu**: Shows "Scaffold Test" for files without tests, "Open Test" for files with existing tests
+- **Batch Scaffolding**: Right-click a folder to scaffold tests for all eligible files inside
+- **File Scaffolding**: Right-click any file to scaffold its individual test
 - **Command Palette**: Use `Adaptive Tests: Scaffold Test` command
 - **Auto-open**: Automatically opens generated test files
 - **Multiple Languages**: Supports JavaScript, TypeScript, PHP, Java, and Python
+
+#### 🎯 Smart Test Detection
+The extension intelligently detects whether a test already exists:
+- If no test exists → Shows "Scaffold Adaptive Test" in context menu
+- If test exists → Shows "Open Adaptive Test" to jump directly to the test file
+- Automatically updates as you create or delete test files
+
+#### 📁 Batch Scaffolding
+Right-click any folder to scaffold tests for all files inside:
+- Shows preview of files to be scaffolded
+- Allows selection of specific files
+- Progress tracking for large folders
+- Summary report with created/skipped/failed counts
+- Automatically opens first few generated tests
 
 ### 🎯 CodeLens Integration
 See test hints directly in your code:

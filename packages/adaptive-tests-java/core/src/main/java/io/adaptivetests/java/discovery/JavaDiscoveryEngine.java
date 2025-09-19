@@ -163,7 +163,7 @@ public final class JavaDiscoveryEngine {
     }
 
     private boolean includeType(TypeDeclaration<?> declaration) {
-        return (declaration.isTopLevelType() || declaration.isNestedType()) && !declaration.isLocalTypeDeclaration();
+        return declaration.isTopLevelType() || declaration.isNestedType();
     }
 
     private ScoringEngine.Candidate toCandidate(ClassOrInterfaceDeclaration declaration,
@@ -214,9 +214,6 @@ public final class JavaDiscoveryEngine {
                                                 Path path) {
         List<MethodMetadata> methods = extractRecordMethods(declaration);
         List<String> annotations = extractAnnotations(declaration);
-        String extendsClass = declaration.getExtendedTypes().isNonEmpty()
-                ? declaration.getExtendedTypes().get(0).toString()
-                : null;
         List<String> implementsInterfaces = declaration.getImplementedTypes().stream()
                 .map(ClassOrInterfaceType::toString)
                 .collect(Collectors.toList());
@@ -227,7 +224,7 @@ public final class JavaDiscoveryEngine {
                 path,
                 methods,
                 annotations,
-                extendsClass,
+                null,
                 implementsInterfaces
         );
     }

@@ -1,10 +1,33 @@
 {
-  "OrderService|CLASS|[create, cancel]" : {
-    "className" : "OrderService",
-    "packageName" : "com.example.service",
-    "path" : "/Users/jasonkempf/Documents/GitHub/adaptive-tests/packages/adaptive-tests-java/core/src/test/resources/sample-project/src/main/java/com/example/service/OrderService.java",
-    "score" : 57.0,
-    "methods" : [ "create", "cancel" ],
-    "mtime" : 1758297261005
+  "OrderService|CLASS|[create, cancel]": {
+    "type": "CLASS",
+    "className": "OrderService",
+    "packageName": "com.example.service",
+    "path": "src/main/java/com/example/service/OrderService.java",
+    "score": 72.0,
+    "methods": [
+      {
+        "name": "create",
+        "returnType": "boolean",
+        "parameters": [],
+        "annotations": [],
+        "isStatic": false,
+        "isPublic": true,
+        "isConstructor": false
+      },
+      {
+        "name": "cancel",
+        "returnType": "boolean",
+        "parameters": [],
+        "annotations": [],
+        "isStatic": false,
+        "isPublic": true,
+        "isConstructor": false
+      }
+    ],
+    "annotations": [],
+    "extendsClass": null,
+    "implementsInterfaces": [],
+    "mtime": 0
   }
 }

@@ -1,57 +1,75 @@
 # Java Quick Start
 
-> Adaptive Tests for Java is currently experimental (`0.1.0-SNAPSHOT`). Expect rapid iteration while we close parity gaps.
+Adaptive Tests now ships with a zero-runtime discovery engine and scaffolding workflow for Java codebases. This guide walks through the supported tooling and recommended setup.
 
-## Installation
+## Requirements
+
+- Node.js 18+
+- Java 17+
+- Maven 3.9+ (for building the native Java CLI)
+
+## Scaffolding JUnit Tests from Node.js
+
+The Java bridge is integrated into the primary CLI. Given a `.java` source file, the scaffolder analyses the AST and emits a JUnit 5 shell in the appropriate test directory.
+
+```bash
+# From the repository root
+npx adaptive-tests scaffold examples/java/src/main/java/com/example/calculator/Calculator.java
+```
+
+By default the generated test lands in `src/test/java` and mirrors the package of the production class. Methods discovered in the source file produce individual `@Test` blocks, seeded with sensible assertion placeholders.
+
+You can scaffold multiple Java targets at once:
+
+```bash
+npx adaptive-tests scaffold "src/main/java/**/*.java" --all-exports
+```
+
+CLI flags such as `--output-dir`, `--all-exports`, and `--force` behave the same way they do for JavaScript/TypeScript targets.
+
+## Native Java CLI
+
+A Maven multi-module project lives under `packages/adaptive-tests-java/` and provides a pure-Java command line for teams that prefer JVM tooling.
 
 ```bash
 cd packages/adaptive-tests-java
 ./mvnw -pl core test
 ./mvnw -pl cli -am package
+
+# Discover a class by signature
+java -jar cli/target/adaptive-tests-java-cli-0.1.0-SNAPSHOT-shaded.jar   discover --root /path/to/project --name CustomerService --method findActiveUsers
 ```
 
-This produces `cli/target/adaptive-tests-java-cli-0.1.0-SNAPSHOT-shaded.jar` for easy distribution.
-
-## Discovering a Class
-
-```bash
-java -jar adaptive-tests-java-cli-0.1.0-SNAPSHOT-shaded.jar \
-  discover --root /path/to/project \
-  --name OrderService \
-  --method create --method cancel
-```
-
-## Scaffolding a JUnit Test (coming soon)
-
-```bash
-java -jar adaptive-tests-java-cli-0.1.0-SNAPSHOT-shaded.jar \
-  scaffold src/main/java/com/example/OrderService.java \
-  --tests-dir src/test/java/com/example/order
-```
-
-The scaffolder emits a JUnit 5 placeholder that uses the discovery engine to locate the production class at runtime.
+Both the Node CLI and the Java CLI share the same discovery heuristics and caching logic.
 
 ## Configuration
 
-Use JSON config files at the project root:
+Discovery can be tuned via `adaptive-tests.config.json` or `.adaptive-tests-java.json` at the project root:
 
 ```json
 {
   "discovery": {
     "extensions": [".java"],
     "skipDirectories": [".git", "target", "build"],
-    "skipFiles": ["Test.java"],
+    "skipFiles": ["Test.java", "IT.java"],
     "cacheFile": ".adaptive-tests-cache.json"
   }
 }
 ```
 
-Future work will support configuration from `pom.xml` / `build.gradle`.
+The configuration mirrors the JavaScript engine — overrides cascade across Node and Java workflows.
 
-## Limitations
+## Current Coverage
 
-- Class loading currently assumes compiled classes are on the classpath (e.g., `target/classes`). Classpath helpers are planned.
-- Only top-level classes/interfaces are considered; nested classes map to their parent.
-- Scoring defaults are conservative—tune `skipDirectories`, `skipFiles`, and path weights for large repos.
+- Classes, interfaces, enums, and records
+- Method signatures with parameter/annotation metadata
+- Package-aware scoring (prefers `src/main/java`, records annotations, honours inheritance)
+- JUnit 5 scaffolding with automatic placement under `src/test/java`
 
-Feedback and issues are welcome via GitHub. We’re iterating in the open to reach full parity with the JS/TS/Python engines.
+## Known Limitations
+
+- Nested classes are discoverable, but the scaffolder defaults to top-level types when multiple are present in the same file.
+- Dependency wiring inside generated tests is intentionally minimal; TODO comments highlight where to provide fakes or fixtures.
+- Gradle project autodetection falls back to `src/test/java` if the source lives outside `src/main/java`.
+
+We ship the Java bridge as an early preview — feedback and issues are welcome while we drive parity with the mature JavaScript and PHP integrations.

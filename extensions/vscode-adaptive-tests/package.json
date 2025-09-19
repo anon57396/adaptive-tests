@@ -41,6 +41,24 @@
       {
         "command": "adaptive-tests.scaffoldFile",
         "title": "Scaffold Adaptive Test",
+        "category": "Adaptive Tests",
+        "icon": "$(add)"
+      },
+      {
+        "command": "adaptive-tests.scaffoldBatch",
+        "title": "Scaffold Tests for Folder",
+        "category": "Adaptive Tests",
+        "icon": "$(folder)"
+      },
+      {
+        "command": "adaptive-tests.openTest",
+        "title": "Open Adaptive Test",
+        "category": "Adaptive Tests",
+        "icon": "$(file-code)"
+      },
+      {
+        "command": "adaptive-tests.smartTest",
+        "title": "Adaptive Test",
         "category": "Adaptive Tests"
       },
       {
@@ -53,8 +71,18 @@
       "explorer/context": [
         {
           "command": "adaptive-tests.scaffoldFile",
-          "when": "resourceExtname =~ /\\.(js|ts|jsx|tsx|php|java|py)$/",
-          "group": "2_workspace"
+          "when": "resourceExtname =~ /\\.(js|ts|jsx|tsx|php|java|py)$/ && !adaptive-tests.hasTest",
+          "group": "2_workspace@1"
+        },
+        {
+          "command": "adaptive-tests.openTest",
+          "when": "resourceExtname =~ /\\.(js|ts|jsx|tsx|php|java|py)$/ && adaptive-tests.hasTest",
+          "group": "2_workspace@1"
+        },
+        {
+          "command": "adaptive-tests.scaffoldBatch",
+          "when": "explorerResourceIsFolder",
+          "group": "2_workspace@2"
         }
       ],
       "editor/context": [

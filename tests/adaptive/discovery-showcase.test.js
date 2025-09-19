@@ -197,6 +197,9 @@ describe('Discovery Engine Showcase', () => {
 
       // Clear cache and rediscover
       await engine.clearCache();
+      if (typeof jest !== 'undefined' && jest.resetModules) {
+        jest.resetModules();
+      }
       // Clear all require cache entries that contain our temp module
       Object.keys(require.cache).forEach(key => {
         if (key.includes('TempModule')) {

@@ -1,13 +1,42 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
+import {
+    IDiscoveryLensAPI,
+    DiscoveryResult,
+    DiscoverySignature,
+    DiscoveryState,
+    ScoreBreakdown
+} from '../types/api';
 
-export class DiscoveryLensPanel {
+export class DiscoveryLensPanel implements IDiscoveryLensAPI {
     private readonly panel: vscode.WebviewPanel;
     private readonly context: vscode.ExtensionContext;
     private disposables: vscode.Disposable[] = [];
 
+    // State management for API
+    private currentState: DiscoveryState = {
+        signature: null,
+        results: [],
+        isLoading: false,
+        lastError: null,
+        lastRunTimestamp: null,
+        config: {
+            showScores: true,
+            maxResults: 10,
+            outputDirectory: 'tests/adaptive',
+            autoOpen: true
+        }
+    };
+
+    // Event emitters for API subscribers
+    private stateChangeEmitter = new vscode.EventEmitter<DiscoveryState>();
+    private resultsEmitter = new vscode.EventEmitter<DiscoveryResult[]>();
+
     constructor(context: vscode.ExtensionContext) {
         this.context = context;
+
+        // Load configuration
+        this.loadConfiguration();
 
         // Create webview panel
         this.panel = vscode.window.createWebviewPanel(
@@ -76,10 +105,15 @@ export class DiscoveryLensPanel {
                 disposable.dispose();
             }
         }
+        this.stateChangeEmitter.dispose();
+        this.resultsEmitter.dispose();
     }
 
     private async handleRunDiscovery(signature: any) {
         try {
+            // Update state
+            this.updateState({ isLoading: true, signature, lastError: null });
+
             // Import discovery engine from main package
             const adaptiveTests = await this.loadAdaptiveTests();
             const engine = adaptiveTests.getDiscoveryEngine();
@@ -97,54 +131,124 @@ export class DiscoveryLensPanel {
             candidates.sort((a: any, b: any) => b.score - a.score);
 
             // Limit results based on configuration
-            const config = vscode.workspace.getConfiguration('adaptive-tests');
-            const maxResults = config.get<number>('discovery.maxResults', 10);
-            const showScores = config.get<boolean>('discovery.showScores', true);
+            const maxResults = this.currentState.config.maxResults;
+            const showScores = this.currentState.config.showScores;
 
-            const results = candidates.slice(0, maxResults).map((candidate: any) => ({
-                path: path.relative(workspaceRoot, candidate.path),
-                absolutePath: candidate.path,
+            const results: DiscoveryResult[] = candidates.slice(0, maxResults).map((candidate: any) => ({
+                path: candidate.path,
+                relativePath: path.relative(workspaceRoot, candidate.path),
                 score: candidate.score,
-                scoreBreakdown: candidate.scoreBreakdown || this.calculateScoreBreakdown(candidate, signature),
-                showScores
+                scoreBreakdown: this.extractScoreBreakdown(candidate, signature),
+                metadata: candidate.metadata,
+                language: this.detectLanguage(candidate.path)
             }));
+
+            // Update state with results
+            this.updateState({
+                isLoading: false,
+                results,
+                lastRunTimestamp: Date.now()
+            });
+
+            // Emit results event
+            this.resultsEmitter.fire(results);
 
             // Send results to webview
             this.panel.webview.postMessage({
                 command: 'displayResults',
-                results,
+                results: results.map(r => ({
+                    ...r,
+                    absolutePath: r.path,
+                    path: r.relativePath,
+                    showScores
+                })),
                 signature,
                 totalCandidates: candidates.length
             });
 
         } catch (error: any) {
+            const errorMessage = error.message || 'Discovery failed';
+
+            // Update state with error
+            this.updateState({
+                isLoading: false,
+                lastError: errorMessage
+            });
+
             // Send error to webview
             this.panel.webview.postMessage({
                 command: 'showError',
-                error: error.message || 'Discovery failed'
+                error: errorMessage
             });
         }
     }
 
-    private calculateScoreBreakdown(candidate: any, signature: any): string[] {
-        const breakdown = [];
+    private extractScoreBreakdown(candidate: any, signature: any): ScoreBreakdown {
+        const factors: ScoreBreakdown['factors'] = [];
 
-        // This is a simplified version - the actual implementation would analyze
-        // the scoring in detail based on the discovery engine's logic
+        // Extract scoring factors from candidate
         if (candidate.nameMatch) {
-            breakdown.push(`+${candidate.nameMatch} for name match`);
+            factors.push({
+                factor: 'name',
+                points: candidate.nameMatch,
+                description: 'Name similarity match'
+            });
         }
         if (candidate.pathBonus) {
-            breakdown.push(`+${candidate.pathBonus} for path location`);
+            factors.push({
+                factor: 'path',
+                points: candidate.pathBonus,
+                description: 'Standard path location'
+            });
         }
         if (candidate.methodMatches) {
-            breakdown.push(`+${candidate.methodMatches * 10} for method matches`);
+            factors.push({
+                factor: 'methods',
+                points: candidate.methodMatches * 10,
+                description: `${candidate.methodMatches} method matches`
+            });
         }
         if (candidate.typeMatch) {
-            breakdown.push(`+${candidate.typeMatch} for type match`);
+            factors.push({
+                factor: 'type',
+                points: candidate.typeMatch,
+                description: 'Type match'
+            });
         }
 
-        return breakdown.length > 0 ? breakdown : [`Base score: ${candidate.score}`];
+        // Add base score if no other factors
+        if (factors.length === 0) {
+            factors.push({
+                factor: 'base',
+                points: candidate.score,
+                description: 'Base discovery score'
+            });
+        }
+
+        return {
+            factors,
+            total: candidate.score
+        };
+    }
+
+    private detectLanguage(filePath: string): DiscoveryResult['language'] {
+        const ext = path.extname(filePath).toLowerCase();
+        switch (ext) {
+            case '.js':
+            case '.jsx':
+                return 'javascript';
+            case '.ts':
+            case '.tsx':
+                return 'typescript';
+            case '.php':
+                return 'php';
+            case '.java':
+                return 'java';
+            case '.py':
+                return 'python';
+            default:
+                return undefined;
+        }
     }
 
     private async handleOpenFile(filePath: string) {
@@ -188,6 +292,99 @@ export class DiscoveryLensPanel {
 
         // Load bundled version
         return require('adaptive-tests');
+    }
+
+    // ==================== API Implementation ====================
+
+    /**
+     * Run discovery with a given signature
+     */
+    public async runDiscovery(signature: DiscoverySignature): Promise<DiscoveryResult[]> {
+        await this.handleRunDiscovery(signature);
+        return this.currentState.results;
+    }
+
+    /**
+     * Set the signature in the Discovery Lens UI
+     */
+    public setSignature(signature: DiscoverySignature): void {
+        this.updateState({ signature });
+
+        // Send to webview
+        this.panel.webview.postMessage({
+            command: 'setSignature',
+            signature: JSON.stringify(signature, null, 2)
+        });
+    }
+
+    /**
+     * Get the current state
+     */
+    public getState(): DiscoveryState {
+        return { ...this.currentState };
+    }
+
+    /**
+     * Show the Discovery Lens panel
+     */
+    public show(): void {
+        this.panel.reveal();
+    }
+
+    /**
+     * Hide the Discovery Lens panel
+     */
+    public hide(): void {
+        this.panel.dispose();
+    }
+
+    /**
+     * Clear current results and signature
+     */
+    public clear(): void {
+        this.updateState({
+            signature: null,
+            results: [],
+            lastError: null,
+            lastRunTimestamp: null
+        });
+
+        // Clear webview
+        this.panel.webview.postMessage({
+            command: 'clear'
+        });
+    }
+
+    /**
+     * Subscribe to state changes
+     */
+    public onStateChange(callback: (state: DiscoveryState) => void): { dispose(): void } {
+        return this.stateChangeEmitter.event(callback);
+    }
+
+    /**
+     * Subscribe to discovery results
+     */
+    public onResults(callback: (results: DiscoveryResult[]) => void): { dispose(): void } {
+        return this.resultsEmitter.event(callback);
+    }
+
+    // ==================== Helper Methods ====================
+
+    private updateState(partial: Partial<DiscoveryState>): void {
+        const previousState = { ...this.currentState };
+        this.currentState = { ...this.currentState, ...partial };
+        this.stateChangeEmitter.fire(this.currentState);
+    }
+
+    private loadConfiguration(): void {
+        const config = vscode.workspace.getConfiguration('adaptive-tests');
+        this.currentState.config = {
+            showScores: config.get<boolean>('discovery.showScores', true),
+            maxResults: config.get<number>('discovery.maxResults', 10),
+            outputDirectory: config.get<string>('scaffold.outputDirectory', 'tests/adaptive'),
+            autoOpen: config.get<boolean>('scaffold.autoOpen', true)
+        };
     }
 
     private getWebviewContent(): string {

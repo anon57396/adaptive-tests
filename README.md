@@ -58,6 +58,13 @@ PHP teams can use the built-in PHP discovery support:
 npx adaptive-tests scaffold src/Calculator.php
 ```
 
+Java teams can scaffold JUnit 5 tests directly:
+
+```bash
+# Generate a JUnit test alongside src/test/java
+npx adaptive-tests scaffold src/main/java/com/example/CustomerService.java
+```
+
 Once installed, discover code directly from a test:
 
 ```javascript
@@ -202,7 +209,7 @@ You don't need complex test selection for adaptive tests because:
 - [PHP Quick Start](docs/PHP_QUICKSTART.md)
 - [VS Code Extension](extensions/vscode-adaptive-tests/README.md)
 - [Proof & Demo Scripts](PROOF.md)
-- [Examples](examples/) (`calculator`, `api-service`, `todo-app`, `typescript`, `python`, `php`)
+- [Examples](examples/) (`calculator`, `api-service`, `todo-app`, `typescript`, `python`, `php`, `java`)
 
 Every example exposes both **traditional** and **adaptive** suites so you can see
 the contrast immediately.

@@ -5,6 +5,7 @@ const path = require('path');
 const os = require('os');
 const { DiscoveryEngine, getDiscoveryEngine } = require('../adaptive/discovery-engine');
 const { PHPDiscoveryIntegration } = require('../adaptive/php/php-discovery-integration');
+const { JavaDiscoveryIntegration } = require('../adaptive/java/java-discovery-integration');
 
 const COLORS = {
   reset: '\x1b[0m',
@@ -187,6 +188,107 @@ const generatePHPTestContent = ({ signature, phpMetadata }) => {
 
   return phpIntegration.generatePHPTest(fullTarget);
 };
+
+
+const javaIntegration = new JavaDiscoveryIntegration(null);
+
+const analyzeJavaFile = async (filePath) => {
+  const javaMetadata = await javaIntegration.collector.parseFile(filePath);
+  if (!javaMetadata) {
+    return null;
+  }
+
+  const exports = [];
+  const addType = (type) => {
+    if (!type) return;
+    const methods = (type.methods || []).filter(method => !method.isConstructor).map(method => method.name);
+    exports.push({
+      exportedName: type.name,
+      access: { type: 'default' },
+      info: {
+        name: type.name,
+        fullName: type.fullName,
+        kind: type.type,
+        methods,
+        annotations: (type.annotations || []).map(annotation => annotation.name),
+        extends: type.extends,
+        implements: type.implements,
+        javaType: type
+      }
+    });
+  };
+
+  javaMetadata.classes.forEach(addType);
+  javaMetadata.interfaces.forEach(addType);
+  javaMetadata.enums.forEach(addType);
+  javaMetadata.records.forEach(addType);
+
+  return { exports, javaMetadata };
+};
+
+const findJavaTarget = (javaMetadata, info) => {
+  if (!javaMetadata) {
+    return null;
+  }
+  const fullName = info.fullName || info.name;
+  const candidates = [
+    ...javaMetadata.classes,
+    ...javaMetadata.interfaces,
+    ...javaMetadata.enums,
+    ...javaMetadata.records
+  ];
+  let match = candidates.find(type => type.fullName === fullName);
+  if (!match) {
+    match = candidates.find(type => type.name === info.name);
+  }
+  return match || candidates[0];
+};
+
+const generateJavaOutputPath = (root, filePath, options, targetName, javaMetadata) => {
+  const baseName = targetName || path.basename(filePath, '.java');
+  const testFileName = `${baseName}Test.java`;
+  const relative = path.relative(root, filePath);
+  const normalized = relative.split(path.sep).join('/');
+
+  if (normalized.includes('src/main/java/')) {
+    const replaced = normalized.replace('src/main/java/', 'src/test/java/');
+    const destination = replaced.replace(/[^/]+$/, testFileName);
+    return path.join(root, ...destination.split('/'));
+  }
+
+  if (normalized.includes('src/main/')) {
+    const afterMain = normalized.substring(normalized.indexOf('src/main/') + 'src/main/'.length);
+    const segments = afterMain.split('/');
+    const pkgSegments = segments.slice(1, -1); // drop original language folder and file
+    const destination = path.join(root, 'src', 'test', 'java', ...pkgSegments, testFileName);
+    return destination;
+  }
+
+  const packageName = javaMetadata && javaMetadata.packageName;
+  const baseDir = options.outputDir || path.join(root, 'tests', 'java');
+  if (packageName) {
+    return path.join(baseDir, ...packageName.split('.'), testFileName);
+  }
+  return path.join(baseDir, testFileName);
+};
+
+const generateJavaTestContent = ({ signature, javaMetadata, javaType, options = {} }) => {
+  const target = javaType || findJavaTarget(javaMetadata, signature);
+  if (!target) {
+    throw new Error('Unable to resolve Java target type for scaffolding');
+  }
+  const packageName = options.packageName ?? target.packageName ?? javaMetadata?.packageName ?? null;
+  return javaIntegration.generateJUnitTest({
+    target,
+    signature,
+    options: {
+      packageName,
+      testClassName: `${target.name}Test`
+    }
+  });
+};
+
+
 
 const generateTestContent = ({
   signature,
@@ -419,10 +521,20 @@ const gatherSourceFiles = (dir, extensions) => {
 const processSingleFile = async (engine, filePath, options, results) => {
   const ext = path.extname(filePath);
   const isPHP = ext === '.php';
+  const isJava = ext === '.java';
 
-  let exports, phpMetadata;
+  let exports, phpMetadata, javaMetadata;
 
-  if (isPHP) {
+  if (isJava) {
+    const javaResult = await analyzeJavaFile(filePath);
+    if (!javaResult || !javaResult.exports || javaResult.exports.length === 0) {
+      results.skippedNoExport.push(filePath);
+      log(`⚠️  No Java types found in ${path.relative(options.root, filePath)}`, COLORS.yellow, options);
+      return;
+    }
+    exports = javaResult.exports;
+    javaMetadata = javaResult.javaMetadata;
+  } else if (isPHP) {
     const phpResult = await analyzePHPFile(filePath);
     if (!phpResult || !phpResult.exports || phpResult.exports.length === 0) {
       results.skippedNoExport.push(filePath);
@@ -475,6 +587,19 @@ const processSingleFile = async (engine, filePath, options, results) => {
         signature: exportEntry.info,
         phpMetadata
       });
+    } else if (isJava) {
+      const javaType = exportEntry.info.javaType;
+      const targetName = options.allExports ? signature.name : signature.name || path.basename(filePath, path.extname(filePath));
+      outputPath = generateJavaOutputPath(options.root, filePath, options, targetName, javaMetadata);
+
+      content = generateJavaTestContent({
+        signature,
+        javaMetadata,
+        javaType,
+        options: {
+          packageName: javaMetadata?.packageName
+        }
+      });
     } else {
       outputPath = generateOutputPath(options.root, filePath, options, options.allExports ? signature.name : null);
 
@@ -501,9 +626,12 @@ const processSingleFile = async (engine, filePath, options, results) => {
 
 const runBatch = async (engine, entryPath, options, results) => {
   const extensions = engine.config.discovery.extensions || ['.js', '.ts', '.tsx'];
-  // Add PHP extension if not already included
+  // Add PHP and Java extensions if not already included
   if (!extensions.includes('.php')) {
     extensions.push('.php');
+  }
+  if (!extensions.includes('.java')) {
+    extensions.push('.java');
   }
   const files = fs.statSync(entryPath).isDirectory()
     ? gatherSourceFiles(entryPath, extensions)
