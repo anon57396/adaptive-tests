@@ -228,6 +228,11 @@ class DiscoveryEngine {
         continue;
       }
 
+      const normalizedName = entry.name.toLowerCase();
+      if (/(?:\s(?:copy|copy\s\d+)|\s\d+)(?=\.[^.]+$)/i.test(entry.name)) {
+        continue;
+      }
+
       const candidate = await this.evaluateCandidate(fullPath, signature);
       const minScore = this.config.discovery.scoring.minCandidateScore ?? 0;
       if (candidate && candidate.score > minScore) {
@@ -1335,6 +1340,12 @@ class DiscoveryEngine {
     // Never cache the actual module object - always load fresh
     // Always clear require.cache to ensure fresh module load
     delete require.cache[resolvedPath];
+
+    const ext = path.extname(cacheEntry.path);
+
+    if (ext === '.ts' || ext === '.tsx') {
+      this.ensureTypeScriptSupport();
+    }
 
     const moduleExports = require(cacheEntry.path);
     if (process.env.DEBUG_DISCOVERY) {
