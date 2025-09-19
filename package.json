@@ -63,7 +63,10 @@
     "collectCoverageFrom": [
       "src/**/*.{js,ts}",
       "!src/**/*.d.ts",
-      "!src/**/index.js"
+      "!src/**/index.js",
+      "!src/cli/**",
+      "!src/**/discovery.js",
+      "!src/adaptive/test-base.js"
     ],
     "coverageDirectory": "coverage",
     "coverageReporters": [

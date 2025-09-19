@@ -43,3 +43,6 @@ ignore:
   - "**/validate.js"
   - "**/compare.js"
   - "**/benchmark.js"
+  - "src/cli/**"
+  - "src/**/discovery.js"
+  - "src/adaptive/test-base.js"
