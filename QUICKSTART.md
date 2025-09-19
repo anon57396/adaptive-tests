@@ -6,9 +6,16 @@
 npm install adaptive-tests
 # Optional, only if you want to discover raw TypeScript sources
 npm install --save-dev ts-node
+
+# Optional: Python / Java companions
+pip install adaptive-tests-py
+./packages/adaptive-tests-java/mvnw -pl core test
 ```
 
-Want to mirror the pattern in Python? `pip install adaptive-tests-py`.
+Want language parity?
+
+- Python: `pip install adaptive-tests-py`
+- Java (experimental): `./packages/adaptive-tests-java/mvnw -pl cli -am package`
 
 ## 2. Write Your First Adaptive Test
 
