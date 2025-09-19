@@ -112,7 +112,8 @@ const trad3 = runCommand('npm run test:traditional 2>&1', true);
 const tradResults3 = extractTestResults(trad3.output);
 
 console.log('Running adaptive tests...');
-const adapt3 = runCommand('npm run test:adaptive 2>&1', true);
+// Use --no-cache and clear require cache to ensure fresh module loading
+const adapt3 = runCommand('npx jest examples/calculator/tests/adaptive --no-cache --clearCache 2>&1', true);
 const adaptResults3 = extractTestResults(adapt3.output);
 
 console.log(`\n  Traditional: ${trad3.success ? '✅' : '❌'} ${tradResults3.failed} test failures${tradResults3.hasTestFailure ? ' (Actual bugs!)' : ''}`);

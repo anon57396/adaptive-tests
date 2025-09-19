@@ -74,7 +74,10 @@ describe('Calculator', () => {
 
     test('should clear history', () => {
       const instance = new Calculator();
-      expect(typeof instance.clearHistory).toBe('function');
+      instance.add(1, 1);
+      instance.multiply(2, 3);
+      expect(instance.getHistory()).toHaveLength(2);
+
       instance.clearHistory();
       expect(instance.getHistory()).toEqual([]);
     });
