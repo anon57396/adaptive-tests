@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=64", "wheel"]
+requires = ["setuptools>=68,<69", "wheel>=0.41,<0.42"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -23,3 +23,13 @@ Issues = "https://github.com/anon57396/adaptive-tests/issues"
 
 [project.scripts]
 adaptive-tests-py = "adaptive_tests_py.cli:main"
+
+[tool.black]
+line-length = 88
+target-version = ["py38"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py38"
+select = ["E", "F", "I", "B"]
+ignore = ["E501"]
