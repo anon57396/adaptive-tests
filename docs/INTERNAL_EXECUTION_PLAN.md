@@ -126,7 +126,29 @@ This document translates our recent prioritization into concrete, actionable wor
 ### 7) Vitest/Mocha Recipes + TS Templates
 
 - Outcome
-  - Low‑friction adoption for non‑Jest projects and TypeScript test scaffolding.
+  - Low-friction adoption for non-Jest projects and TypeScript test scaffolding.
+
+### 8) Java Parity – adaptive-tests-java (Core + CLI)
+
+- Outcome
+  - Deliver a first-class Java implementation so JS/TS/Python/Java have feature parity.
+- Scope Summary
+  - **Modules**: Maven multi-module project (`core`, `cli`, `examples`, `integration-tests`).
+  - **Parsing**: JavaParser for AST inspection; zero-runtime discovery via custom class loader.
+  - **Configuration**: Read defaults plus overrides from `adaptive-tests.config.json`, `.adaptive-tests-java.json`, or `[adaptiveTests]` sections in `pom.xml` / `build.gradle`.
+  - **CLI**: Picocli-based tool with `discover`, `why`, and `scaffold` commands mirroring JS/Python UX.
+  - **Framework Support**: JUnit 5 AdaptiveTest base + extension (priority), optional adapters for JUnit 4/TestNG.
+  - **Examples**: Spring Boot sample proving resilience to package refactors.
+- Acceptance Criteria
+  - Discovery engine locates classes/interfaces after package/file moves, with scoring + caching parity.
+  - CLI produces JUnit stubs that call `JavaDiscoveryEngine` analogous to other languages.
+  - Integration suite exercises Gradle/Maven builds and a Spring Boot refactor scenario.
+  - Documentation covers setup, CLI usage, and CI integration (run adaptive tests on every build).
+- Deliverables
+  1. Maven project skeleton committed with CI.
+  2. Config + discovery engine with unit tests.
+  3. CLI & scaffolder with integration tests.
+  4. Spring Boot example + docs.
 
 ## Milestone: Later (6+ weeks)
 
