@@ -53,10 +53,19 @@ composer.lock
 *.tsbuildinfo
 types/
 
+# VS Code Extension
+extensions/vscode-adaptive-tests/out/
+extensions/vscode-adaptive-tests/package-lock.json
+extensions/vscode-adaptive-tests/*.js
+extensions/vscode-adaptive-tests/*.js.map
+extensions/vscode-adaptive-tests/tests/*.js
+extensions/vscode-adaptive-tests/tests/*.js.map
+
 # Testing
 .nyc_output/
 junit.xml
 test-results/
+tests/adaptive/UserService.test.js
 
 # IDE
 *.swp
