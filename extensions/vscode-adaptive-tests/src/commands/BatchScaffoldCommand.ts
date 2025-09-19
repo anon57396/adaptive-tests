@@ -7,7 +7,7 @@ import { promisify } from 'util';
 const exec = promisify(child_process.exec);
 
 export class BatchScaffoldCommand {
-    private readonly supportedExtensions = ['.js', '.ts', '.jsx', '.tsx', '.php', '.java', '.py'];
+    private readonly supportedExtensions = ['.js', '.ts', '.jsx', '.tsx', '.php', '.java', '.py', '.go', '.rs'];
 
     public async execute(uri?: vscode.Uri) {
         try {
@@ -143,6 +143,7 @@ export class BatchScaffoldCommand {
 
     private async findEligibleFiles(folderPath: string): Promise<string[]> {
         const files: string[] = [];
+        const supportedExtensions = this.supportedExtensions;
 
         async function walk(dir: string) {
             const entries = await fs.promises.readdir(dir, { withFileTypes: true });
@@ -160,7 +161,7 @@ export class BatchScaffoldCommand {
                     // Skip test files and check if extension is supported
                     if (!entry.name.includes('.test.') &&
                         !entry.name.includes('.spec.') &&
-                        this.supportedExtensions.includes(ext)) {
+                        supportedExtensions.includes(ext)) {
                         files.push(fullPath);
                     }
                 }
@@ -214,10 +215,14 @@ export class BatchScaffoldCommand {
         }
 
         // Show summary with actions
+        const options = ['OK'];
+        if (results.success.length > 0) {
+            options.unshift('Open Tests');
+        }
+
         const action = await vscode.window.showInformationMessage(
             message,
-            results.success.length > 0 ? 'Open Tests' : undefined,
-            'OK'
+            ...options
         );
 
         // Open test files if requested

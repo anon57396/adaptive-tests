@@ -129,7 +129,7 @@ export class TestContextProvider {
         const ext = path.extname(filePath);
 
         // Check if it's a supported file type
-        const supportedExtensions = ['.js', '.ts', '.jsx', '.tsx', '.php', '.java', '.py'];
+        const supportedExtensions = ['.js', '.ts', '.jsx', '.tsx', '.php', '.java', '.py', '.go', '.rs'];
         const isSupported = supportedExtensions.includes(ext) &&
                           !filePath.includes('.test.') &&
                           !filePath.includes('.spec.');

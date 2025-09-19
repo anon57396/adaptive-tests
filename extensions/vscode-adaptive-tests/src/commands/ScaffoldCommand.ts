@@ -18,7 +18,7 @@ export class ScaffoldCommand {
 
             // Check file extension
             const ext = path.extname(filePath);
-            const supportedExtensions = ['.js', '.ts', '.jsx', '.tsx', '.php', '.java', '.py'];
+            const supportedExtensions = ['.js', '.ts', '.jsx', '.tsx', '.php', '.java', '.py', '.go', '.rs'];
 
             if (!supportedExtensions.includes(ext)) {
                 vscode.window.showWarningMessage(`File type ${ext} is not supported for scaffolding.`);
@@ -171,12 +171,14 @@ export class ScaffoldCommand {
                 outputChannel.appendLine('Scaffold Error Details:');
                 outputChannel.appendLine(`Error: ${error.message}`);
                 outputChannel.appendLine(`Stack: ${error.stack}`);
-                outputChannel.appendLine(`File: ${filePath}`);
+                outputChannel.appendLine(`File: ${uri?.fsPath || 'unknown'}`);
                 outputChannel.appendLine(`Command: npx adaptive-tests scaffold`);
                 outputChannel.show();
             } else if (action === 'Try Again') {
                 // Retry the scaffold operation
-                setTimeout(() => this.execute(vscode.Uri.file(filePath)), 1000);
+                if (uri) {
+                    setTimeout(() => this.execute(uri), 1000);
+                }
             } else if (action === 'Open Logs') {
                 vscode.commands.executeCommand('workbench.action.showLogs');
             }

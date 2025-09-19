@@ -8,6 +8,8 @@ const { PHPDiscoveryIntegration } = require('../adaptive/php/php-discovery-integ
 const { PythonDiscoveryIntegration } = require('../adaptive/python/python-discovery-integration');
 const { JavaDiscoveryIntegration } = require('../adaptive/java/java-discovery-integration');
 const { GoDiscoveryIntegration } = require('../adaptive/go/go-discovery-integration');
+const { RubyDiscoveryIntegration } = require('../adaptive/ruby/ruby-discovery-integration');
+const { RustDiscoveryIntegration } = require('../adaptive/rust/rust-discovery-integration');
 
 const COLORS = {
   reset: '\x1b[0m',
@@ -44,7 +46,7 @@ const pickBestExport = (exports, fallbackName) => {
   const priority = (entry) => {
     const info = entry.info || {};
     let score = 0;
-    if (info.kind === 'class') score += 3;
+    if (info.kind === 'class' || info.kind === 'struct') score += 3;
     if (info.kind === 'function') score += 2;
     if (entry.access && entry.access.type === 'default') score += 1;
     if (entry.exportedName && entry.exportedName === fallbackName) score += 3;
@@ -204,7 +206,9 @@ const generatePHPTestContent = ({ signature, phpMetadata }) => {
 
 const javaIntegration = new JavaDiscoveryIntegration(null);
 const goIntegration = new GoDiscoveryIntegration(null);
+const rustIntegration = new RustDiscoveryIntegration(null);
 const pythonIntegration = new PythonDiscoveryIntegration();
+const rubyIntegration = new RubyDiscoveryIntegration();
 
 const analyzeJavaFile = async (filePath) => {
   const javaMetadata = await javaIntegration.collector.parseFile(filePath);
@@ -247,10 +251,11 @@ const analyzeGoFile = async (filePath) => {
   }
 
   const exports = [];
+  const isExportedName = (value) => Boolean(value) && /^[A-Z]/.test(value);
 
   // Add structs
   goMetadata.structs.forEach(struct => {
-    if (struct.name) {
+    if (struct.name && isExportedName(struct.name)) {
       const methods = (struct.methods || []).map(method => method.name);
       exports.push({
         exportedName: struct.name,
@@ -270,7 +275,7 @@ const analyzeGoFile = async (filePath) => {
 
   // Add interfaces
   goMetadata.interfaces.forEach(iface => {
-    if (iface.name) {
+    if (iface.name && isExportedName(iface.name)) {
       const methods = (iface.methods || []).map(method => method.name);
       exports.push({
         exportedName: iface.name,
@@ -289,7 +294,7 @@ const analyzeGoFile = async (filePath) => {
 
   // Add functions
   goMetadata.functions.forEach(func => {
-    if (func.name) {
+    if (func.name && (func.exported || isExportedName(func.name))) {
       exports.push({
         exportedName: func.name,
         access: { type: 'default' },
@@ -307,7 +312,7 @@ const analyzeGoFile = async (filePath) => {
 
   // Add types (type aliases)
   goMetadata.types.forEach(type => {
-    if (type.name) {
+    if (type.name && isExportedName(type.name)) {
       exports.push({
         exportedName: type.name,
         access: { type: 'default' },
@@ -323,6 +328,116 @@ const analyzeGoFile = async (filePath) => {
   });
 
   return { exports, goMetadata };
+};
+
+const analyzeRustFile = async (filePath) => {
+  const rustMetadata = await rustIntegration.collector.parseFile(filePath);
+  if (!rustMetadata) {
+    return null;
+  }
+
+  const exports = [];
+  const isExportedName = (visibility) => visibility === 'public';
+
+  // Add structs
+  rustMetadata.structs.forEach(struct => {
+    if (struct.name && (struct.exported || isExportedName(struct.visibility))) {
+      const methods = (struct.methods || []).map(method => method.name);
+      exports.push({
+        exportedName: struct.name,
+        access: { type: 'default' },
+        info: {
+          name: struct.name,
+          kind: 'struct',
+          type: 'struct',
+          methods,
+          fields: (struct.fields || []).map(field => field.name),
+          derives: struct.derives || [],
+          generics: struct.generics || [],
+          rustType: struct
+        }
+      });
+    }
+  });
+
+  // Add enums
+  rustMetadata.enums.forEach(enumItem => {
+    if (enumItem.name && (enumItem.exported || isExportedName(enumItem.visibility))) {
+      const variants = (enumItem.variants || []).map(variant => variant.name);
+      exports.push({
+        exportedName: enumItem.name,
+        access: { type: 'default' },
+        info: {
+          name: enumItem.name,
+          kind: 'enum',
+          type: 'enum',
+          variants,
+          derives: enumItem.derives || [],
+          generics: enumItem.generics || [],
+          rustType: enumItem
+        }
+      });
+    }
+  });
+
+  // Add traits
+  rustMetadata.traits.forEach(trait => {
+    if (trait.name && (trait.exported || isExportedName(trait.visibility))) {
+      const methods = (trait.methods || []).map(method => method.name);
+      exports.push({
+        exportedName: trait.name,
+        access: { type: 'default' },
+        info: {
+          name: trait.name,
+          kind: 'trait',
+          type: 'trait',
+          methods,
+          supertraits: trait.supertraits || [],
+          generics: trait.generics || [],
+          rustType: trait
+        }
+      });
+    }
+  });
+
+  // Add functions
+  rustMetadata.functions.forEach(func => {
+    if (func.name && (func.exported || isExportedName(func.visibility))) {
+      exports.push({
+        exportedName: func.name,
+        access: { type: 'default' },
+        info: {
+          name: func.name,
+          kind: 'function',
+          type: 'function',
+          parameters: func.parameters || [],
+          returnType: func.returnType,
+          generics: func.generics || [],
+          rustType: func
+        }
+      });
+    }
+  });
+
+  // Add type aliases
+  rustMetadata.types.forEach(type => {
+    if (type.name && (type.exported || isExportedName(type.visibility))) {
+      exports.push({
+        exportedName: type.name,
+        access: { type: 'default' },
+        info: {
+          name: type.name,
+          kind: 'type',
+          type: 'type',
+          target: type.target,
+          generics: type.generics || [],
+          rustType: type
+        }
+      });
+    }
+  });
+
+  return { exports, rustMetadata };
 };
 
 const findJavaTarget = (javaMetadata, info) => {
@@ -361,12 +476,41 @@ const findGoTarget = (goMetadata, info) => {
   return match || candidates[0];
 };
 
+const findRustTarget = (rustMetadata, info) => {
+  if (!rustMetadata) {
+    return null;
+  }
+  const targetName = info.name;
+  const candidates = [
+    ...rustMetadata.structs,
+    ...rustMetadata.enums,
+    ...rustMetadata.traits,
+    ...rustMetadata.functions,
+    ...rustMetadata.types
+  ];
+  let match = candidates.find(item => item.name === targetName);
+  if (!match) {
+    match = candidates.find(item => item.name.toLowerCase() === targetName.toLowerCase());
+  }
+  return match || candidates[0];
+};
+
 const generateGoOutputPath = (root, filePath, options, targetName, goMetadata) => {
   const baseName = targetName || path.basename(filePath, '.go');
   const testFileName = `${baseName.toLowerCase()}_test.go`;
   const sourceDir = path.dirname(filePath);
 
   // Go tests should be in the same package/directory as the source
+  return path.join(sourceDir, testFileName);
+};
+
+const generateRustOutputPath = (root, filePath, options, targetName, rustMetadata) => {
+  const baseName = targetName || path.basename(filePath, '.rs');
+  const testFileName = `${baseName.toLowerCase()}_test.rs`;
+  const sourceDir = path.dirname(filePath);
+
+  // Rust tests can be in the same directory or in a tests/ subdirectory
+  // For unit tests, same directory is preferred
   return path.join(sourceDir, testFileName);
 };
 
@@ -384,6 +528,22 @@ const generateGoTestContent = ({ signature, goMetadata, goType, options = {} }) 
   };
 
   return goIntegration.generateGoTest(goTarget, options);
+};
+
+const generateRustTestContent = ({ signature, rustMetadata, rustType, options = {} }) => {
+  const target = rustType || findRustTarget(rustMetadata, signature);
+  if (!target) {
+    throw new Error('Unable to resolve Rust target for scaffolding');
+  }
+
+  const rustTarget = {
+    name: target.name,
+    type: target.type,
+    crateName: rustMetadata?.crateName,
+    metadata: target
+  };
+
+  return rustIntegration.generateRustTest(rustTarget, options);
 };
 
 const generateJavaOutputPath = (root, filePath, options, targetName, javaMetadata) => {
@@ -459,6 +619,23 @@ const analyzePythonFile = async (filePath) => {
   };
 };
 
+const analyzeRubyFile = async (filePath) => {
+  const metadata = rubyIntegration.parseFile(filePath);
+  if (!metadata) {
+    return null;
+  }
+
+  const exports = rubyIntegration.buildExports(metadata);
+  if (!exports || exports.length === 0) {
+    return null;
+  }
+
+  return {
+    exports,
+    rubyMetadata: metadata
+  };
+};
+
 const generatePythonOutputPath = (root, filePath, options, targetName) => {
   const baseDir = options.outputDir || path.join(root, 'tests', 'adaptive');
   ensureDirSync(baseDir);
@@ -472,6 +649,21 @@ const generatePythonTestContent = ({ signature, moduleName, pythonKind, depth })
     moduleName,
     targetKind: pythonKind,
     depth
+  });
+};
+
+const generateRubyOutputPath = (root, filePath, options, targetName) => {
+  const baseDir = options.outputDir || path.join(root, 'spec');
+  ensureDirSync(baseDir);
+  const slug = slugify(targetName || path.basename(filePath, '.rb'));
+  return path.join(baseDir, `${slug}_spec.rb`);
+};
+
+const generateRubyTestContent = ({ signature, rubyInfo, requirePath }) => {
+  return rubyIntegration.generateRSpecTest({
+    target: { ruby: rubyInfo },
+    signature,
+    requirePath
   });
 };
 
@@ -726,9 +918,11 @@ const processSingleFile = async (engine, filePath, options, results) => {
   const isPHP = ext === '.php';
   const isJava = ext === '.java';
   const isGo = ext === '.go';
+  const isRust = ext === '.rs';
   const isPython = ext === '.py';
+  const isRuby = ext === '.rb';
 
-  let exports, phpMetadata, javaMetadata, goMetadata, pythonMetadata;
+  let exports, phpMetadata, javaMetadata, goMetadata, rustMetadata, pythonMetadata, rubyMetadata;
 
   if (isJava) {
     const javaResult = await analyzeJavaFile(filePath);
@@ -748,6 +942,15 @@ const processSingleFile = async (engine, filePath, options, results) => {
     }
     exports = goResult.exports;
     goMetadata = goResult.goMetadata;
+  } else if (isRust) {
+    const rustResult = await analyzeRustFile(filePath);
+    if (!rustResult || !rustResult.exports || rustResult.exports.length === 0) {
+      results.skippedNoExport.push(filePath);
+      log(`⚠️  No Rust types found in ${path.relative(options.root, filePath)}`, COLORS.yellow, options);
+      return;
+    }
+    exports = rustResult.exports;
+    rustMetadata = rustResult.rustMetadata;
   } else if (isPython) {
     const pythonResult = await analyzePythonFile(filePath);
     if (!pythonResult || !pythonResult.exports || pythonResult.exports.length === 0) {
@@ -757,6 +960,15 @@ const processSingleFile = async (engine, filePath, options, results) => {
     }
     exports = pythonResult.exports;
     pythonMetadata = pythonResult.pythonMetadata;
+  } else if (isRuby) {
+    const rubyResult = await analyzeRubyFile(filePath);
+    if (!rubyResult || !rubyResult.exports || rubyResult.exports.length === 0) {
+      results.skippedNoExport.push(filePath);
+      log(`⚠️  No Ruby symbols found in ${path.relative(options.root, filePath)}`, COLORS.yellow, options);
+      return;
+    }
+    exports = rubyResult.exports;
+    rubyMetadata = rubyResult.rubyMetadata;
   } else if (isPHP) {
     const phpResult = await analyzePHPFile(filePath);
     if (!phpResult || !phpResult.exports || phpResult.exports.length === 0) {
@@ -836,6 +1048,19 @@ const processSingleFile = async (engine, filePath, options, results) => {
           packageName: goMetadata?.packageName
         }
       });
+    } else if (isRust) {
+      const rustType = exportEntry.info.rustType;
+      const targetName = options.allExports ? signature.name : signature.name || path.basename(filePath, path.extname(filePath));
+      outputPath = generateRustOutputPath(options.root, filePath, options, targetName, rustMetadata);
+
+      content = generateRustTestContent({
+        signature,
+        rustMetadata,
+        rustType,
+        options: {
+          crateName: rustMetadata?.crateName
+        }
+      });
     } else if (isPython) {
       const pythonInfo = exportEntry.info.python;
       signature.module = signature.module || computePythonModule(options.root, filePath);
@@ -850,6 +1075,20 @@ const processSingleFile = async (engine, filePath, options, results) => {
         moduleName: signature.module,
         pythonKind: pythonInfo?.type || signature.type || 'class',
         depth
+      });
+    } else if (isRuby) {
+      const rubyInfo = exportEntry.info.ruby;
+      const targetName = signature.name || path.basename(filePath, path.extname(filePath));
+      outputPath = generateRubyOutputPath(options.root, filePath, options, targetName);
+
+      const requireRelative = path.relative(path.dirname(outputPath), filePath).replace(/\\/g, '/');
+      const normalizedRequire = requireRelative.replace(/\.rb$/, '');
+      const requirePath = normalizedRequire.startsWith('.') ? normalizedRequire : `./${normalizedRequire}`;
+
+      content = generateRubyTestContent({
+        signature,
+        rubyInfo,
+        requirePath
       });
     } else {
       outputPath = generateOutputPath(options.root, filePath, options, options.allExports ? signature.name : null);
@@ -877,7 +1116,7 @@ const processSingleFile = async (engine, filePath, options, results) => {
 
 const runBatch = async (engine, entryPath, options, results) => {
   const extensions = engine.config.discovery.extensions || ['.js', '.ts', '.tsx'];
-  // Add PHP, Java, Go, and Python extensions if not already included
+  // Add PHP, Java, Go, Rust, Python, and Ruby extensions if not already included
   if (!extensions.includes('.php')) {
     extensions.push('.php');
   }
@@ -887,8 +1126,14 @@ const runBatch = async (engine, entryPath, options, results) => {
   if (!extensions.includes('.go')) {
     extensions.push('.go');
   }
+  if (!extensions.includes('.rs')) {
+    extensions.push('.rs');
+  }
   if (!extensions.includes('.py')) {
     extensions.push('.py');
+  }
+  if (!extensions.includes('.rb')) {
+    extensions.push('.rb');
   }
   const files = fs.statSync(entryPath).isDirectory()
     ? gatherSourceFiles(entryPath, extensions)

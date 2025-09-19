@@ -27,7 +27,9 @@
     "onLanguage:typescript",
     "onLanguage:php",
     "onLanguage:java",
-    "onLanguage:python"
+    "onLanguage:python",
+    "onLanguage:go",
+    "onLanguage:rust"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -71,12 +73,12 @@
       "explorer/context": [
         {
           "command": "adaptive-tests.scaffoldFile",
-          "when": "resourceExtname =~ /\\.(js|ts|jsx|tsx|php|java|py)$/ && !adaptive-tests.hasTest",
+          "when": "resourceExtname =~ /\\.(js|ts|jsx|tsx|php|java|py|go|rs)$/ && !adaptive-tests.hasTest",
           "group": "2_workspace@1"
         },
         {
           "command": "adaptive-tests.openTest",
-          "when": "resourceExtname =~ /\\.(js|ts|jsx|tsx|php|java|py)$/ && adaptive-tests.hasTest",
+          "when": "resourceExtname =~ /\\.(js|ts|jsx|tsx|php|java|py|go|rs)$/ && adaptive-tests.hasTest",
           "group": "2_workspace@1"
         },
         {
@@ -88,7 +90,7 @@
       "editor/context": [
         {
           "command": "adaptive-tests.runDiscovery",
-          "when": "resourceExtname =~ /\\.(js|ts|jsx|tsx|php|java|py)$/",
+          "when": "resourceExtname =~ /\\.(js|ts|jsx|tsx|php|java|py|go|rs)$/",
           "group": "1_modification"
         }
       ],

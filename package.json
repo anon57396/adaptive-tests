@@ -155,6 +155,8 @@
   },
   "dependencies": {
     "@babel/parser": "^7.25.0",
+    "@lezer/common": "^1.2.3",
+    "@lezer/rust": "^1.0.2",
     "java-parser": "^3.0.1",
     "php-parser": "^3.2.5",
     "tree-sitter": "^0.25.0",

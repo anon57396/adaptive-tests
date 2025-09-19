@@ -8,6 +8,24 @@ const FIXTURE_ROOT = path.resolve(__dirname, '../fixtures/scaffold');
 const JAVA_FIXTURE_ROOT = path.resolve(__dirname, '../fixtures/java-scaffold');
 const JAVA_GRADLE_FIXTURE_ROOT = path.resolve(__dirname, '../fixtures/java-gradle');
 const PYTHON_FIXTURE_ROOT = path.resolve(__dirname, '../fixtures/python-scaffold');
+const GO_FIXTURE_ROOT = path.resolve(__dirname, '../fixtures/go-scaffold');
+const RUBY_FIXTURE_ROOT = path.resolve(__dirname, '../fixtures/ruby-scaffold');
+const RUST_FIXTURE_ROOT = path.resolve(__dirname, '../fixtures/rust-scaffold');
+
+const GO_AVAILABLE = (() => {
+  const result = spawnSync('go', ['version'], { encoding: 'utf8' });
+  return result.status === 0;
+})();
+
+const RUBY_AVAILABLE = (() => {
+  const result = spawnSync('ruby', ['-v'], { encoding: 'utf8' });
+  return result.status === 0;
+})();
+
+const RUST_AVAILABLE = (() => {
+  const result = spawnSync('rustc', ['--version'], { encoding: 'utf8' });
+  return result.status === 0;
+})();
 
 function runCli(args, options = {}) {
   const result = spawnSync('node', [CLI_PATH, ...args], {
@@ -50,6 +68,9 @@ describe('CLI scaffold command', () => {
   const createJavaWorkspace = () => createWorkspaceFrom(JAVA_FIXTURE_ROOT);
   const createGradleWorkspace = () => createWorkspaceFrom(JAVA_GRADLE_FIXTURE_ROOT);
   const createPythonWorkspace = () => createWorkspaceFrom(PYTHON_FIXTURE_ROOT);
+  const createGoWorkspace = () => createWorkspaceFrom(GO_FIXTURE_ROOT);
+  const createRubyWorkspace = () => createWorkspaceFrom(RUBY_FIXTURE_ROOT);
+  const createRustWorkspace = () => createWorkspaceFrom(RUST_FIXTURE_ROOT);
 
   it('generates a JavaScript adaptive test skeleton from a source path', () => {
     const workspace = createTempWorkspace();
@@ -198,8 +219,65 @@ describe('CLI scaffold command', () => {
     expect(fs.existsSync(generatedPath)).toBe(true);
 
     const content = fs.readFileSync(generatedPath, 'utf8');
+    expect(content).toContain('engine.discover');
     expect(content).toContain('from adaptive_tests_py import DiscoveryEngine, Signature');
     expect(content).toContain('def test_customer_service_is_discoverable');
+  });
+
+  (RUBY_AVAILABLE ? it : it.skip)('scaffolds RSpec specs alongside sources', () => {
+    const workspace = createRubyWorkspace();
+
+    const result = runCli(['scaffold', 'lib/services/account_service.rb', '--json'], { cwd: workspace });
+
+    expect(result.status).toBe(0);
+    const payload = JSON.parse(result.stdout);
+    expect(payload.created).toContain('spec/account_service_spec.rb');
+
+    const generatedPath = path.join(workspace, 'spec', 'account_service_spec.rb');
+    expect(fs.existsSync(generatedPath)).toBe(true);
+
+    const content = fs.readFileSync(generatedPath, 'utf8');
+    expect(content).toContain("require_relative '../lib/services/account_service'");
+    expect(content).toContain('RSpec.describe Services::AccountService');
+    expect(content).toContain("describe '#create_account'");
+  });
+
+  (GO_AVAILABLE ? it : it.skip)('scaffolds Go tests alongside sources', () => {
+    const workspace = createGoWorkspace();
+
+    const result = runCli(['scaffold', 'src/services/account_service.go', '--json'], { cwd: workspace });
+
+    expect(result.status).toBe(0);
+    const payload = JSON.parse(result.stdout);
+    expect(payload.created).toContain('src/services/accountservice_test.go');
+
+    const generatedPath = path.join(workspace, 'src', 'services', 'accountservice_test.go');
+    expect(fs.existsSync(generatedPath)).toBe(true);
+
+    const content = fs.readFileSync(generatedPath, 'utf8');
+    expect(content).toContain('package services');
+    expect(content).toContain('Adaptive test for AccountService');
+    expect(content).toContain('t.Skip("Test not implemented yet")');
+  });
+
+  (RUST_AVAILABLE ? it : it.skip)('scaffolds Rust tests alongside sources', () => {
+    const workspace = createRustWorkspace();
+
+    const result = runCli(['scaffold', 'src/lib/user_service.rs', '--json'], { cwd: workspace });
+
+    expect(result.status).toBe(0);
+    const payload = JSON.parse(result.stdout);
+    expect(payload.created).toContain('src/lib/userservice_test.rs');
+
+    const generatedPath = path.join(workspace, 'src', 'lib', 'userservice_test.rs');
+    expect(fs.existsSync(generatedPath)).toBe(true);
+
+    const content = fs.readFileSync(generatedPath, 'utf8');
+    expect(content).toContain('use user_service::UserService;');
+    expect(content).toContain('#[cfg(test)]');
+    expect(content).toContain('#[test]');
+    expect(content).toContain('Adaptive test for UserService');
+    expect(content).toContain('panic!("Field tests not implemented yet")');
   });
 
 });

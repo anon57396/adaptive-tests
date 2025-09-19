@@ -99,7 +99,8 @@ export function activate(context: vscode.ExtensionContext) {
             { language: 'java' },
             { language: 'go' },
             { language: 'php' },
-            { language: 'python' }
+            { language: 'python' },
+            { language: 'rust' }
         ],
         codeLensProvider
     );
