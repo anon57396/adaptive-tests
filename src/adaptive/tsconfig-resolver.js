@@ -130,7 +130,7 @@ function createTsconfigResolver(rootPath) {
 
       const sanitizedRemainder = remainder;
       const replacement = sanitizedRemainder;
-      const alias = entry.aliasPattern.replace('*', replacement);
+      const alias = entry.aliasPattern.replace(/\*/g, replacement);
       aliases.add(alias);
     });
 
