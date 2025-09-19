@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented here. Dates are omitted when historical records are unclear.
 
+## [0.2.3]
+
+- Shipped adaptive-tests-py 0.2.0 with configurable scoring, persistent cache, Lens-style explanations, and bundled CLI tooling
+- Updated PyPI packaging metadata and wheels for the new Python release
+
 ## [0.2.2]
 
 - Refreshed all public documentation (README, PROOF, ROADMAP, AGENTS, CONTRIBUTING) for accuracy
