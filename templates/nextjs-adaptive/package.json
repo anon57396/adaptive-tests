@@ -16,7 +16,7 @@
     "scaffold:batch": "adaptive-tests scaffold --batch src"
   },
   "dependencies": {
-    "next": "14.0.0",
+    "next": "14.2.32",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },
