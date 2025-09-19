@@ -5,11 +5,13 @@ import java.util.List;
 import java.util.Optional;
 import java.util.regex.Pattern;
 
-/** Structure-based query describing the symbol a test wants to discover. */
 public final class Signature {
     public enum Type {
         CLASS,
         INTERFACE,
+        ENUM,
+        RECORD,
+        ANNOTATION,
         ANY
     }
 
@@ -20,6 +22,7 @@ public final class Signature {
     private final String packageName;
     private final List<String> annotations;
     private final String extendsClass;
+    private final List<String> implementsInterfaces;
 
     private Signature(Builder builder) {
         this.name = builder.name;
@@ -29,6 +32,9 @@ public final class Signature {
         this.packageName = builder.packageName;
         this.annotations = builder.annotations == null ? Collections.emptyList() : List.copyOf(builder.annotations);
         this.extendsClass = builder.extendsClass;
+        this.implementsInterfaces = builder.implementsInterfaces == null
+                ? Collections.emptyList()
+                : List.copyOf(builder.implementsInterfaces);
     }
 
     public Optional<String> getName() {
@@ -59,6 +65,10 @@ public final class Signature {
         return Optional.ofNullable(extendsClass);
     }
 
+    public List<String> getImplementsInterfaces() {
+        return implementsInterfaces;
+    }
+
     @Override
     public String toString() {
         return "Signature{" +
@@ -68,6 +78,7 @@ public final class Signature {
                 ", packageName='" + packageName + '\'' +
                 ", annotations=" + annotations +
                 ", extendsClass='" + extendsClass + '\'' +
+                ", implementsInterfaces=" + implementsInterfaces +
                 '}';
     }
 
@@ -83,9 +94,9 @@ public final class Signature {
         private String packageName;
         private List<String> annotations;
         private String extendsClass;
+        private List<String> implementsInterfaces;
 
-        private Builder() {
-        }
+        private Builder() {}
 
         public Builder name(String value) {
             this.name = value;
@@ -121,6 +132,11 @@ public final class Signature {
 
         public Builder extendsClass(String value) {
             this.extendsClass = value;
+            return this;
+        }
+
+        public Builder implementsInterfaces(List<String> value) {
+            this.implementsInterfaces = value;
             return this;
         }
 

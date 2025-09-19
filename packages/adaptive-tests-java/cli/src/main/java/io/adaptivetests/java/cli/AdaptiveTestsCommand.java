@@ -83,7 +83,7 @@ public class AdaptiveTestsCommand implements Callable<Integer> {
                 DiscoveryResult result = engine().discover(buildSignature());
                 System.out.println("✅ Found: " + result.getQualifiedName());
                 System.out.println("   File: " + root.relativize(result.getFilePath()));
-                System.out.println("   Methods: " + result.getMethods());
+                System.out.println("   Methods: " + result.getMethodNames());
                 return 0;
             } catch (DiscoveryException e) {
                 System.err.println("❌ " + e.getMessage());
@@ -108,7 +108,7 @@ public class AdaptiveTestsCommand implements Callable<Integer> {
                 results.stream().limit(limit).forEach(result -> {
                     System.out.println("• " + result.getQualifiedName() + " (score=" + result.getScore() + ")");
                     System.out.println("  File: " + root.relativize(result.getFilePath()));
-                    System.out.println("  Methods: " + result.getMethods());
+                    System.out.println("  Methods: " + result.getMethodNames());
                 });
                 return 0;
             } catch (DiscoveryException e) {

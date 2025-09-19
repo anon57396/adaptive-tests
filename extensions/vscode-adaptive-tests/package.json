@@ -1,0 +1,134 @@
+{
+  "name": "vscode-adaptive-tests",
+  "displayName": "Adaptive Tests",
+  "description": "Visual discovery and scaffolding for resilient test suites",
+  "version": "0.1.0",
+  "publisher": "adaptive-tests",
+  "icon": "media/icon.png",
+  "engines": {
+    "vscode": "^1.74.0"
+  },
+  "categories": [
+    "Testing",
+    "Other"
+  ],
+  "keywords": [
+    "testing",
+    "discovery",
+    "adaptive",
+    "refactoring",
+    "resilient"
+  ],
+  "activationEvents": [
+    "onCommand:adaptive-tests.showDiscoveryLens",
+    "onCommand:adaptive-tests.scaffoldFile",
+    "onCommand:adaptive-tests.runDiscovery",
+    "onLanguage:javascript",
+    "onLanguage:typescript",
+    "onLanguage:php",
+    "onLanguage:java",
+    "onLanguage:python"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "adaptive-tests.showDiscoveryLens",
+        "title": "Show Discovery Lens",
+        "category": "Adaptive Tests",
+        "icon": "$(search)"
+      },
+      {
+        "command": "adaptive-tests.scaffoldFile",
+        "title": "Scaffold Adaptive Test",
+        "category": "Adaptive Tests"
+      },
+      {
+        "command": "adaptive-tests.runDiscovery",
+        "title": "Run Discovery on Current File",
+        "category": "Adaptive Tests"
+      }
+    ],
+    "menus": {
+      "explorer/context": [
+        {
+          "command": "adaptive-tests.scaffoldFile",
+          "when": "resourceExtname =~ /\\.(js|ts|jsx|tsx|php|java|py)$/",
+          "group": "2_workspace"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "adaptive-tests.runDiscovery",
+          "when": "resourceExtname =~ /\\.(js|ts|jsx|tsx|php|java|py)$/",
+          "group": "1_modification"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "adaptive-tests.showDiscoveryLens",
+          "group": "navigation"
+        }
+      ]
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "adaptive-tests",
+          "title": "Adaptive Tests",
+          "icon": "media/activity-icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "adaptive-tests": [
+        {
+          "id": "adaptive-tests.discoveryView",
+          "name": "Discovery Results",
+          "type": "tree"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Adaptive Tests",
+      "properties": {
+        "adaptive-tests.discovery.showScores": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show discovery scores in the Discovery Lens"
+        },
+        "adaptive-tests.discovery.maxResults": {
+          "type": "number",
+          "default": 10,
+          "description": "Maximum number of discovery results to show"
+        },
+        "adaptive-tests.scaffold.outputDirectory": {
+          "type": "string",
+          "default": "tests/adaptive",
+          "description": "Default output directory for scaffolded tests"
+        },
+        "adaptive-tests.scaffold.autoOpen": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically open scaffolded test files"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile",
+    "test": "node ./out/test/runTest.js"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.74.0",
+    "@types/node": "^18.x",
+    "@vscode/test-electron": "^2.3.0",
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "adaptive-tests": "file:../.."
+  }
+}

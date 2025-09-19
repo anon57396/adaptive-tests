@@ -2,6 +2,17 @@
 
 Guidance for any AI or automation working inside this repository.
 
+## Mission-Critical Context
+
+This project, while standalone, is a foundational component of the "Cypher Suite," a portfolio of highly ambitious, AI-powered developer tools. It serves as the bedrock of credibility for the entire ecosystem. The standards for code quality, documentation, and reliability are exceptionally high. Every contribution must reflect a commitment to perfection and a deep understanding of the project's role in the broader vision. Mediocrity will not be accepted.
+
+### The Cypher Suite: Phased Vision
+
+*   **Phase 1 (Current): Standalone VS Code Extensions.** Each project (`CodeCypher`, `TrainingCypher`, `PromptCypher`, `adaptive-tests`) will be developed as a standalone VS Code extension for rapid validation.
+*   **Architectural Mandate:** To ensure future unification, all extension UIs **must** be built as self-contained, modular webviews with logic decoupled via a message-passing API.
+*   **Phase 2 (Future): Unified "Hub" Extension.** The modular extensions will be merged into a single, cohesive "Cypher Suite" extension within VS Code.
+*   **Phase 3 (Horizon): Standalone Desktop App.** The unified web components will be repackaged into a desktop application (e.g., using Electron/Tauri).
+
 ## Core Principles
 
 1. **Tests first** – run `npm test` and `npm run validate` before publishing or

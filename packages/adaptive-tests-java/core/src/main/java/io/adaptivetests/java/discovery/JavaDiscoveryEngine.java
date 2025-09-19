@@ -5,17 +5,30 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.javaparser.JavaParser;
 import com.github.javaparser.ParserConfiguration;
 import com.github.javaparser.ast.CompilationUnit;
+import com.github.javaparser.ast.Node;
+import com.github.javaparser.ast.NodeList;
+import com.github.javaparser.ast.body.AnnotationDeclaration;
+import com.github.javaparser.ast.body.AnnotationMemberDeclaration;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
+import com.github.javaparser.ast.body.ConstructorDeclaration;
 import com.github.javaparser.ast.body.EnumDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
+import com.github.javaparser.ast.body.Parameter;
+import com.github.javaparser.ast.body.RecordDeclaration;
+import com.github.javaparser.ast.body.TypeDeclaration;
+import com.github.javaparser.ast.nodeTypes.NodeWithAnnotations;
+import com.github.javaparser.ast.type.ClassOrInterfaceType;
+import com.github.javaparser.ast.AccessSpecifier;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -72,7 +85,9 @@ public final class JavaDiscoveryEngine {
 
             List<ScoredCandidate> candidates = collectCandidates(signature);
             candidates.sort(Comparator.comparingDouble((ScoredCandidate c) -> c.score).reversed());
-            List<DiscoveryResult> results = candidates.stream().map(ScoredCandidate::toResult).collect(Collectors.toList());
+            List<DiscoveryResult> results = candidates.stream()
+                    .map(ScoredCandidate::toResult)
+                    .collect(Collectors.toList());
 
             if (!results.isEmpty()) {
                 CacheEntry entry = CacheEntry.from(results.get(0));
@@ -92,7 +107,7 @@ public final class JavaDiscoveryEngine {
         try (Stream<Path> stream = Files.walk(root)) {
             stream.filter(Files::isRegularFile)
                     .filter(this::isEligibleFile)
-                    .forEach(path -> parseCandidate(path).ifPresent(candidate -> {
+                    .forEach(path -> parseCandidates(path).forEach(candidate -> {
                         double score = scoringEngine.scoreCandidate(candidate, signature);
                         if (score > 0) {
                             candidates.add(new ScoredCandidate(candidate, score));
@@ -119,45 +134,242 @@ public final class JavaDiscoveryEngine {
         return config.getExtensions().stream().anyMatch(lower::endsWith);
     }
 
-    private Optional<ScoringEngine.Candidate> parseCandidate(Path path) {
+    private List<ScoringEngine.Candidate> parseCandidates(Path path) {
+        List<ScoringEngine.Candidate> candidates = new ArrayList<>();
         try {
             var result = parser.parse(path);
             if (!result.isSuccessful() || result.getResult().isEmpty()) {
-                return Optional.empty();
+                return candidates;
             }
             CompilationUnit unit = result.getResult().get();
             Optional<String> packageName = unit.getPackageDeclaration().map(pd -> pd.getName().asString());
-            List<ScoringEngine.Candidate> candidates = new ArrayList<>();
+
             unit.findAll(ClassOrInterfaceDeclaration.class).stream()
-                    .filter(declaration -> !declaration.isNestedType())
+                    .filter(this::includeType)
                     .forEach(declaration -> candidates.add(toCandidate(declaration, packageName, path)));
             unit.findAll(EnumDeclaration.class).stream()
-                    .filter(declaration -> !declaration.isNestedType())
-                    .forEach(declaration -> candidates.add(new ScoringEngine.Candidate(
-                            declaration.getNameAsString(),
-                            packageName.orElse(null),
-                            path,
-                            List.of())));
-            return candidates.stream().findFirst();
+                    .filter(this::includeType)
+                    .forEach(declaration -> candidates.add(toCandidate(declaration, packageName, path)));
+            unit.findAll(RecordDeclaration.class).stream()
+                    .filter(this::includeType)
+                    .forEach(declaration -> candidates.add(toCandidate(declaration, packageName, path)));
+            unit.findAll(AnnotationDeclaration.class).stream()
+                    .filter(this::includeType)
+                    .forEach(declaration -> candidates.add(toCandidate(declaration, packageName, path)));
         } catch (Exception e) {
             System.err.println("[adaptive-tests-java] Failed to parse " + path + ": " + e.getMessage());
-            return Optional.empty();
         }
+        return candidates;
+    }
+
+    private boolean includeType(TypeDeclaration<?> declaration) {
+        return (declaration.isTopLevelType() || declaration.isNestedType()) && !declaration.isLocalTypeDeclaration();
     }
 
     private ScoringEngine.Candidate toCandidate(ClassOrInterfaceDeclaration declaration,
                                                 Optional<String> packageName,
                                                 Path path) {
-        List<String> methods = declaration.getMethods().stream()
-                .filter(MethodDeclaration::isPublic)
-                .map(MethodDeclaration::getNameAsString)
-                .collect(Collectors.toList());
+        Signature.Type type = declaration.isInterface() ? Signature.Type.INTERFACE : Signature.Type.CLASS;
+        String typeName = resolveTypeName(declaration);
+        List<MethodMetadata> methods = extractClassMethods(declaration);
+        List<String> annotations = extractAnnotations(declaration);
+        String extendsClass = declaration.getExtendedTypes().isNonEmpty()
+                ? declaration.getExtendedTypes().get(0).toString()
+                : null;
+        List<String> implementsInterfaces = collectInterfaces(declaration);
         return new ScoringEngine.Candidate(
-                declaration.getNameAsString(),
+                type,
+                typeName,
                 packageName.orElse(null),
                 path,
-                methods
+                methods,
+                annotations,
+                extendsClass,
+                implementsInterfaces
         );
+    }
+
+    private ScoringEngine.Candidate toCandidate(EnumDeclaration declaration,
+                                                Optional<String> packageName,
+                                                Path path) {
+        List<MethodMetadata> methods = extractEnumMethods(declaration);
+        List<String> annotations = extractAnnotations(declaration);
+        List<String> implementsInterfaces = declaration.getImplementedTypes().stream()
+                .map(ClassOrInterfaceType::toString)
+                .collect(Collectors.toList());
+        return new ScoringEngine.Candidate(
+                Signature.Type.ENUM,
+                resolveTypeName(declaration),
+                packageName.orElse(null),
+                path,
+                methods,
+                annotations,
+                null,
+                implementsInterfaces
+        );
+    }
+
+    private ScoringEngine.Candidate toCandidate(RecordDeclaration declaration,
+                                                Optional<String> packageName,
+                                                Path path) {
+        List<MethodMetadata> methods = extractRecordMethods(declaration);
+        List<String> annotations = extractAnnotations(declaration);
+        String extendsClass = declaration.getExtendedTypes().isNonEmpty()
+                ? declaration.getExtendedTypes().get(0).toString()
+                : null;
+        List<String> implementsInterfaces = declaration.getImplementedTypes().stream()
+                .map(ClassOrInterfaceType::toString)
+                .collect(Collectors.toList());
+        return new ScoringEngine.Candidate(
+                Signature.Type.RECORD,
+                resolveTypeName(declaration),
+                packageName.orElse(null),
+                path,
+                methods,
+                annotations,
+                extendsClass,
+                implementsInterfaces
+        );
+    }
+
+    private ScoringEngine.Candidate toCandidate(AnnotationDeclaration declaration,
+                                                Optional<String> packageName,
+                                                Path path) {
+        List<MethodMetadata> members = extractAnnotationMembers(declaration);
+        List<String> annotations = extractAnnotations(declaration);
+        return new ScoringEngine.Candidate(
+                Signature.Type.ANNOTATION,
+                resolveTypeName(declaration),
+                packageName.orElse(null),
+                path,
+                members,
+                annotations,
+                null,
+                List.of()
+        );
+    }
+
+    private List<MethodMetadata> extractClassMethods(ClassOrInterfaceDeclaration declaration) {
+        List<MethodMetadata> methods = new ArrayList<>();
+        boolean treatAsPublic = declaration.isInterface();
+        declaration.getMethods().forEach(method -> methods.add(toMethodMetadata(method, treatAsPublic)));
+        declaration.getConstructors().forEach(constructor ->
+                methods.add(toConstructorMetadata(constructor, declaration.getNameAsString())));
+        return methods;
+    }
+
+    private List<MethodMetadata> extractEnumMethods(EnumDeclaration declaration) {
+        List<MethodMetadata> methods = new ArrayList<>();
+        declaration.getMembers().forEach(member -> {
+            if (member instanceof MethodDeclaration) {
+                methods.add(toMethodMetadata((MethodDeclaration) member, true));
+            } else if (member instanceof ConstructorDeclaration) {
+                methods.add(toConstructorMetadata((ConstructorDeclaration) member, declaration.getNameAsString()));
+            }
+        });
+        return methods;
+    }
+
+    private List<MethodMetadata> extractRecordMethods(RecordDeclaration declaration) {
+        List<MethodMetadata> methods = new ArrayList<>();
+        declaration.getMethods().forEach(method -> methods.add(toMethodMetadata(method, false)));
+        declaration.getConstructors().forEach(constructor ->
+                methods.add(toConstructorMetadata(constructor, declaration.getNameAsString())));
+        return methods;
+    }
+
+    private List<MethodMetadata> extractAnnotationMembers(AnnotationDeclaration declaration) {
+        List<MethodMetadata> methods = new ArrayList<>();
+        declaration.getMembers().forEach(member -> {
+            if (member instanceof AnnotationMemberDeclaration) {
+                AnnotationMemberDeclaration annotationMember = (AnnotationMemberDeclaration) member;
+                methods.add(new MethodMetadata(
+                        annotationMember.getNameAsString(),
+                        annotationMember.getType().asString(),
+                        List.of(),
+                        extractAnnotations(annotationMember),
+                        false,
+                        true,
+                        false
+                ));
+            } else if (member instanceof MethodDeclaration) {
+                methods.add(toMethodMetadata((MethodDeclaration) member, true));
+            }
+        });
+        return methods;
+    }
+
+    private MethodMetadata toMethodMetadata(MethodDeclaration method, boolean treatAsPublic) {
+        List<ParameterMetadata> parameters = method.getParameters().stream()
+                .map(this::toParameterMetadata)
+                .collect(Collectors.toList());
+        List<String> annotations = method.getAnnotations().stream()
+                .map(ann -> ann.getName().asString())
+                .collect(Collectors.toList());
+        boolean isPublic = treatAsPublic || method.isPublic();
+        return new MethodMetadata(
+                method.getNameAsString(),
+                method.getType().asString(),
+                parameters,
+                annotations,
+                method.isStatic(),
+                isPublic,
+                false
+        );
+    }
+
+    private MethodMetadata toConstructorMetadata(ConstructorDeclaration constructor, String ownerName) {
+        List<ParameterMetadata> parameters = constructor.getParameters().stream()
+                .map(this::toParameterMetadata)
+                .collect(Collectors.toList());
+        List<String> annotations = constructor.getAnnotations().stream()
+                .map(ann -> ann.getName().asString())
+                .collect(Collectors.toList());
+        boolean isPublic = constructor.getAccessSpecifier() == AccessSpecifier.PUBLIC;
+        return new MethodMetadata(
+                ownerName,
+                null,
+                parameters,
+                annotations,
+                false,
+                isPublic,
+                true
+        );
+    }
+
+    private ParameterMetadata toParameterMetadata(Parameter parameter) {
+        return new ParameterMetadata(
+                parameter.getNameAsString(),
+                parameter.getType().asString(),
+                parameter.isVarArgs()
+        );
+    }
+
+    private List<String> extractAnnotations(NodeWithAnnotations<?> node) {
+        return node.getAnnotations().stream()
+                .map(annotation -> annotation.getName().asString())
+                .collect(Collectors.toList());
+    }
+
+    private List<String> collectInterfaces(ClassOrInterfaceDeclaration declaration) {
+        List<String> interfaces = new ArrayList<>();
+        declaration.getImplementedTypes().forEach(type -> interfaces.add(type.toString()));
+        if (declaration.isInterface()) {
+            declaration.getExtendedTypes().forEach(type -> interfaces.add(type.toString()));
+        }
+        return interfaces;
+    }
+
+    private String resolveTypeName(TypeDeclaration<?> declaration) {
+        Deque<String> names = new ArrayDeque<>();
+        names.push(declaration.getNameAsString());
+        Node current = declaration.getParentNode().orElse(null);
+        while (current instanceof TypeDeclaration) {
+            TypeDeclaration<?> typeDeclaration = (TypeDeclaration<?>) current;
+            names.push(typeDeclaration.getNameAsString());
+            current = current.getParentNode().orElse(null);
+        }
+        return String.join(".", names);
     }
 
     private void ensureCacheLoaded() throws IOException {
@@ -212,7 +424,13 @@ public final class JavaDiscoveryEngine {
         builder.append("|").append(signature.getType());
         builder.append("|").append(signature.getMethods());
         signature.getPackageName().ifPresent(pkg -> builder.append("|").append(pkg));
-        signature.getExtendsClass().ifPresent(ext -> builder.append("|").append(ext));
+        signature.getExtendsClass().ifPresent(ext -> builder.append("|ext=").append(ext));
+        if (!signature.getAnnotations().isEmpty()) {
+            builder.append("|ann=").append(String.join(",", signature.getAnnotations()));
+        }
+        if (!signature.getImplementsInterfaces().isEmpty()) {
+            builder.append("|impl=").append(String.join(",", signature.getImplementsInterfaces()));
+        }
         return builder.toString();
     }
 
@@ -227,38 +445,69 @@ public final class JavaDiscoveryEngine {
 
         private DiscoveryResult toResult() {
             return new DiscoveryResult(
+                    candidate.type,
                     candidate.className,
                     candidate.packageName,
                     candidate.filePath,
                     score,
-                    candidate.methodNames
+                    candidate.methods,
+                    candidate.annotations,
+                    candidate.extendsClass,
+                    candidate.implementsInterfaces
             );
         }
     }
 
     public static final class CacheEntry {
+        private Signature.Type type;
         private String className;
         private String packageName;
         private String path;
         private double score;
-        private List<String> methods;
+        private List<MethodMetadata> methods;
+        private List<String> annotations;
+        private String extendsClass;
+        private List<String> implementsInterfaces;
         private long mtime;
 
         public CacheEntry() {
-            this("", null, "", 0, new ArrayList<>(), 0);
+            this(Signature.Type.CLASS, "", null, "", 0, new ArrayList<>(), new ArrayList<>(), null, new ArrayList<>(), 0);
         }
 
-        CacheEntry(String className, String packageName, String path, double score, List<String> methods, long mtime) {
+        CacheEntry(Signature.Type type,
+                   String className,
+                   String packageName,
+                   String path,
+                   double score,
+                   List<MethodMetadata> methods,
+                   List<String> annotations,
+                   String extendsClass,
+                   List<String> implementsInterfaces,
+                   long mtime) {
+            this.type = type;
             this.className = className;
             this.packageName = packageName;
             this.path = path;
             this.score = score;
             this.methods = new ArrayList<>(methods);
+            this.annotations = new ArrayList<>(annotations);
+            this.extendsClass = extendsClass;
+            this.implementsInterfaces = new ArrayList<>(implementsInterfaces);
             this.mtime = mtime;
         }
 
         DiscoveryResult toDiscoveryResult() {
-            return new DiscoveryResult(className, packageName, Paths.get(path), score, methods);
+            return new DiscoveryResult(
+                    type,
+                    className,
+                    packageName,
+                    Paths.get(path),
+                    score,
+                    methods,
+                    annotations,
+                    extendsClass,
+                    implementsInterfaces
+            );
         }
 
         static CacheEntry from(DiscoveryResult result) {
@@ -270,13 +519,25 @@ public final class JavaDiscoveryEngine {
             } catch (IOException ignored) {
             }
             return new CacheEntry(
+                    result.getType(),
                     result.getClassName(),
                     result.getPackageName(),
                     file.toString(),
                     result.getScore(),
                     result.getMethods(),
+                    result.getAnnotations(),
+                    result.getExtendsClass(),
+                    result.getImplementsInterfaces(),
                     modified
             );
+        }
+
+        public Signature.Type getType() {
+            return type;
+        }
+
+        public void setType(Signature.Type type) {
+            this.type = type;
         }
 
         public String getClassName() {
@@ -311,12 +572,36 @@ public final class JavaDiscoveryEngine {
             this.score = score;
         }
 
-        public List<String> getMethods() {
+        public List<MethodMetadata> getMethods() {
             return methods;
         }
 
-        public void setMethods(List<String> methods) {
+        public void setMethods(List<MethodMetadata> methods) {
             this.methods = methods;
+        }
+
+        public List<String> getAnnotations() {
+            return annotations;
+        }
+
+        public void setAnnotations(List<String> annotations) {
+            this.annotations = annotations;
+        }
+
+        public String getExtendsClass() {
+            return extendsClass;
+        }
+
+        public void setExtendsClass(String extendsClass) {
+            this.extendsClass = extendsClass;
+        }
+
+        public List<String> getImplementsInterfaces() {
+            return implementsInterfaces;
+        }
+
+        public void setImplementsInterfaces(List<String> implementsInterfaces) {
+            this.implementsInterfaces = implementsInterfaces;
         }
 
         public long getMtime() {
