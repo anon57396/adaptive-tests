@@ -1,5 +1,16 @@
 # Common Issues & Solutions
 
+## Discovery Lens for fast feedback
+
+When discovery surprises you (wrong top hit, no candidates, confusing scores), use the Discovery Lens CLI to see exactly why:
+
+```bash
+npx adaptive-tests why '{"name":"YourClass"}'
+npx adaptive-tests why '{"name":"YourClass"}' --json  # structured output for CI/tools
+```
+
+The output shows ranked candidates with per‑factor contributions (path, fileName, typeHints, methods, exports, nameMentions, custom, recency). Adjust `adaptive-tests.config.js` and rerun `why` to confirm improvements.
+
 ## 1. Discovery skipped my module
 
 **Symptoms**: `createDiscoveryError` mentions candidates but says “none matched all

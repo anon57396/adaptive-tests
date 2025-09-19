@@ -75,6 +75,11 @@ npm run compare    # See traditional vs adaptive output side by side
 npm run demo       # Quick proof of resilience
 ```
 
+## Learn More
+
+- How It Works: docs/HOW_IT_WORKS.md
+- Best Practices: docs/BEST_PRACTICES.md
+
 ## What Not To Do
 
 ```javascript

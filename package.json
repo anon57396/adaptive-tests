@@ -29,6 +29,7 @@
     "demo:full": "npm run validate",
     "compare": "node scripts/demo/compare.js",
     "benchmark": "node scripts/demo/benchmark.js",
+    "docs:api": "typedoc",
     "build:types": "tsc",
     "prepublishOnly": "npm run build:types && npm run test && npm run validate && npm run lint:markdown"
   },
@@ -50,6 +51,8 @@
     "markdownlint-cli": "^0.39.0",
     "ts-jest": "^29.1.1",
     "ts-node": "^10.9.2",
+    "typedoc": "^0.28.13",
+    "typedoc-plugin-markdown": "^4.8.1",
     "typescript": "^5.4.5"
   },
   "jest": {

@@ -118,6 +118,9 @@ The script runs four scenarios:
 
 - [Quick Start Guide](docs/QUICK_START.md)
 - [Common Issues & Troubleshooting](docs/COMMON_ISSUES.md)
+- [How It Works](docs/HOW_IT_WORKS.md)
+- [Best Practices](docs/BEST_PRACTICES.md)
+- [API Reference](docs/api/README.md)
 - [Proof & Demo Scripts](PROOF.md)
 - [Examples](examples/) (`calculator`, `api-service`, `todo-app`, `typescript`, `python`)
 

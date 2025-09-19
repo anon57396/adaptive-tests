@@ -56,11 +56,16 @@
 
 5. **Helpful scripts**
 
-   ```bash
-   npm run validate   # end-to-end demo (healthy → refactor → broken)
-   npm run compare    # watch traditional vs adaptive output
-   npm run demo       # quick resilience walkthrough
-   ```
+```bash
+npm run validate   # end-to-end demo (healthy → refactor → broken)
+npm run compare    # watch traditional vs adaptive output
+npm run demo       # quick resilience walkthrough
+```
+
+## Learn More
+
+- How It Works: HOW_IT_WORKS.md
+- Best Practices: BEST_PRACTICES.md
 
 That’s it. Adaptive discovery removes brittle import paths from your tests while
 staying compatible with existing runners like Jest, Mocha, or Vitest.

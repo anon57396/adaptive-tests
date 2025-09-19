@@ -1,0 +1,17 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "entryPoints": [
+    "types/adaptive/index.d.ts",
+    "types/index.d.ts"
+  ],
+  "plugin": ["typedoc-plugin-markdown"],
+  "out": "docs/api",
+  "tsconfig": "typedoc.tsconfig.json",
+  "readme": "none",
+  "excludePrivate": true,
+  "excludeProtected": true,
+  "excludeInternal": true,
+  "hideGenerator": true,
+  "gitRevision": "main",
+  "categorizeByGroup": false
+}
