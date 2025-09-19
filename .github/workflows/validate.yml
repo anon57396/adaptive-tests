@@ -32,6 +32,10 @@ jobs:
       if: matrix.node-version == '20.x'
       run: npm run lint:markdown
 
+    - name: Check documentation links
+      if: matrix.node-version == '20.x'
+      run: npm run lint:links
+
     - name: Run validation suite
       run: npm run validate
 

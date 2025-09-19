@@ -1,0 +1,14 @@
+{
+  "ignorePatterns": [
+    { "pattern": "^mailto:" },
+    { "pattern": "^https://img.shields.io" },
+    { "pattern": "^https://badgen.net" }
+  ],
+  "replacementPatterns": [
+    {
+      "pattern": "^docs/(.*)\\.html$",
+      "replacement": "docs/$1.md"
+    }
+  ],
+  "timeout": "10s"
+}
