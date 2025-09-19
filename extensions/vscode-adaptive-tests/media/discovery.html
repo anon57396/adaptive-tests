@@ -13,51 +13,102 @@
             <p class="subtitle">Visualize how adaptive-tests discovers your code</p>
         </header>
 
-        <section class="input-section">
-            <label for="signature-input">Enter Discovery Signature (JSON)</label>
-            <textarea
-                id="signature-input"
-                placeholder='{"name": "Calculator", "type": "class", "methods": ["add", "subtract"]}'
-                rows="4"
-            ></textarea>
+        <main>
+            <section class="input-section" aria-labelledby="input-heading">
+                <h2 id="input-heading" class="visually-hidden">Discovery Configuration</h2>
+                <label for="signature-input">Enter Discovery Signature (JSON)</label>
+                <textarea
+                    id="signature-input"
+                    placeholder='{"name": "Calculator", "type": "class", "methods": ["add", "subtract"]}'
+                    rows="4"
+                    aria-describedby="signature-help"
+                    aria-required="true"
+                ></textarea>
+                <div id="signature-help" class="visually-hidden">
+                    Enter a JSON object with a name property and optional type and methods properties to discover matching code
+                </div>
 
-            <div class="preset-buttons">
-                <button class="preset-btn" data-preset="class">Class Example</button>
-                <button class="preset-btn" data-preset="function">Function Example</button>
-                <button class="preset-btn" data-preset="interface">Interface Example</button>
+                <fieldset class="preset-buttons" role="group" aria-labelledby="preset-legend">
+                    <legend id="preset-legend" class="visually-hidden">Preset Examples</legend>
+                    <button class="preset-btn" data-preset="class" aria-describedby="class-desc">
+                        Class Example
+                    </button>
+                    <button class="preset-btn" data-preset="function" aria-describedby="function-desc">
+                        Function Example
+                    </button>
+                    <button class="preset-btn" data-preset="interface" aria-describedby="interface-desc">
+                        Interface Example
+                    </button>
+                    <div class="preset-descriptions">
+                        <div id="class-desc" class="visually-hidden">Load example signature for class discovery</div>
+                        <div id="function-desc" class="visually-hidden">Load example signature for function discovery</div>
+                        <div id="interface-desc" class="visually-hidden">Load example signature for interface discovery</div>
+                    </div>
+                </fieldset>
+
+                <button id="run-discovery" class="primary-btn" aria-describedby="run-help">
+                    Run Discovery
+                </button>
+                <div id="run-help" class="visually-hidden">
+                    Run discovery to find matching code files. Use Ctrl+Enter as a keyboard shortcut.
+                </div>
+            </section>
+
+            <div class="discovery-progress" role="status" aria-labelledby="progress-text">
+                <div class="progress-indicator">
+                    <span class="progress-spinner" aria-hidden="true"></span>
+                    <span id="progress-text">Discovering files...</span>
+                </div>
+                <div class="progress-steps" aria-hidden="true">
+                    <div class="progress-step" data-step="scan"></div>
+                    <div class="progress-step" data-step="parse"></div>
+                    <div class="progress-step" data-step="score"></div>
+                    <div class="progress-step" data-step="complete"></div>
+                </div>
             </div>
 
-            <button id="run-discovery" class="primary-btn">
-                Run Discovery
-            </button>
-        </section>
+            <section class="results-section" style="display: none;" aria-labelledby="results-heading">
+                <h2 id="results-heading">Discovery Results</h2>
+                <div class="results-summary" role="status" aria-live="polite" aria-atomic="true"></div>
+                <div id="status-announcements" aria-live="assertive" aria-atomic="true" class="visually-hidden"></div>
+                <div id="results-container" role="list" aria-labelledby="results-heading"></div>
+            </section>
 
-        <section class="results-section" style="display: none;">
-            <h2>Discovery Results</h2>
-            <div class="results-summary" role="status" aria-live="polite"></div>
-            <div id="results-container" role="list" aria-label="Discovery results"></div>
-        </section>
-
-        <section class="error-section" style="display: none;" role="alert">
-            <div class="error-message"></div>
-        </section>
-
-        <section class="help-section">
-            <details>
-                <summary>How Discovery Works</summary>
-                <div class="help-content">
-                    <p>The discovery engine uses multiple strategies to find your code:</p>
-                    <ul>
-                        <li><strong>Name Matching:</strong> Searches for files and exports matching the signature name</li>
-                        <li><strong>Type Analysis:</strong> Matches based on code structure (class, function, interface)</li>
-                        <li><strong>Method Signatures:</strong> Compares available methods with expected ones</li>
-                        <li><strong>Path Scoring:</strong> Prefers standard locations (src/, lib/, etc.)</li>
-                        <li><strong>AST Analysis:</strong> Deep code structure analysis for accurate matching</li>
-                    </ul>
-                    <p>Each candidate receives a score based on how well it matches the signature. Higher scores indicate better matches.</p>
+            <section class="error-section" style="display: none;" role="alert" aria-labelledby="error-heading">
+                <h2 id="error-heading" class="visually-hidden">Error</h2>
+                <div class="error-content">
+                    <div class="error-icon" aria-hidden="true">⚠️</div>
+                    <div class="error-details">
+                        <div class="error-category" id="error-category"></div>
+                        <div class="error-message" aria-describedby="error-help"></div>
+                        <div class="error-description" id="error-description"></div>
+                        <div class="error-actions" id="error-actions"></div>
+                    </div>
                 </div>
-            </details>
-        </section>
+                <div id="error-help" class="visually-hidden">
+                    An error occurred during discovery. Please check your signature syntax and try again.
+                </div>
+            </section>
+
+            <section class="help-section" aria-labelledby="help-heading">
+                <details>
+                    <summary id="help-heading" aria-expanded="false" aria-controls="help-content">
+                        How Discovery Works
+                    </summary>
+                    <div id="help-content" class="help-content">
+                        <p>The discovery engine uses multiple strategies to find your code:</p>
+                        <ul role="list">
+                            <li role="listitem"><strong>Name Matching:</strong> Searches for files and exports matching the signature name</li>
+                            <li role="listitem"><strong>Type Analysis:</strong> Matches based on code structure (class, function, interface)</li>
+                            <li role="listitem"><strong>Method Signatures:</strong> Compares available methods with expected ones</li>
+                            <li role="listitem"><strong>Path Scoring:</strong> Prefers standard locations (src/, lib/, etc.)</li>
+                            <li role="listitem"><strong>AST Analysis:</strong> Deep code structure analysis for accurate matching</li>
+                        </ul>
+                        <p>Each candidate receives a score based on how well it matches the signature. Higher scores indicate better matches.</p>
+                    </div>
+                </details>
+            </section>
+        </main>
     </div>
 
     <script src="{{SCRIPT_URI}}"></script>

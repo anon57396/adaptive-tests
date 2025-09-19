@@ -2,6 +2,24 @@
 
 All notable changes to this project are documented here. Dates are omitted when historical records are unclear.
 
+## [0.2.4] - Unreleased
+
+- **NEW: Migration Tool** - Added `npx adaptive-tests migrate` command to automatically convert traditional tests to adaptive tests
+  - Analyzes existing test files using AST parsing to extract imports, test structure, and methods
+  - Generates adaptive tests that use `discover()` instead of hardcoded imports
+  - Supports two migration strategies: create new files or replace existing (with backups)
+  - Intelligent method detection filters out test framework methods
+  - Works with both CommonJS and ES Module test files
+
+- **NEW: Jest Plugin** - Created `jest-adaptive` package for zero-config Jest integration
+  - Automatic global injection of `discover()`, `adaptiveTest()`, and helper functions
+  - Jest preset for instant setup with `preset: 'jest-adaptive'`
+  - Custom Jest matchers: `toBeDiscovered()` and `toHaveMethods()`
+  - Optional transformer for `.adaptive.test.js` files
+  - Lazy discovery with `lazyDiscover()` for performance
+  - Batch discovery with `discoverAll()` for multiple modules
+  - Full TypeScript support with type definitions
+
 ## [0.2.3]
 
 - Shipped adaptive-tests-py 0.2.0 with configurable scoring, persistent cache, Lens-style explanations, and bundled CLI tooling

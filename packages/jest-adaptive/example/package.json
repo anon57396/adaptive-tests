@@ -1,0 +1,16 @@
+{
+  "name": "jest-adaptive-example",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Example of using jest-adaptive for zero-config adaptive testing",
+  "scripts": {
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:verbose": "jest --verbose"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "jest-adaptive": "file:../",
+    "adaptive-tests": "file:../../../"
+  }
+}

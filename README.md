@@ -67,6 +67,23 @@ The extension will be available on the VS Code Marketplace. For now, use the dev
 
 ## Quick Start
 
+### Option 1: Zero-Config with jest-adaptive (New!)
+
+```bash
+npm install --save-dev jest-adaptive adaptive-tests
+```
+
+Add to your `jest.config.js`:
+```javascript
+module.exports = {
+  preset: 'jest-adaptive',
+};
+```
+
+Now `discover()` and `adaptiveTest()` are available as globals in all tests!
+
+### Option 2: Standard Installation
+
 ```bash
 npm install adaptive-tests
 ```
@@ -231,10 +248,31 @@ npx adaptive-tests scaffold src/components/MyComponent.tsx
 ## CLI Helper
 
 ```bash
-npx adaptive-tests init
-npx adaptive-tests scaffold src/services/UserService.js
-npx adaptive-tests scaffold --batch src/  # Scaffold entire directory
+npx adaptive-tests init                                      # Interactive setup wizard
+npx adaptive-tests migrate tests                            # Convert traditional tests to adaptive
+npx adaptive-tests scaffold src/services/UserService.js     # Generate test from source
+npx adaptive-tests scaffold --batch src/                    # Scaffold entire directory
 ```
+
+### Migration Tool (New!)
+
+Automatically convert your existing traditional tests to adaptive tests:
+
+```bash
+npx adaptive-tests migrate [directory]
+```
+
+The migration tool:
+- Analyzes your existing test files to extract imports and test structure
+- Identifies the classes/modules being tested and their methods
+- Generates adaptive test files that use `discover()` instead of hardcoded imports
+- Preserves your test logic structure while making imports refactor-proof
+
+Migration strategies:
+1. **Create new files** (default) - Creates `*.adaptive.test.js` alongside originals
+2. **Replace existing** - Backs up originals and replaces them
+
+### Scaffold Command
 
 Use `npx adaptive-tests scaffold --help` for all options. Helpful flags include:
 
