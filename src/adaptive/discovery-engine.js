@@ -21,6 +21,13 @@ const { createTsconfigResolver } = require('./tsconfig-resolver');
 // Cache for module requirements
 const moduleCache = new Map();
 
+function toArray(value) {
+  if (!value) return [];
+  if (Array.isArray(value)) return value;
+  if (value instanceof Set) return Array.from(value);
+  return [value];
+}
+
 class DiscoveryEngine {
   constructor(rootPath = process.cwd(), config = {}) {
     this.rootPath = path.resolve(rootPath);
@@ -217,6 +224,29 @@ class DiscoveryEngine {
       content,
       mtimeMs: stats ? stats.mtimeMs : null
     };
+
+    const relativePath = path.relative(this.rootPath, filePath).split(path.sep).join('/') || path.basename(filePath);
+    candidate.relativePath = relativePath;
+
+    if (this.tsconfigResolver) {
+      try {
+        const aliases = this.tsconfigResolver.getAliasesForFile
+          ? this.tsconfigResolver.getAliasesForFile(filePath)
+          : [];
+        const baseImport = this.tsconfigResolver.getBaseUrlRelativeImport
+          ? this.tsconfigResolver.getBaseUrlRelativeImport(filePath)
+          : null;
+
+        if (aliases && aliases.length > 0) {
+          candidate.tsAliases = aliases;
+        }
+        if (baseImport) {
+          candidate.tsBaseImport = baseImport;
+        }
+      } catch (error) {
+        // ignore resolver errors; aliases remain undefined
+      }
+    }
 
     try {
       candidate.metadata = this.analyzeModuleExports(content, fileName);
@@ -1347,8 +1377,32 @@ class DiscoveryEngine {
         if (c.scoreBreakdown) {
           errorLines.push(`    Breakdown: ${JSON.stringify(c.scoreBreakdown)}`);
         }
+        if (c.relativePath) {
+          errorLines.push(`    Path: ${c.relativePath}`);
+        }
+        if (c.tsAliases && c.tsAliases.length > 0) {
+          errorLines.push(`    Aliases: ${c.tsAliases.join(', ')}`);
+        }
       });
       errorLines.push('');
+    }
+
+    const signatureHint = signature.original || signature;
+    const signatureJson = JSON.stringify(signatureHint);
+    if (signatureJson) {
+      errorLines.push('Tip: inspect candidate scoring via Discovery Lens:');
+      errorLines.push(`  npx adaptive-tests why '${signatureJson}'`);
+      errorLines.push('  npx adaptive-tests why \'' + signatureJson + '\' --json  # machine-readable');
+      errorLines.push('');
+    }
+
+    if (candidates.length > 0) {
+      const suggestion = this.buildSignatureSuggestion(candidates[0]);
+      if (suggestion) {
+        errorLines.push('Suggested signature derived from top candidate:');
+        errorLines.push(JSON.stringify(suggestion, null, 2));
+        errorLines.push('');
+      }
     }
 
     errorLines.push(
@@ -1363,6 +1417,52 @@ class DiscoveryEngine {
     );
 
     return new Error(errorLines.join('\n'));
+  }
+
+  buildSignatureSuggestion(candidate) {
+    if (!candidate || !candidate.metadata || !Array.isArray(candidate.metadata.exports) || candidate.metadata.exports.length === 0) {
+      return null;
+    }
+
+    const pick = candidate.metadata.exports[0];
+    if (!pick || !pick.info) {
+      return null;
+    }
+
+    const info = pick.info;
+    const suggestion = {};
+
+    if (info.name) {
+      suggestion.name = info.name;
+    }
+
+    if (info.kind && info.kind !== 'unknown') {
+      suggestion.type = info.kind;
+    }
+
+    if (pick.access && pick.access.type === 'named' && pick.access.name) {
+      suggestion.exports = pick.access.name;
+    }
+
+    const methods = toArray(info.methods).filter(Boolean);
+    if (methods.length > 0) {
+      suggestion.methods = methods;
+    }
+
+    const properties = toArray(info.properties).filter(Boolean);
+    if (properties.length > 0) {
+      suggestion.properties = properties;
+    }
+
+    if (info.extends) {
+      suggestion.extends = info.extends;
+    }
+
+    if (Object.keys(suggestion).length === 0) {
+      return null;
+    }
+
+    return suggestion;
   }
 
   /**

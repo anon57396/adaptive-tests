@@ -85,12 +85,29 @@ const engine = getDiscoveryEngine(process.cwd());
 ```bash
 npx adaptive-tests init
 npx adaptive-tests scaffold src/services/UserService.js
+npx adaptive-tests scaffold --batch src/  # Scaffold entire directory
 ```
 
-The CLI scaffolds an `adaptive` test directory, drops in example suites, and
-links any missing optional peers (such as `ts-node`). The `scaffold` command
-generates an adaptive test skeleton with a discovery signature and method
-placeholders for the specified source file.
+The CLI provides powerful tools for rapid test adoption:
+
+### Smart Test Scaffolding
+
+The `scaffold` command analyzes your source code and generates intelligent test templates:
+
+- **Automatic signature extraction** from AST analysis
+- **Smart assertion generation** based on method naming patterns
+- **Mock data inference** for common domain objects
+- **Dependency injection detection** with mock setup
+- **Error handling test cases** auto-generated
+- **Interactive mode** for modules with multiple exports
+- **Batch processing** to scaffold entire directories at once
+
+Example output includes:
+- Accurate discovery signatures
+- Test blocks for every public method
+- Intelligent assertions (e.g., `getUser()` → `expect(result).toHaveProperty('id')`)
+- Mock data generation (e.g., methods with "User" → user object mocks)
+- Coverage suggestions and TODO placeholders
 
 Need visibility into why a signature matched (or didn’t)? Use the Discovery
 Lens companion:

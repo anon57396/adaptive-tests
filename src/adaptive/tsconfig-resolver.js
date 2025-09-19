@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const { loadConfig, createMatchPathSync } = require('tsconfig-paths');
+const { loadConfig, createMatchPath } = require('tsconfig-paths');
 
 const EXTENSIONS = ['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs'];
 
@@ -74,7 +74,7 @@ function createTsconfigResolver(rootPath) {
     return null;
   }
 
-  const matchPath = createMatchPathSync(
+  const matchPath = createMatchPath(
     absoluteBaseUrl,
     paths,
     mainFields,

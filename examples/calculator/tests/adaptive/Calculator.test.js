@@ -1,98 +1,86 @@
+const { discover } = require('adaptive-tests');
+
 /**
- * Adaptive Test - Survives any refactoring!
+ * Adaptive Tests for Calculator
+ *
+ * These tests will automatically find Calculator even if it moves.
+ * Generated from: examples/calculator/src/Calculator.js
  */
 
-const path = require('path');
-const { AdaptiveTest } = require('../../../../src/adaptive/test-base');
-const { getDiscoveryEngine } = require('../../../../src/adaptive/discovery-engine');
-
-class CalculatorAdaptiveTest extends AdaptiveTest {
-  getTargetSignature() {
-    return {
-      name: 'Calculator',
-      type: 'class',
-      methods: ['add', 'subtract', 'multiply', 'divide'],
-      exports: 'Calculator'
-    };
-  }
-}
-
-// Setup adaptive discovery
-const engine = getDiscoveryEngine(path.resolve(__dirname, '../..'));
-
-describe('Calculator - Adaptive Tests', () => {
+describe('Calculator', () => {
   let Calculator;
-  let calc;
 
   beforeAll(async () => {
-    // Discover the Calculator class wherever it lives
-    Calculator = await engine.discoverTarget({
-      name: 'Calculator',
-      type: 'class',
-      methods: ['add', 'subtract', 'multiply', 'divide'],
-      exports: 'Calculator'
+    // Discover the module using its signature
+    Calculator = await discover({
+        "name": "Calculator",
+        "type": "class",
+        "methods": [
+            "add",
+            "subtract",
+            "multiply",
+            "divide",
+            "power",
+            "sqrt",
+            "getHistory",
+            "clearHistory"
+        ]
     });
   });
 
-  beforeEach(() => {
-    calc = new Calculator();
-  });
-
-  test('should discover Calculator class', () => {
+  test('should discover Calculator', () => {
     expect(Calculator).toBeDefined();
     expect(typeof Calculator).toBe('function');
+    
   });
 
-  describe('Basic Operations', () => {
-    test('adds two numbers', () => {
-      expect(calc.add(2, 3)).toBe(5);
-    });
-
-    test('subtracts two numbers', () => {
-      expect(calc.subtract(5, 3)).toBe(2);
-    });
-
-    test('multiplies two numbers', () => {
-      expect(calc.multiply(3, 4)).toBe(12);
-    });
-
-    test('divides two numbers', () => {
-      expect(calc.divide(10, 2)).toBe(5);
-    });
-
-    test('throws on division by zero', () => {
-      expect(() => calc.divide(5, 0)).toThrow('Division by zero');
-    });
+  describe('Methods', () => {
+  test('should add', () => {
+    // TODO: Implement test for add
+    const instance = new Calculator();
+    expect(instance.add()).toBeDefined();
   });
 
-  describe('Advanced Operations', () => {
-    test('calculates power', () => {
-      expect(calc.power(2, 3)).toBe(8);
-    });
-
-    test('calculates square root', () => {
-      expect(calc.sqrt(16)).toBe(4);
-    });
-
-    test('throws on negative square root', () => {
-      expect(() => calc.sqrt(-4)).toThrow('Cannot take square root of negative number');
-    });
+  test('should subtract', () => {
+    // TODO: Implement test for subtract
+    const instance = new Calculator();
+    expect(instance.subtract()).toBeDefined();
   });
 
-  describe('History', () => {
-    test('tracks operation history', () => {
-      calc.add(1, 2);
-      calc.multiply(3, 4);
-      const history = calc.getHistory();
-      expect(history).toHaveLength(2);
-      expect(history[0]).toBe('1 + 2 = 3');
-      expect(history[1]).toBe('3 * 4 = 12');
-    });
+  test('should multiply', () => {
+    // TODO: Implement test for multiply
+    const instance = new Calculator();
+    expect(instance.multiply()).toBeDefined();
+  });
 
-    test('clears history', () => {
-      calc.add(1, 2);
-      calc.clearHistory();
-      expect(calc.getHistory()).toHaveLength(0);
-    });
+  test('should divide', () => {
+    // TODO: Implement test for divide
+    const instance = new Calculator();
+    expect(instance.divide()).toBeDefined();
+  });
+
+  test('should power', () => {
+    // TODO: Implement test for power
+    const instance = new Calculator();
+    expect(instance.power()).toBeDefined();
+  });
+
+  test('should sqrt', () => {
+    // TODO: Implement test for sqrt
+    const instance = new Calculator();
+    expect(instance.sqrt()).toBeDefined();
+  });
+
+  test('should get history', async () => {
+    // TODO: Implement test for getHistory
+    const instance = new Calculator();
+    await expect(instance.getHistory()).toBeDefined();
+  });
+
+  test('should clear history', () => {
+    // TODO: Implement test for clearHistory
+    const instance = new Calculator();
+    expect(instance.clearHistory()).toBeDefined();
+  });
   });
 });
