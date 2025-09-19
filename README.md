@@ -82,6 +82,17 @@ npx adaptive-tests init
 The CLI scaffolds an `adaptive` test directory, drops in example suites, and
 links any missing optional peers (such as `ts-node`).
 
+Need visibility into why a signature matched (or didn’t)? Use the Discovery
+Lens companion:
+
+```bash
+npx adaptive-tests why '{"name":"UserService"}'
+npx adaptive-tests why '{"name":"UserService"}' --json
+```
+
+The `why` command prints a ranked list of candidates with score breakdowns and
+optional JSON output for tooling.
+
 ---
 
 ## Validation Flow

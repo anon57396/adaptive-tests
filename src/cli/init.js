@@ -131,7 +131,7 @@ ${language === 'typescript' ? '(async () => {' : '(async function() {'}
 `;
 }
 
-async function main() {
+async function runInit() {
   header();
 
   // Detect environment
@@ -220,12 +220,58 @@ async function main() {
   console.log();
 }
 
+function printUsage() {
+  console.log(`\nUsage: npx adaptive-tests <command> [options]\n`);
+  console.log(`Commands:`);
+  console.log(`  init            Interactive setup wizard (default)`);
+  console.log(`  why <signature> Inspect candidate scoring for a signature`);
+  console.log(`  help            Show this message\n`);
+  console.log(`Examples:`);
+  console.log(`  npx adaptive-tests`);
+  console.log(`  npx adaptive-tests init`);
+  console.log(`  npx adaptive-tests why '{"name":"UserService"}'`);
+  console.log(`  npx adaptive-tests why '{"name":"UserService"}' --json\n`);
+}
+
+async function runWhy(args = []) {
+  const { runWhy: runDiscoveryLens } = require('./why');
+  await runDiscoveryLens(args);
+}
+
+async function main(argv = process.argv) {
+  const [, , maybeCommand, ...rest] = argv;
+  const handlers = {
+    init: () => runInit(),
+    why: (args) => runWhy(args),
+    help: () => printUsage(),
+    '--help': () => printUsage(),
+    '-h': () => printUsage()
+  };
+
+  if (!maybeCommand) {
+    return runInit();
+  }
+
+  if (handlers[maybeCommand]) {
+    return handlers[maybeCommand](rest);
+  }
+
+  if (maybeCommand.startsWith('-')) {
+    // Treat unknown flags as init options for backward compatibility
+    return runInit();
+  }
+
+  console.error(`Unknown command: ${maybeCommand}`);
+  printUsage();
+  process.exitCode = 1;
+}
+
 // Run if called directly
 if (require.main === module) {
   main().catch(error => {
-    console.error('Error during initialization:', error);
+    console.error('Error running adaptive-tests CLI:', error);
     process.exit(1);
   });
 }
 
-module.exports = { main };
+module.exports = { runInit, main };

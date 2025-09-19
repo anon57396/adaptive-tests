@@ -7,6 +7,7 @@ All notable changes to this project are documented here. Dates are omitted when 
 - Refreshed all public documentation (README, PROOF, ROADMAP, AGENTS, CONTRIBUTING) for accuracy
 - Introduced markdownlint configuration and CI enforcement
 - Bumped npm package metadata in preparation for publish
+- Added the Discovery Lens CLI (`npx adaptive-tests why`) for deep-dive scoring diagnostics
 - Aligned Python companion package version (adaptive-tests-py 0.1.1) and cleaned packaging metadata (SPDX license expression)
 
 ## [0.2.1]

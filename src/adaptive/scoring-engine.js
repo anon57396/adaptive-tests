@@ -9,154 +9,197 @@ const path = require('path');
 class ScoringEngine {
   constructor(config = {}) {
     this.config = config.discovery?.scoring || {};
-    this.compiledScorers = this.compileScorers();
+    this.pathScorers = [];
+    this.customScorers = [];
+    this.compileScorers();
   }
 
   /**
    * Compile scoring functions for better performance
    */
   compileScorers() {
-    const scorers = [];
+    this.pathScorers = [];
+    this.customScorers = [];
 
-    // Path scorers
+    const addPathScorer = (label, scorerFn) => {
+      this.pathScorers.push({
+        label,
+        apply: scorerFn,
+      });
+    };
+
     if (this.config.paths) {
-      // Positive path scorers
       if (this.config.paths.positive) {
         for (const [pattern, score] of Object.entries(this.config.paths.positive)) {
           if (typeof score === 'function') {
-            scorers.push({ type: 'path', fn: score });
+            addPathScorer(pattern || score.name || 'path:custom', (candidatePath) => score(candidatePath));
           } else if (typeof score === 'number') {
-            scorers.push({
-              type: 'path',
-              fn: (candidatePath) => candidatePath.includes(pattern) ? score : 0
-            });
+            addPathScorer(pattern, (candidatePath) => candidatePath.includes(pattern) ? score : 0);
           }
         }
       }
 
-      // Negative path scorers
       if (this.config.paths.negative) {
         for (const [pattern, score] of Object.entries(this.config.paths.negative)) {
           if (typeof score === 'function') {
-            scorers.push({ type: 'path', fn: score });
+            addPathScorer(pattern || score.name || 'path:custom', (candidatePath) => score(candidatePath));
           } else if (typeof score === 'number') {
-            scorers.push({
-              type: 'path',
-              fn: (candidatePath) => candidatePath.includes(pattern) ? score : 0
-            });
+            addPathScorer(pattern, (candidatePath) => candidatePath.includes(pattern) ? score : 0);
           }
         }
       }
     }
 
-    // Custom scorers
     if (this.config.custom && Array.isArray(this.config.custom)) {
       for (const scorer of this.config.custom) {
         if (typeof scorer === 'function') {
-          scorers.push({ type: 'custom', fn: scorer });
+          this.customScorers.push({
+            name: scorer.name || 'custom',
+            fn: scorer,
+          });
         } else if (scorer && typeof scorer.score === 'function') {
-          scorers.push({
-            type: 'custom',
-            name: scorer.name || 'unnamed',
-            fn: scorer.score
+          this.customScorers.push({
+            name: scorer.name || 'custom',
+            fn: scorer.score.bind(scorer),
           });
         }
       }
     }
-
-    return scorers;
   }
 
   /**
    * Calculate total score for a candidate
    */
   calculateScore(candidate, signature, content = null) {
+    const { totalScore, breakdown } = this.computeScore(candidate, signature, content, false);
+    candidate.scoreBreakdown = breakdown;
+    return totalScore;
+  }
+
+  calculateScoreDetailed(candidate, signature, content = null) {
+    const { totalScore, breakdown, details } = this.computeScore(candidate, signature, content, true);
+    candidate.scoreBreakdown = breakdown;
+    candidate.scoreDetails = details;
+    return { totalScore, breakdown, details };
+  }
+
+  computeScore(candidate, signature, content, collectDetails = false) {
     let totalScore = 0;
     const breakdown = {};
+    const details = collectDetails ? [] : null;
 
-    // Path scoring
-    const pathScore = this.scorePath(candidate.path);
+    const addContribution = (category, amount, detail) => {
+      if (!amount || amount === 0) {
+        return;
+      }
+
+      totalScore += amount;
+      breakdown[category] = (breakdown[category] || 0) + amount;
+
+      if (details) {
+        const entries = Array.isArray(detail) ? detail : detail ? [detail] : [];
+        for (const entry of entries) {
+          if (entry && typeof entry.score === 'number' && entry.score !== 0) {
+            details.push(entry);
+          }
+        }
+      }
+    };
+
+    const pathDetails = collectDetails ? [] : null;
+    const pathScore = this.scorePath(candidate.path, pathDetails);
     if (pathScore !== 0) {
-      totalScore += pathScore;
-      breakdown.path = pathScore;
+      addContribution('path', pathScore, pathDetails);
     }
 
-    // Extension scoring
     const extScore = this.scoreExtension(candidate.path);
     if (extScore !== 0) {
-      totalScore += extScore;
-      breakdown.extension = extScore;
+      const extDetail = collectDetails
+        ? { type: 'extension', source: path.extname(candidate.path) || 'unknown', score: extScore }
+        : null;
+      addContribution('extension', extScore, extDetail);
     }
 
-    // File name scoring
     const nameScore = this.scoreFileName(candidate.fileName, signature);
     if (nameScore !== 0) {
-      totalScore += nameScore;
-      breakdown.fileName = nameScore;
+      const nameDetail = collectDetails
+        ? { type: 'fileName', source: candidate.fileName, score: nameScore }
+        : null;
+      addContribution('fileName', nameScore, nameDetail);
     }
 
-    // Content-based scoring (if content available)
     if (content) {
-      // Type hints scoring
       if (signature.type) {
         const typeScore = this.scoreTypeHints(content, signature);
         if (typeScore !== 0) {
-          totalScore += typeScore;
-          breakdown.typeHints = typeScore;
+          const typeDetail = collectDetails
+            ? { type: 'typeHints', source: signature.type, score: typeScore }
+            : null;
+          addContribution('typeHints', typeScore, typeDetail);
         }
       }
 
-      // Method mentions scoring
       if (signature.methods && signature.methods.length > 0) {
         const methodScore = this.scoreMethodMentions(content, signature.methods);
         if (methodScore !== 0) {
-          totalScore += methodScore;
-          breakdown.methods = methodScore;
+          const methodDetail = collectDetails
+            ? { type: 'methods', source: signature.methods.join(', '), score: methodScore }
+            : null;
+          addContribution('methods', methodScore, methodDetail);
         }
       }
 
-      // Export hints scoring
       if (signature.exports) {
         const exportScore = this.scoreExportHints(content, signature);
         if (exportScore !== 0) {
-          totalScore += exportScore;
-          breakdown.exports = exportScore;
+          const exportDetail = collectDetails
+            ? { type: 'exports', source: signature.exports, score: exportScore }
+            : null;
+          addContribution('exports', exportScore, exportDetail);
         }
       }
 
-      // Name mentions scoring
       if (signature.name && !(signature.name instanceof RegExp)) {
-        const mentionScore = this.scoreNameMentions(content, signature);
-        if (mentionScore !== 0) {
-          totalScore += mentionScore;
-          breakdown.nameMentions = mentionScore;
+        const nameMentionScore = this.scoreNameMentions(content, signature);
+        if (nameMentionScore !== 0) {
+          const nameDetail = collectDetails
+            ? { type: 'nameMentions', source: String(signature.name), score: nameMentionScore }
+            : null;
+          addContribution('nameMentions', nameMentionScore, nameDetail);
         }
       }
     }
 
-    // Custom scoring
-    const customScore = this.scoreCustom(candidate, signature, content);
+    const customDetails = collectDetails ? [] : null;
+    const customScore = this.scoreCustom(candidate, signature, content, customDetails);
     if (customScore !== 0) {
-      totalScore += customScore;
-      breakdown.custom = customScore;
+      addContribution('custom', customScore, customDetails);
     }
 
-    // Store breakdown for debugging
-    candidate.scoreBreakdown = breakdown;
-
-    return totalScore;
+    return { totalScore, breakdown, details };
   }
 
   /**
    * Score based on file path
    */
-  scorePath(filePath) {
+  scorePath(filePath, detailCollector = null) {
     let score = 0;
 
-    // Apply compiled path scorers
-    for (const scorer of this.compiledScorers) {
-      if (scorer.type === 'path') {
-        score += scorer.fn(filePath);
+    for (const scorer of this.pathScorers) {
+      try {
+        const contribution = scorer.apply(filePath) || 0;
+        if (typeof contribution === 'number' && contribution !== 0) {
+          score += contribution;
+          if (detailCollector) {
+            detailCollector.push({
+              type: 'path',
+              source: scorer.label,
+              score: contribution
+            });
+          }
+        }
+      } catch (error) {
+        console.warn(`Path scorer ${scorer.label || 'custom'} failed:`, error.message);
       }
     }
 
@@ -321,19 +364,24 @@ class ScoringEngine {
   /**
    * Apply custom scoring functions
    */
-  scoreCustom(candidate, signature, content) {
+  scoreCustom(candidate, signature, content, detailCollector = null) {
     let score = 0;
 
-    for (const scorer of this.compiledScorers) {
-      if (scorer.type === 'custom') {
-        try {
-          const customScore = scorer.fn(candidate, signature, content);
-          if (typeof customScore === 'number') {
-            score += customScore;
+    for (const scorer of this.customScorers) {
+      try {
+        const customScore = scorer.fn(candidate, signature, content);
+        if (typeof customScore === 'number' && customScore !== 0) {
+          score += customScore;
+          if (detailCollector) {
+            detailCollector.push({
+              type: 'custom',
+              source: scorer.name || 'custom',
+              score: customScore
+            });
           }
-        } catch (error) {
-          console.warn(`Custom scorer ${scorer.name || 'unnamed'} failed:`, error.message);
         }
+      } catch (error) {
+        console.warn(`Custom scorer ${scorer.name || 'custom'} failed:`, error.message);
       }
     }
 
@@ -396,7 +444,7 @@ class ScoringEngine {
    */
   updateConfig(config) {
     this.config = config.discovery?.scoring || {};
-    this.compiledScorers = this.compileScorers();
+    this.compileScorers();
   }
 }
 
