@@ -7,6 +7,7 @@ const { DiscoveryEngine, getDiscoveryEngine } = require('../adaptive/discovery-e
 const { PHPDiscoveryIntegration } = require('../adaptive/php/php-discovery-integration');
 const { PythonDiscoveryIntegration } = require('../adaptive/python/python-discovery-integration');
 const { JavaDiscoveryIntegration } = require('../adaptive/java/java-discovery-integration');
+const { GoDiscoveryIntegration } = require('../adaptive/go/go-discovery-integration');
 
 const COLORS = {
   reset: '\x1b[0m',
@@ -202,6 +203,7 @@ const generatePHPTestContent = ({ signature, phpMetadata }) => {
 
 
 const javaIntegration = new JavaDiscoveryIntegration(null);
+const goIntegration = new GoDiscoveryIntegration(null);
 const pythonIntegration = new PythonDiscoveryIntegration();
 
 const analyzeJavaFile = async (filePath) => {
@@ -238,6 +240,91 @@ const analyzeJavaFile = async (filePath) => {
   return { exports, javaMetadata };
 };
 
+const analyzeGoFile = async (filePath) => {
+  const goMetadata = await goIntegration.collector.parseFile(filePath);
+  if (!goMetadata) {
+    return null;
+  }
+
+  const exports = [];
+
+  // Add structs
+  goMetadata.structs.forEach(struct => {
+    if (struct.name) {
+      const methods = (struct.methods || []).map(method => method.name);
+      exports.push({
+        exportedName: struct.name,
+        access: { type: 'default' },
+        info: {
+          name: struct.name,
+          kind: 'struct',
+          type: 'struct',
+          methods,
+          fields: (struct.fields || []).map(field => field.name),
+          embeds: struct.embeds || [],
+          goType: struct
+        }
+      });
+    }
+  });
+
+  // Add interfaces
+  goMetadata.interfaces.forEach(iface => {
+    if (iface.name) {
+      const methods = (iface.methods || []).map(method => method.name);
+      exports.push({
+        exportedName: iface.name,
+        access: { type: 'default' },
+        info: {
+          name: iface.name,
+          kind: 'interface',
+          type: 'interface',
+          methods,
+          embeds: iface.embeds || [],
+          goType: iface
+        }
+      });
+    }
+  });
+
+  // Add functions
+  goMetadata.functions.forEach(func => {
+    if (func.name) {
+      exports.push({
+        exportedName: func.name,
+        access: { type: 'default' },
+        info: {
+          name: func.name,
+          kind: 'function',
+          type: 'function',
+          parameters: func.parameters || [],
+          returnType: func.returnType,
+          goType: func
+        }
+      });
+    }
+  });
+
+  // Add types (type aliases)
+  goMetadata.types.forEach(type => {
+    if (type.name) {
+      exports.push({
+        exportedName: type.name,
+        access: { type: 'default' },
+        info: {
+          name: type.name,
+          kind: 'type',
+          type: 'type',
+          underlyingType: type.underlyingType,
+          goType: type
+        }
+      });
+    }
+  });
+
+  return { exports, goMetadata };
+};
+
 const findJavaTarget = (javaMetadata, info) => {
   if (!javaMetadata) {
     return null;
@@ -254,6 +341,49 @@ const findJavaTarget = (javaMetadata, info) => {
     match = candidates.find(type => type.name === info.name);
   }
   return match || candidates[0];
+};
+
+const findGoTarget = (goMetadata, info) => {
+  if (!goMetadata) {
+    return null;
+  }
+  const targetName = info.name;
+  const candidates = [
+    ...goMetadata.structs,
+    ...goMetadata.interfaces,
+    ...goMetadata.functions,
+    ...goMetadata.types
+  ];
+  let match = candidates.find(item => item.name === targetName);
+  if (!match) {
+    match = candidates.find(item => item.name.toLowerCase() === targetName.toLowerCase());
+  }
+  return match || candidates[0];
+};
+
+const generateGoOutputPath = (root, filePath, options, targetName, goMetadata) => {
+  const baseName = targetName || path.basename(filePath, '.go');
+  const testFileName = `${baseName.toLowerCase()}_test.go`;
+  const sourceDir = path.dirname(filePath);
+
+  // Go tests should be in the same package/directory as the source
+  return path.join(sourceDir, testFileName);
+};
+
+const generateGoTestContent = ({ signature, goMetadata, goType, options = {} }) => {
+  const target = goType || findGoTarget(goMetadata, signature);
+  if (!target) {
+    throw new Error('Unable to resolve Go target for scaffolding');
+  }
+
+  const goTarget = {
+    name: target.name,
+    type: target.type,
+    packageName: goMetadata?.packageName,
+    metadata: target
+  };
+
+  return goIntegration.generateGoTest(goTarget, options);
 };
 
 const generateJavaOutputPath = (root, filePath, options, targetName, javaMetadata) => {
@@ -595,9 +725,10 @@ const processSingleFile = async (engine, filePath, options, results) => {
   const ext = path.extname(filePath);
   const isPHP = ext === '.php';
   const isJava = ext === '.java';
+  const isGo = ext === '.go';
   const isPython = ext === '.py';
 
-  let exports, phpMetadata, javaMetadata, pythonMetadata;
+  let exports, phpMetadata, javaMetadata, goMetadata, pythonMetadata;
 
   if (isJava) {
     const javaResult = await analyzeJavaFile(filePath);
@@ -608,6 +739,15 @@ const processSingleFile = async (engine, filePath, options, results) => {
     }
     exports = javaResult.exports;
     javaMetadata = javaResult.javaMetadata;
+  } else if (isGo) {
+    const goResult = await analyzeGoFile(filePath);
+    if (!goResult || !goResult.exports || goResult.exports.length === 0) {
+      results.skippedNoExport.push(filePath);
+      log(`⚠️  No Go types found in ${path.relative(options.root, filePath)}`, COLORS.yellow, options);
+      return;
+    }
+    exports = goResult.exports;
+    goMetadata = goResult.goMetadata;
   } else if (isPython) {
     const pythonResult = await analyzePythonFile(filePath);
     if (!pythonResult || !pythonResult.exports || pythonResult.exports.length === 0) {
@@ -683,6 +823,19 @@ const processSingleFile = async (engine, filePath, options, results) => {
           packageName: javaMetadata?.packageName
         }
       });
+    } else if (isGo) {
+      const goType = exportEntry.info.goType;
+      const targetName = options.allExports ? signature.name : signature.name || path.basename(filePath, path.extname(filePath));
+      outputPath = generateGoOutputPath(options.root, filePath, options, targetName, goMetadata);
+
+      content = generateGoTestContent({
+        signature,
+        goMetadata,
+        goType,
+        options: {
+          packageName: goMetadata?.packageName
+        }
+      });
     } else if (isPython) {
       const pythonInfo = exportEntry.info.python;
       signature.module = signature.module || computePythonModule(options.root, filePath);
@@ -724,12 +877,15 @@ const processSingleFile = async (engine, filePath, options, results) => {
 
 const runBatch = async (engine, entryPath, options, results) => {
   const extensions = engine.config.discovery.extensions || ['.js', '.ts', '.tsx'];
-  // Add PHP, Java, and Python extensions if not already included
+  // Add PHP, Java, Go, and Python extensions if not already included
   if (!extensions.includes('.php')) {
     extensions.push('.php');
   }
   if (!extensions.includes('.java')) {
     extensions.push('.java');
+  }
+  if (!extensions.includes('.go')) {
+    extensions.push('.go');
   }
   if (!extensions.includes('.py')) {
     extensions.push('.py');

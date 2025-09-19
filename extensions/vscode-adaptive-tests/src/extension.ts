@@ -95,7 +95,11 @@ export function activate(context: vscode.ExtensionContext) {
             { language: 'javascript' },
             { language: 'typescript' },
             { language: 'javascriptreact' },
-            { language: 'typescriptreact' }
+            { language: 'typescriptreact' },
+            { language: 'java' },
+            { language: 'go' },
+            { language: 'php' },
+            { language: 'python' }
         ],
         codeLensProvider
     );
@@ -142,7 +146,7 @@ export function activate(context: vscode.ExtensionContext) {
     return {
         getDiscoveryLensAPI,
 
-        // Additional APIs can be exposed here for other Cypher Suite extensions
+        // Additional APIs can be exposed here for other extensions
         getDiscoveryEngine: async () => {
             try {
                 const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;

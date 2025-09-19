@@ -3,10 +3,11 @@
  */
 
 const adaptive = require('./adaptive');
+const { getLogger } = require('./adaptive/logger');
 
 const LegacyDiscoveryEngine = adaptive.DiscoveryEngine;
 function getLegacyEngine(...args) {
-  console.warn('[adaptive-tests] getLegacyEngine is deprecated. Use getDiscoveryEngine instead.');
+  getLogger().warn('[adaptive-tests] getLegacyEngine is deprecated. Use getDiscoveryEngine instead.');
   return adaptive.getDiscoveryEngine(...args);
 }
 

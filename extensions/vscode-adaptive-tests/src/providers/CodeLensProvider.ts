@@ -20,7 +20,7 @@ export class AdaptiveTestsCodeLensProvider implements vscode.CodeLensProvider {
 
         // Only provide lenses for supported file types
         const ext = path.extname(document.fileName);
-        const supportedExtensions = ['.js', '.ts', '.jsx', '.tsx', '.java', '.php', '.py'];
+        const supportedExtensions = ['.js', '.ts', '.jsx', '.tsx', '.java', '.go', '.php', '.py'];
 
         if (!supportedExtensions.includes(ext)) {
             return codeLenses;
@@ -102,6 +102,13 @@ export class AdaptiveTestsCodeLensProvider implements vscode.CodeLensProvider {
                     { regex: /(?:public\s+)?class\s+(\w+)/g, type: 'class' },
                     { regex: /(?:public\s+)?interface\s+(\w+)/g, type: 'interface' },
                     { regex: /(?:public\s+)?enum\s+(\w+)/g, type: 'enum' }
+                ];
+
+            case '.go':
+                return [
+                    { regex: /type\s+(\w+)\s+struct/g, type: 'struct' },
+                    { regex: /type\s+(\w+)\s+interface/g, type: 'interface' },
+                    { regex: /func\s+(\w+)\s*\(/g, type: 'function' }
                 ];
 
             case '.php':

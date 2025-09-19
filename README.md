@@ -1,4 +1,4 @@
-# Adaptive Tests
+# Adaptive Tests: AI-Ready Testing Infrastructure
 
 [![Docs](https://img.shields.io/badge/docs-website-blue)](https://anon57396.github.io/adaptive-tests/)
 [![npm version](https://img.shields.io/npm/v/adaptive-tests.svg)](https://www.npmjs.com/package/adaptive-tests)
@@ -7,13 +7,13 @@
 
 Documentation: [https://anon57396.github.io/adaptive-tests/](https://anon57396.github.io/adaptive-tests/)
 
-If this project helps you, please consider supporting it via the Sponsor button (GitHub Sponsors) or your preferred tip link. Thank you!
+> **The only testing framework built for AI-driven development**
 
-Adaptive Tests keeps your suites green no matter how you reorganise your code. The
-engine uses **zero-runtime discovery** powered by AST analysis, so test targets are
-resolved without ever `require`-ing application modules during discovery. Move
-files, rename directories, refactor into new layers—adaptive suites still find the
-code they care about, while traditional suites keep failing with import errors.
+When AI agents rapidly reshape your codebase, traditional tests break constantly. Adaptive Tests uses **zero-runtime discovery** powered by AST analysis to find code by structure, not file paths. Your tests adapt as AI builds.
+
+**Stop wasting AI cycles on import maintenance.** Move files, rename directories, refactor into new layers—adaptive suites still find the code they care about, while traditional suites keep failing with import errors.
+
+If this project helps you, please consider supporting it via the Sponsor button (GitHub Sponsors) or your preferred tip link. Thank you!
 
 ---
 
@@ -48,20 +48,14 @@ The extension will be available on the VS Code Marketplace. For now, use the dev
 
 ---
 
-## Why Teams Adopt Adaptive Tests
+## Why AI-Powered Teams Choose Adaptive Tests
 
-- **Zero-runtime discovery** – candidate modules are inspected with `@babel/parser`
-  instead of `require()`, eliminating side effects and making discovery completely
-  deterministic.
-- **Async-first scanning** – the engine walks large repositories with
-  `fs.promises`, keeping Jest/Node responsive.
-- **Deep structural signatures** – classes, functions, inheritance chains,
-  methods, and instance properties are validated from the AST before a module is
-  ever loaded.
-- **Robust caching** – canonical JSON cache keys and mtime-aware entries avoid
-  stale hits while keeping repeat runs fast.
-- **Drop-in tooling** – CLI, factory helpers, and an abstract Jest base class mean
-  you can adopt a single file at a time or migrate whole suites.
+- **AI-velocity resilience** – When AI agents refactor aggressively, tests survive automatically without import fixing cycles
+- **Zero-runtime discovery** – candidate modules are inspected with `@babel/parser` instead of `require()`, eliminating side effects and making discovery completely deterministic
+- **Autonomous development ready** – Built for the era where AI reshapes codebases faster than humans can maintain test imports
+- **Deep structural signatures** – classes, functions, inheritance chains, methods, and instance properties are validated from the AST before a module is ever loaded
+- **Async-first scanning** – the engine walks large repositories with `fs.promises`, keeping Jest/Node responsive during rapid AI-driven changes
+- **Drop-in tooling** – CLI, factory helpers, and an abstract Jest base class mean you can adopt a single file at a time or migrate whole suites
 
 ---
 

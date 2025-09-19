@@ -94,6 +94,8 @@ declare const _exports: {
             };
         };
     };
+    setLogger: typeof adaptive.setLogger;
+    getLogger: typeof adaptive.getLogger;
 };
 export = _exports;
 import adaptive = require("./adaptive");

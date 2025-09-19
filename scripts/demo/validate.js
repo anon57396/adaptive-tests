@@ -2,28 +2,33 @@
 
 /**
  * Validation Script - Proves adaptive tests are doing real testing
- * Shows three scenarios:
+ * Shows six scenarios:
  * 1. Normal: Both test suites pass
  * 2. Refactored: Traditional breaks (import error), Adaptive passes
  * 3. Broken Code: Both fail with actual test failures (not discovery errors)
+ * 4. TypeScript mirror of the three scenarios above
+ * 5. Python example project parity (pytest)
+ * 6. Java example project parity (JUnit)
  */
 
 const { execSync } = require('child_process');
 const fs = require('fs');
+const path = require('path');
 
 console.log('=' .repeat(60));
 console.log('      ADAPTIVE TESTING VALIDATION');
 console.log('=' .repeat(60));
 
-function runCommand(cmd, expectFailure = false) {
+function runCommand(cmd, expectFailure = false, options = {}) {
+  const execOptions = { encoding: 'utf8', stdio: 'pipe', ...options };
   try {
-    const result = execSync(cmd, { encoding: 'utf8', stdio: 'pipe' });
-    return { success: true, output: result };
+    const result = execSync(cmd, execOptions);
+    const output = typeof result === 'string' ? result : (result ? result.toString() : '');
+    return { success: true, output };
   } catch (error) {
     const output = (error.stdout || error.stderr || error.message || '').toString();
     if (!expectFailure) {
-      throw new Error(`Command failed: ${cmd}
-${output}`);
+      throw new Error(`Command failed: ${cmd}\n${output}`);
     }
     return { success: false, output };
   }
@@ -32,8 +37,8 @@ ${output}`);
 function extractTestResults(output) {
   const passMatch = output.match(/Tests:.*?(\d+) passed/);
   const failMatch = output.match(/Tests:.*?(\d+) failed/);
-  const passed = passMatch ? parseInt(passMatch[1]) : 0;
-  const failed = failMatch ? parseInt(failMatch[1]) : 0;
+  const passed = passMatch ? parseInt(passMatch[1], 10) : 0;
+  const failed = failMatch ? parseInt(failMatch[1], 10) : 0;
 
   // Look for specific error types
   const hasImportError = output.includes('Cannot find module') ||
@@ -44,6 +49,139 @@ function extractTestResults(output) {
                          output.includes('toBe');
 
   return { passed, failed, hasImportError, hasTestFailure };
+}
+
+const ROOT_DIR = path.join(__dirname, '..', '..');
+const PYTHON_EXAMPLE_DIR = path.join(ROOT_DIR, 'examples', 'python');
+const PYTHON_VENV_NAME = '.adaptive-validate-venv';
+const JAVA_PACKAGE_DIR = path.join(ROOT_DIR, 'packages', 'adaptive-tests-java');
+
+function quote(value) {
+  if (!value) {
+    return '';
+  }
+  if (!/\s/.test(value)) {
+    return value;
+  }
+  if (process.platform === 'win32') {
+    return `"${value.replace(/"/g, '""')}"`;
+  }
+  const escaped = value.replace(/(["\$`\\])/g, '\\$1');
+  return `"${escaped}"`;
+}
+
+function resolvePythonInterpreter() {
+  const candidates = [];
+  if (process.env.PYTHON && process.env.PYTHON.trim().length > 0) {
+    candidates.push(process.env.PYTHON.trim());
+  }
+  if (process.platform === 'win32') {
+    candidates.push('py -3');
+    candidates.push('py');
+    candidates.push('python');
+  } else {
+    candidates.push('python3');
+    candidates.push('python');
+  }
+  for (const candidate of candidates) {
+    if (!candidate) continue;
+    try {
+      execSync(`${candidate} --version`, { stdio: 'pipe' });
+      return candidate;
+    } catch (error) {
+      // Ignore and try next candidate
+    }
+  }
+  return null;
+}
+
+function pythonExecutablePath(venvPath) {
+  if (process.platform === 'win32') {
+    return path.join(venvPath, 'Scripts', 'python.exe');
+  }
+  return path.join(venvPath, 'bin', 'python');
+}
+
+function extractPytestSummary(output) {
+  const lines = output.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+  for (let i = lines.length - 1; i >= 0; i -= 1) {
+    const line = lines[i];
+    if ((line.startsWith('===') && line.endsWith('===')) || line.includes(' passed') || line.includes(' failed')) {
+      return line.replace(/=+/g, '=');
+    }
+  }
+  return 'pytest completed';
+}
+
+function runPythonScenario() {
+  const pythonCmd = resolvePythonInterpreter();
+  if (!pythonCmd) {
+    console.warn('  ⚠️  Skipping Python scenario: no Python interpreter available.');
+    return { status: 'skipped', reason: 'Python interpreter not found' };
+  }
+
+  console.log(`Using Python interpreter: ${pythonCmd}`);
+
+  const venvPath = path.join(PYTHON_EXAMPLE_DIR, PYTHON_VENV_NAME);
+  if (fs.existsSync(venvPath)) {
+    fs.rmSync(venvPath, { recursive: true, force: true });
+  }
+
+  let cleanupNeeded = false;
+  try {
+    runCommand(`${pythonCmd} -m venv ${quote(PYTHON_VENV_NAME)}`, false, { cwd: PYTHON_EXAMPLE_DIR });
+    cleanupNeeded = true;
+
+    const pythonExec = pythonExecutablePath(venvPath);
+    const quotedPythonExec = quote(pythonExec);
+
+    runCommand(`${quotedPythonExec} -m pip install --upgrade pip`, false, { cwd: PYTHON_EXAMPLE_DIR });
+    runCommand(`${quotedPythonExec} -m pip install -r requirements.txt`, false, { cwd: PYTHON_EXAMPLE_DIR });
+
+    const pytestResult = runCommand(`${quotedPythonExec} -m pytest`, false, { cwd: PYTHON_EXAMPLE_DIR });
+    const summary = extractPytestSummary(pytestResult.output);
+    console.log(`  ✓ Python pytest: ${summary}`);
+    return { status: 'passed', summary };
+  } finally {
+    if (cleanupNeeded && fs.existsSync(venvPath)) {
+      fs.rmSync(venvPath, { recursive: true, force: true });
+    }
+  }
+}
+
+function resolveMavenWrapper(javaDir) {
+  const scriptName = process.platform === 'win32' ? 'mvnw.cmd' : './mvnw';
+  const scriptPath = path.join(javaDir, process.platform === 'win32' ? 'mvnw.cmd' : 'mvnw');
+  return fs.existsSync(scriptPath) ? scriptName : null;
+}
+
+function extractMavenSummary(output) {
+  const lines = output.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+  const testLine = lines.find((line) => line.startsWith('Tests run:'));
+  const buildLine = lines.find((line) => line.startsWith('BUILD '));
+  if (testLine && buildLine) {
+    return `${testLine} | ${buildLine}`;
+  }
+  if (testLine) {
+    return testLine;
+  }
+  if (buildLine) {
+    return buildLine;
+  }
+  return 'tests completed';
+}
+
+function runJavaScenario() {
+  const wrapper = resolveMavenWrapper(JAVA_PACKAGE_DIR);
+  if (!wrapper) {
+    console.warn('  ⚠️  Skipping Java scenario: Maven wrapper not found.');
+    return { status: 'skipped', reason: 'Maven wrapper not found' };
+  }
+
+  const result = runCommand(`${wrapper} -q test`, false, { cwd: JAVA_PACKAGE_DIR });
+  const summary = extractMavenSummary(result.output);
+  console.log(`  ✓ Maven tests: ${summary}`);
+  return { status: 'passed', summary };
 }
 
 console.log('\n📋 SCENARIO 1: Normal Code Structure');
@@ -184,6 +322,14 @@ if (!( !tsTradBroken.success && !tsAdaptBroken.success && tsTradBrokenResults.ha
 runCommand('node scripts/demo/restore-broken-ts.js', false);
 runCommand('node scripts/demo/restore-ts.js', false);
 
+console.log('\n📋 SCENARIO 5: Python Adaptive Example');
+console.log('-'.repeat(40));
+const pythonScenario = runPythonScenario();
+
+console.log('\n📋 SCENARIO 6: Java Adaptive Example');
+console.log('-'.repeat(40));
+const javaScenario = runJavaScenario();
+
 console.log('\n' + '='.repeat(60));
 console.log('                    VALIDATION SUMMARY');
 console.log('='.repeat(60));
@@ -191,6 +337,16 @@ console.log('\n✅ Adaptive tests pass when code works');
 console.log('✅ Adaptive tests survive refactoring (traditional don\'t)');
 console.log('✅ Adaptive tests fail on real bugs (same as traditional)');
 console.log('✅ TypeScript example mirrors the same behaviour');
+if (pythonScenario.status === 'passed') {
+  console.log('✅ Python example validates adaptive discovery');
+} else {
+  console.log(`⚠️ Python validation skipped: ${pythonScenario.reason}`);
+}
+if (javaScenario.status === 'passed') {
+  console.log('✅ Java example validates adaptive discovery');
+} else {
+  console.log(`⚠️ Java validation skipped: ${javaScenario.reason}`);
+}
 console.log('\n🎯 Conclusion: Adaptive tests do REAL validation');
 console.log('   They\'re not just always passing - they catch actual bugs!');
 console.log('   But they don\'t break when you move files around.');

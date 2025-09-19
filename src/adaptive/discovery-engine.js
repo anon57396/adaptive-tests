@@ -17,6 +17,7 @@ const { ConfigLoader } = require('./config-loader');
 const { analyzeModuleExports: parseModuleExports } = require('./parser');
 const { ScoringEngine } = require('./scoring-engine');
 const { createTsconfigResolver } = require('./tsconfig-resolver');
+const { getLogger } = require('./logger');
 
 // Cache for module requirements with size limit
 const MAX_MODULE_CACHE_SIZE = 100;
@@ -1271,7 +1272,7 @@ class DiscoveryEngine {
       return;
     }
     const details = error && error.message ? `: ${error.message}` : '';
-    console.warn(`[adaptive-tests] ${message}${details}`);
+    getLogger().warn(`[adaptive-tests] ${message}${details}`);
   }
 
   isCacheEntryExpired(entry) {

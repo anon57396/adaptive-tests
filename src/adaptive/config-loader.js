@@ -11,6 +11,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { getLogger } = require('./logger');
 
 const DEFAULT_CONFIG = {
   discovery: {
@@ -215,7 +216,7 @@ class ConfigLoader {
           return JSON.parse(fs.readFileSync(configPath, 'utf8'));
         }
       } catch (error) {
-        console.warn(`Failed to load config from ${configPath}:`, error.message);
+        getLogger().warn(`Failed to load config from ${configPath}: ${error.message}`);
       }
     }
     return null;
@@ -240,7 +241,7 @@ class ConfigLoader {
         }
       } catch (error) {
         if (!error.message.includes('Cannot find module')) {
-          console.warn(`Failed to load config from ${configPath}:`, error.message);
+          getLogger().warn(`Failed to load config from ${configPath}: ${error.message}`);
         }
       }
     }
@@ -287,7 +288,7 @@ class ConfigLoader {
         if (scorer && typeof scorer.score === 'function') {
           return true;
         }
-        console.warn('Invalid custom scorer removed:', scorer);
+        getLogger().warn('Invalid custom scorer removed:', scorer);
         return false;
       });
     }
@@ -298,7 +299,7 @@ class ConfigLoader {
         if (typeof obj[key] === 'object' && obj[key] !== null) {
           validateScores(obj[key]);
         } else if (typeof obj[key] !== 'number' && typeof obj[key] !== 'function') {
-          console.warn(`Invalid score value for ${key}: ${obj[key]}`);
+          getLogger().warn(`Invalid score value for ${key}: ${obj[key]}`);
           delete obj[key];
         }
       }

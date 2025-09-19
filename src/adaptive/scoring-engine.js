@@ -5,6 +5,7 @@
  */
 
 const path = require('path');
+const { getLogger } = require('./logger');
 
 class ScoringEngine {
   constructor(config = {}) {
@@ -199,7 +200,7 @@ class ScoringEngine {
           }
         }
       } catch (error) {
-        console.warn(`Path scorer ${scorer.label || 'custom'} failed:`, error.message);
+        getLogger().warn(`Path scorer ${scorer.label || 'custom'} failed: ${error.message}`);
       }
     }
 
@@ -381,7 +382,7 @@ class ScoringEngine {
           }
         }
       } catch (error) {
-        console.warn(`Custom scorer ${scorer.name || 'custom'} failed:`, error.message);
+        getLogger().warn(`Custom scorer ${scorer.name || 'custom'} failed: ${error.message}`);
       }
     }
 

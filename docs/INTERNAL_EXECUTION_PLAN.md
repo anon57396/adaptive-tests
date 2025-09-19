@@ -31,7 +31,7 @@ This document tracks the project's strategic goals, development phases, and next
     - **Interactive Discovery Lens:** A webview UI for the `why` command.
     - **Smart Scaffolding:** Right-click context menus for file and folder scaffolding.
     - **Smart Test Detection:** Dynamic context menus that change based on test existence.
-- **Hub-Ready API:** The extension was architected with a public API surface, making it ready for Phase 2 of the Cypher Suite vision (unification into a single "Hub" extension).
+- **Hub-Ready API:** The extension was architected with a public API surface for potential future integrations with other development tools.
 
 ---
 

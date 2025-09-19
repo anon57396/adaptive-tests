@@ -1,8 +1,8 @@
 package io.adaptivetests.java.testing;
 
-import io.adaptivetests.java.discovery.DiscoveryException;
 import io.adaptivetests.java.discovery.DiscoveryResult;
 import io.adaptivetests.java.discovery.JavaDiscoveryEngine;
+import io.adaptivetests.java.discovery.JavaDiscoveryEngine.DiscoveryException;
 import io.adaptivetests.java.discovery.Signature;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;

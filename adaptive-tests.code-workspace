@@ -2,15 +2,6 @@
 	"folders": [
 		{
 			"path": "."
-		},
-		{
-			"path": "../TrainingCypher"
-		},
-		{
-			"path": "../PromptCypher"
-		},
-		{
-			"path": "../CodeCypher"
 		}
 	],
 	"settings": {

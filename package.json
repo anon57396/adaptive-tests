@@ -1,7 +1,7 @@
 {
   "name": "adaptive-tests",
   "version": "0.2.2",
-  "description": "Adaptive test discovery that survives refactors without losing real bug coverage.",
+  "description": "AI-ready testing infrastructure that survives refactors without breaking. Built for autonomous development workflows.",
   "main": "src/adaptive/index.js",
   "bin": {
     "adaptive-tests": "src/cli/init.js",
@@ -27,7 +27,7 @@
     "demo:broken:ts": "node scripts/demo/demo-broken-ts.js",
     "restore:broken:ts": "node scripts/demo/restore-broken-ts.js",
     "validate": "node scripts/demo/validate.js",
-    "demo": "npm run restore && npm run test:both && echo '\n\ud83d\udd27 REFACTORING...\n' && npm run refactor && echo '\n\ud83d\udcdd TRADITIONAL TESTS:\n' && npm run test:traditional || true && echo '\n\u2705 ADAPTIVE TESTS:\n' && npm run test:adaptive",
+    "demo": "npm run restore && npm run test:both && echo '\n🔧 REFACTORING...\n' && npm run refactor && echo '\n📝 TRADITIONAL TESTS:\n' && npm run test:traditional || true && echo '\n✅ ADAPTIVE TESTS:\n' && npm run test:adaptive",
     "demo:full": "npm run validate",
     "compare": "node scripts/demo/compare.js",
     "benchmark": "node scripts/demo/benchmark.js",
@@ -43,11 +43,16 @@
   "keywords": [
     "testing",
     "adaptive",
+    "ai-ready",
+    "autonomous-development",
     "refactoring",
+    "ast-discovery",
     "jest",
     "mocha",
     "test-automation",
-    "dynamic-discovery"
+    "dynamic-discovery",
+    "ai-agents",
+    "copilot-ready"
   ],
   "author": "Jason Kempf <jasonkempf@gmail.com>",
   "license": "MIT",
@@ -150,8 +155,11 @@
   },
   "dependencies": {
     "@babel/parser": "^7.25.0",
+    "java-parser": "^3.0.1",
     "php-parser": "^3.2.5",
+    "tree-sitter": "^0.25.0",
+    "tree-sitter-go": "^0.25.0",
     "tsconfig-paths": "^4.2.0",
-    "java-parser": "^3.0.1"
+    "web-tree-sitter": "^0.25.9"
   }
 }

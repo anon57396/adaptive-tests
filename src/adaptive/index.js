@@ -9,6 +9,7 @@ const { TypeScriptDiscoveryEngine, getTypeScriptDiscoveryEngine } = require('./t
 const { AdaptiveTest, adaptiveTest } = require('./test-base');
 const { ConfigLoader, DEFAULT_CONFIG } = require('./config-loader');
 const { ScoringEngine } = require('./scoring-engine');
+const { setLogger, getLogger } = require('./logger');
 
 /**
  * @typedef {import('./discovery-engine').DiscoverySignature} DiscoverySignature
@@ -44,4 +45,8 @@ module.exports = {
   ConfigLoader,
   ScoringEngine,
   DEFAULT_CONFIG,
+
+  // Logging
+  setLogger,
+  getLogger,
 };

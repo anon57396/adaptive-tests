@@ -6,6 +6,7 @@
  */
 
 const { DiscoveryEngine: CoreDiscoveryEngine, getDiscoveryEngine: coreGetDiscoveryEngine } = require('./discovery-engine');
+const { getLogger } = require('./logger');
 
 let warned = false;
 function emitDeprecationWarning() {
@@ -16,8 +17,8 @@ function emitDeprecationWarning() {
     process.emitWarning(message, {
       code: 'ADAPTIVE_TESTS_DEPRECATED_DISCOVERY',
     });
-  } else if (typeof console !== 'undefined' && typeof console.warn === 'function') {
-    console.warn(message);
+  } else {
+    getLogger().warn(message);
   }
 }
 

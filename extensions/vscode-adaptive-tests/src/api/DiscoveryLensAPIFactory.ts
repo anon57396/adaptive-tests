@@ -5,9 +5,8 @@ import { IDiscoveryLensAPI, DiscoveryLensAPIOptions } from '../types/api';
 /**
  * Factory for creating and managing Discovery Lens API instances
  *
- * This factory enables other extensions in the Cypher Suite to
- * obtain a reference to the Discovery Lens API for cross-extension
- * communication and coordination.
+ * This factory enables other extensions to obtain a reference to the
+ * Discovery Lens API for cross-extension communication and coordination.
  */
 export class DiscoveryLensAPIFactory {
     private static instance: DiscoveryLensAPIFactory;
@@ -84,11 +83,11 @@ export class DiscoveryLensAPIFactory {
  * Global factory function for external extensions
  *
  * This function is the primary entry point for other extensions
- * in the Cypher Suite to obtain the Discovery Lens API.
+ * to obtain the Discovery Lens API.
  *
  * @example
  * ```typescript
- * // In another Cypher Suite extension
+ * // In another extension
  * const adaptiveTests = vscode.extensions.getExtension('adaptive-tests.vscode-adaptive-tests');
  * if (adaptiveTests) {
  *     const api = adaptiveTests.exports;

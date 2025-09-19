@@ -4,18 +4,11 @@ Guidance for any AI or automation working inside this repository.
 
 ## Mission-Critical Context
 
-This project, while standalone, is a foundational component of the "Cypher Suite," a portfolio of highly ambitious, AI-powered developer tools. It serves as the bedrock of credibility for the entire ecosystem. The standards for code quality, documentation, and reliability are exceptionally high. Every contribution must reflect a commitment to perfection and a deep understanding of the project's role in the broader vision. Mediocrity will not be accepted.
+This project is the **AI-ready testing foundation** for the autonomous development era. As AI agents increasingly reshape codebases at velocity, adaptive-tests ensures testing infrastructure doesn't break through AST-based analysis instead of brittle file path imports.
 
-### The Cypher Suite: Phased Vision
+**The paradigm shift:** While traditional tests break when AI agents refactor, adaptive tests survive by finding code through structure, not file paths. This eliminates the import maintenance cycles that waste AI capabilities on busywork instead of feature development.
 
-*   **Phase 1 (Current): Standalone VS Code Extensions.** Each project develops as a standalone VS Code extension for rapid validation:
-    - [`adaptive-tests`](https://github.com/anon57396/adaptive-tests) - Adaptive test discovery engine (this repository)
-    - [`CodeCypher`](https://github.com/anon57396/codecypher) - AI-powered code analysis and refactoring
-    - [`TrainingCypher`](https://github.com/anon57396/trainingcypher) - Machine learning model training assistant
-    - [`PromptCypher`](https://github.com/anon57396/promptcypher) - Advanced prompt engineering toolkit
-*   **Architectural Mandate:** To ensure future unification, all extension UIs **must** be built as self-contained, modular webviews with logic decoupled via a message-passing API.
-*   **Phase 2 (Future): Unified "Hub" Extension.** The modular extensions will be merged into a single, cohesive "Cypher Suite" extension within VS Code.
-*   **Phase 3 (Horizon): Standalone Desktop App.** The unified web components will be repackaged into a desktop application (e.g., using Electron/Tauri).
+The standards for code quality, documentation, and reliability are exceptionally high. Every contribution must reflect a commitment to perfection and a deep understanding of the project's role in enabling autonomous development workflows. Mediocrity will not be accepted.
 
 ## Core Principles
 
@@ -106,15 +99,9 @@ Supporting directories:
   PyPI [`adaptive-tests-py`](https://pypi.org/project/adaptive-tests-py/)
 - VS Code Extension: [Development Alpha](extensions/vscode-adaptive-tests/README.md)
 
-## Ecosystem Integration
+## Integration Notes
 
-As part of the Cypher Suite, adaptive-tests provides the foundation for reliable test automation across all tools:
-
-- **CodeCypher**: Uses adaptive discovery for refactoring verification and regression testing
-- **TrainingCypher**: Leverages adaptive patterns for ML model testing and validation pipelines
-- **PromptCypher**: Adopts adaptive signatures for prompt engineering test suites
-
-Cross-repository collaboration follows the same multi-agent principles outlined above.
+This adaptive testing framework is designed to work with various development workflows and testing strategies. It integrates well with existing CI/CD pipelines and development tools while providing resilient test discovery that survives code refactoring.
 
 Remember: this repository is public. Treat every script, code comment, and issue
 reply as something future users will read.

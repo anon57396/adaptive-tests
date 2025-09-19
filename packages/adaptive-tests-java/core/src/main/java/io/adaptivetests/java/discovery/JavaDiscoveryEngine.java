@@ -27,9 +27,11 @@ import java.nio.file.Paths;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.Deque;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -45,8 +47,8 @@ public final class JavaDiscoveryEngine {
     private final DiscoveryConfig config;
     private final JavaParser parser;
     private final ScoringEngine scoringEngine = new ScoringEngine();
-    private final Map<String, CacheEntry> runtimeCache = new ConcurrentHashMap<>();
-    private Map<String, CacheEntry> persistentCache;
+    private final Map<String, CacheEntry> runtimeCache;
+    private Map<String, CacheEntry> persistentCache = new HashMap<>();
     private boolean cacheLoaded;
 
     public JavaDiscoveryEngine(Path root) {
@@ -56,9 +58,18 @@ public final class JavaDiscoveryEngine {
     public JavaDiscoveryEngine(Path root, Map<String, Object> overrides) {
         this.root = root.toAbsolutePath().normalize();
         this.config = new ConfigLoader().load(this.root, overrides);
+        this.runtimeCache = createRuntimeCache();
         ParserConfiguration configuration = new ParserConfiguration();
         configuration.setLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_11);
         this.parser = new JavaParser(configuration);
+    }
+
+    private Map<String, CacheEntry> createRuntimeCache() {
+        int maxEntries = config.getRuntimeCacheSize();
+        if (maxEntries > 0) {
+            return Collections.synchronizedMap(new LruCache<>(maxEntries));
+        }
+        return new ConcurrentHashMap<>();
     }
 
     public DiscoveryResult discover(Signature signature) throws DiscoveryException {
@@ -73,14 +84,17 @@ public final class JavaDiscoveryEngine {
         try {
             ensureCacheLoaded();
             String key = cacheKey(signature);
-            CacheEntry cached = runtimeCache.get(key);
-            if (cached != null && isFresh(cached)) {
-                return List.of(cached.toDiscoveryResult());
-            }
-            CacheEntry persisted = persistentCache.get(key);
-            if (persisted != null && isFresh(persisted)) {
-                runtimeCache.put(key, persisted);
-                return List.of(persisted.toDiscoveryResult());
+
+            if (config.isCacheEnabled()) {
+                CacheEntry cached = runtimeCache.get(key);
+                if (cached != null && isFresh(cached)) {
+                    return List.of(cached.toDiscoveryResult());
+                }
+                CacheEntry persisted = persistentCache.get(key);
+                if (persisted != null && isFresh(persisted)) {
+                    runtimeCache.put(key, persisted);
+                    return List.of(persisted.toDiscoveryResult());
+                }
             }
 
             List<ScoredCandidate> candidates = collectCandidates(signature);
@@ -89,7 +103,7 @@ public final class JavaDiscoveryEngine {
                     .map(ScoredCandidate::toResult)
                     .collect(Collectors.toList());
 
-            if (!results.isEmpty()) {
+            if (config.isCacheEnabled() && !results.isEmpty()) {
                 CacheEntry entry = CacheEntry.from(results.get(0));
                 runtimeCache.put(key, entry);
                 persistentCache.put(key, entry);
@@ -373,14 +387,22 @@ public final class JavaDiscoveryEngine {
         if (cacheLoaded) {
             return;
         }
+        if (!config.isCacheEnabled()) {
+            synchronized (runtimeCache) {
+                runtimeCache.clear();
+            }
+            persistentCache = new HashMap<>();
+            cacheLoaded = true;
+            return;
+        }
         Path cacheFile = config.getCacheFile();
         if (Files.exists(cacheFile)) {
             try {
                 Map<String, CacheEntry> loaded = MAPPER.readValue(cacheFile.toFile(), new TypeReference<>() {});
                 persistentCache = new HashMap<>(loaded);
             } catch (IOException e) {
-                System.err.println("[adaptive-tests-java] Ignoring corrupt cache: " + cacheFile + " - " + e.getMessage());
                 persistentCache = new HashMap<>();
+                logCacheWarning("Ignoring corrupt cache: " + cacheFile, e);
             }
         } else {
             persistentCache = new HashMap<>();
@@ -389,16 +411,46 @@ public final class JavaDiscoveryEngine {
     }
 
     private void saveCache() {
+        if (!config.isCacheEnabled()) {
+            return;
+        }
+        Path cacheFile = config.getCacheFile();
         try {
-            Path cacheFile = config.getCacheFile();
-            Files.createDirectories(cacheFile.getParent());
+            Path parent = cacheFile.getParent();
+            if (parent != null) {
+                Files.createDirectories(parent);
+            }
             MAPPER.writerWithDefaultPrettyPrinter().writeValue(cacheFile.toFile(), persistentCache);
         } catch (IOException e) {
-            System.err.println("[adaptive-tests-java] Failed to persist cache: " + e.getMessage());
+            logCacheWarning("Failed to persist cache " + cacheFile, e);
+        }
+    }
+
+    private void logCacheWarning(String message, Exception error) {
+        if (!config.isCacheLogWarnings()) {
+            return;
+        }
+        if (error != null && error.getMessage() != null) {
+            System.err.println("[adaptive-tests-java] " + message + " - " + error.getMessage());
+        } else {
+            System.err.println("[adaptive-tests-java] " + message);
         }
     }
 
     private boolean isFresh(CacheEntry entry) {
+        if (!config.isCacheEnabled()) {
+            return false;
+        }
+        if (config.getCacheTtlMillis() > 0) {
+            long timestamp = entry.getTimestamp();
+            if (timestamp <= 0) {
+                return false;
+            }
+            long age = System.currentTimeMillis() - timestamp;
+            if (age > config.getCacheTtlMillis()) {
+                return false;
+            }
+        }
         Path file = Paths.get(entry.path);
         if (!Files.exists(file)) {
             return false;
@@ -455,6 +507,20 @@ public final class JavaDiscoveryEngine {
         }
     }
 
+    private static final class LruCache<K, V> extends LinkedHashMap<K, V> {
+        private final int maxSize;
+
+        private LruCache(int maxSize) {
+            super(16, 0.75f, true);
+            this.maxSize = maxSize;
+        }
+
+        @Override
+        protected boolean removeEldestEntry(Map.Entry<K, V> eldest) {
+            return maxSize > 0 && size() > maxSize;
+        }
+    }
+
     public static final class CacheEntry {
         private Signature.Type type;
         private String className;
@@ -466,9 +532,10 @@ public final class JavaDiscoveryEngine {
         private String extendsClass;
         private List<String> implementsInterfaces;
         private long mtime;
+        private long timestamp;
 
         public CacheEntry() {
-            this(Signature.Type.CLASS, "", null, "", 0, new ArrayList<>(), new ArrayList<>(), null, new ArrayList<>(), 0);
+            this(Signature.Type.CLASS, "", null, "", 0, new ArrayList<>(), new ArrayList<>(), null, new ArrayList<>(), 0, 0);
         }
 
         CacheEntry(Signature.Type type,
@@ -480,7 +547,8 @@ public final class JavaDiscoveryEngine {
                    List<String> annotations,
                    String extendsClass,
                    List<String> implementsInterfaces,
-                   long mtime) {
+                   long mtime,
+                   long timestamp) {
             this.type = type;
             this.className = className;
             this.packageName = packageName;
@@ -491,6 +559,7 @@ public final class JavaDiscoveryEngine {
             this.extendsClass = extendsClass;
             this.implementsInterfaces = new ArrayList<>(implementsInterfaces);
             this.mtime = mtime;
+            this.timestamp = timestamp;
         }
 
         DiscoveryResult toDiscoveryResult() {
@@ -525,7 +594,8 @@ public final class JavaDiscoveryEngine {
                     result.getAnnotations(),
                     result.getExtendsClass(),
                     result.getImplementsInterfaces(),
-                    modified
+                    modified,
+                    System.currentTimeMillis()
             );
         }
 
@@ -607,6 +677,14 @@ public final class JavaDiscoveryEngine {
 
         public void setMtime(long mtime) {
             this.mtime = mtime;
+        }
+
+        public long getTimestamp() {
+            return timestamp;
+        }
+
+        public void setTimestamp(long timestamp) {
+            this.timestamp = timestamp;
         }
     }
 
