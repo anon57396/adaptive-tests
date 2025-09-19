@@ -4,7 +4,6 @@
     "types/adaptive/index.d.ts",
     "types/index.d.ts"
   ],
-  "plugin": ["typedoc-plugin-markdown"],
   "out": "docs/api",
   "tsconfig": "typedoc.tsconfig.json",
   "readme": "none",
