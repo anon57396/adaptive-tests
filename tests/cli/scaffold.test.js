@@ -5,6 +5,8 @@ const { spawnSync } = require('child_process');
 
 const CLI_PATH = path.resolve(__dirname, '../../src/cli/init.js');
 const FIXTURE_ROOT = path.resolve(__dirname, '../fixtures/scaffold');
+const JAVA_FIXTURE_ROOT = path.resolve(__dirname, '../fixtures/java-scaffold');
+const JAVA_GRADLE_FIXTURE_ROOT = path.resolve(__dirname, '../fixtures/java-gradle');
 
 function runCli(args, options = {}) {
   const result = spawnSync('node', [CLI_PATH, ...args], {
@@ -36,12 +38,16 @@ describe('CLI scaffold command', () => {
     });
   });
 
-  const createTempWorkspace = () => {
+  const createWorkspaceFrom = (fixtureRoot) => {
     const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'adaptive-tests-scaffold-'));
     tempDirs.push(tempDir);
-    fs.cpSync(FIXTURE_ROOT, tempDir, { recursive: true });
+    fs.cpSync(fixtureRoot, tempDir, { recursive: true });
     return tempDir;
   };
+
+  const createTempWorkspace = () => createWorkspaceFrom(FIXTURE_ROOT);
+  const createJavaWorkspace = () => createWorkspaceFrom(JAVA_FIXTURE_ROOT);
+  const createGradleWorkspace = () => createWorkspaceFrom(JAVA_GRADLE_FIXTURE_ROOT);
 
   it('generates a JavaScript adaptive test skeleton from a source path', () => {
     const workspace = createTempWorkspace();
@@ -143,4 +149,38 @@ describe('CLI scaffold command', () => {
     ];
     expectedFiles.forEach((file) => expect(fs.existsSync(file)).toBe(true));
   });
+
+  it('generates a JUnit test for Java sources', () => {
+    const workspace = createJavaWorkspace();
+
+    const result = runCli(['scaffold', 'src/main/java/com/example/service/CustomerService.java', '--json'], { cwd: workspace });
+
+    expect(result.status).toBe(0);
+    const payload = JSON.parse(result.stdout);
+    expect(payload.created).toContain('src/test/java/com/example/service/CustomerServiceTest.java');
+
+    const generatedPath = path.join(workspace, 'src', 'test', 'java', 'com/example/service/CustomerServiceTest.java');
+    expect(fs.existsSync(generatedPath)).toBe(true);
+
+    const content = fs.readFileSync(generatedPath, 'utf8');
+    expect(content).toContain('package com.example.service;');
+    expect(content).toContain('import org.junit.jupiter.api.BeforeEach;');
+    expect(content).toContain('@Test');
+  });
+
+  it('places Gradle module tests under src/test/java', () => {
+    const workspace = createGradleWorkspace();
+
+    const result = runCli(['scaffold', 'app/src/main/java/com/example/order/OrderService.java', '--json'], { cwd: workspace });
+
+    expect(result.status).toBe(0);
+    const payload = JSON.parse(result.stdout);
+    expect(payload.created).toContain('app/src/test/java/com/example/order/OrderServiceTest.java');
+
+    const generatedPath = path.join(workspace, 'app', 'src', 'test', 'java', 'com/example/order/OrderServiceTest.java');
+    expect(fs.existsSync(generatedPath)).toBe(true);
+    const content = fs.readFileSync(generatedPath, 'utf8');
+    expect(content).toContain('package com.example.order;');
+  });
+
 });
