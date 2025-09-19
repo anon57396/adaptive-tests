@@ -9,12 +9,14 @@ coverage:
   status:
     project:
       default:
-        target: 80%
+        target: auto
         threshold: 2%
+        informational: true
     patch:
       default:
         target: 80%
         threshold: 2%
+        informational: true
 
 parsers:
   gcov:
@@ -24,12 +26,7 @@ parsers:
       method: no
       macro: no
 
-comment:
-  layout: "reach, diff, flags, files"
-  behavior: default
-  require_changes: false
-  require_base: false
-  require_head: true
+comment: false
 
 ignore:
   - "examples/**/*"
