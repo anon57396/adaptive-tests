@@ -20,3 +20,6 @@ classifiers = [
 Homepage = "https://github.com/anon57396/adaptive-tests"
 Repository = "https://github.com/anon57396/adaptive-tests"
 Issues = "https://github.com/anon57396/adaptive-tests/issues"
+
+[project.scripts]
+adaptive-tests-py = "adaptive_tests_py.cli:main"

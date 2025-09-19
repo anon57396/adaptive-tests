@@ -1,9 +1,10 @@
 """Static discovery utilities for Python test suites.
 
-This module mirrors the zero-runtime guarantees of the JavaScript discovery
-engine by analysing source files with :mod:`ast` instead of importing every
-module that matches a glob. The engine walks the project tree, scores
-potential matches, and (optionally) resolves the best candidate on demand.
+The design mirrors the JavaScript engine: discovery performs zero-runtime
+analysis of project files, scores candidates using configurable heuristics, and
+optionally caches successful resolutions to speed up subsequent runs. A
+"Lens"-style explanation API surfaces the ranked candidates and scoring
+breakdowns to aid debugging and signature tuning.
 """
 
 from __future__ import annotations
@@ -11,45 +12,23 @@ from __future__ import annotations
 import ast
 import importlib
 import importlib.util
+import json
 import os
 import re
 import sys
-from dataclasses import dataclass
+import time
+from dataclasses import dataclass, field, asdict
 from hashlib import sha1
 from pathlib import Path
-from typing import Any, Iterable, Iterator, List, Optional, Sequence, Tuple
+from typing import Any, Dict, Iterable, Iterator, List, MutableMapping, Optional, Sequence, Tuple
+
+from .config import ConfigLoader, DEFAULT_CONFIG
+from .scoring import CandidateSnapshot, ScoreReport, ScoringEngine
 
 
 @dataclass(frozen=True)
 class Signature:
-    """Structure-based query used to locate a target symbol.
-
-    Parameters
-    ----------
-    name:
-        Identifier or regular expression for the symbol to locate.
-    type:
-        ``"class"`` (default), ``"function"`` or ``"any"``.
-    methods:
-        Optional method names that must exist on the discovered class.
-    module:
-        Exact module path (``package.module``) that the target must live in.
-    module_pattern:
-        Regular expression that the module path must satisfy. Ignored when
-        ``module`` is provided.
-    decorators:
-        Optional decorator names (without the ``@``) that must decorate the
-        target. For example ``("dataclass",)`` matches ``@dataclass``.
-    bases:
-        Base classes that must be present on the discovered class.
-    docstring_contains:
-        Lower-cased fragments that should appear in the docstring.
-    regex:
-        Treat ``name`` as a regular expression if ``True``. Defaults to
-        ``False`` (exact match).
-    case_sensitive:
-        Apply case-sensitive matching to ``name`` when ``regex`` is ``False``.
-    """
+    """Structure-based query used to locate a target symbol."""
 
     name: str
     type: str = "class"
@@ -62,20 +41,24 @@ class Signature:
     regex: bool = False
     case_sensitive: bool = True
 
-    def __post_init__(self) -> None:
-        object.__setattr__(self, "methods", tuple(self.methods or ()))
-        object.__setattr__(self, "decorators", tuple(self.decorators or ()))
-        object.__setattr__(self, "bases", tuple(self.bases or ()))
-        object.__setattr__(self, "docstring_contains", tuple(self.docstring_contains or ()))
+    def to_mapping(self) -> Dict[str, Any]:
+        return {
+            "name": self.name,
+            "type": self.type,
+            "methods": list(self.methods or ()),
+            "module": self.module,
+            "module_pattern": self.module_pattern,
+            "decorators": list(self.decorators or ()),
+            "bases": list(self.bases or ()),
+            "docstring_contains": list(self.docstring_contains or ()),
+            "regex": self.regex,
+            "case_sensitive": self.case_sensitive,
+        }
 
 
 @dataclass
 class DiscoveryResult:
-    """Metadata describing a discovered symbol.
-
-    The actual Python object is only imported when :meth:`load` is invoked,
-    keeping the discovery phase free from user-code execution.
-    """
+    """Metadata describing a discovered symbol."""
 
     name: str
     type: str
@@ -87,6 +70,8 @@ class DiscoveryResult:
     bases: Tuple[str, ...]
     docstring: Optional[str]
     score: float
+    score_breakdown: Dict[str, float]
+    score_details: List[Dict[str, Any]]
     root: Path
 
     _MODULE_NAMESPACE = "_adaptive_discovery"
@@ -118,6 +103,12 @@ class DiscoveryResult:
             return getattr(module, self.name)
         except AttributeError as exc:
             raise DiscoveryError(f"Symbol '{self.name}' not found in module '{module.__name__}'") from exc
+
+    def explain(self) -> Dict[str, Any]:
+        data = asdict(self)
+        data["file_path"] = self.file_path.as_posix()
+        data["root"] = self.root.as_posix()
+        return data
 
     def _load_module_from_path(self, module_name: str) -> Any:
         unique_suffix = sha1(str(self.file_path).encode("utf-8")).hexdigest()[:8]
@@ -159,48 +150,78 @@ class _Candidate:
 class DiscoveryEngine:
     """Walk a project tree and locate modules by static structure."""
 
-    _DEFAULT_IGNORES = {
-        "__pycache__",
-        "node_modules",
-        "build",
-        "dist",
-        "venv",
-        ".venv",
-        ".git",
-    }
-
-    def __init__(self, root: Optional[str] = None, *, ignore: Optional[List[str]] = None) -> None:
+    def __init__(self, root: Optional[str] = None, *, config: Optional[Dict[str, Any]] = None) -> None:
         self.root = Path(root or os.getcwd()).resolve()
-        self.ignore = tuple(Path(pattern).as_posix() for pattern in (ignore or ()))
+        loader = ConfigLoader(self.root)
+        merged_config = loader.load(config)
+        self.config = merged_config
+        scoring_config = merged_config.get("discovery", {}).get("scoring", DEFAULT_CONFIG["discovery"]["scoring"])
+        self.scoring_engine = ScoringEngine(scoring_config)
+
+        cache_config = merged_config["discovery"]["cache"]
+        self._cache_enabled = bool(cache_config.get("enabled", True))
+        self._cache_file = self.root / cache_config.get("file", ".adaptive-tests-cache.json")
+        self._cache_ttl = cache_config.get("ttl_seconds")
+        self._runtime_cache: Dict[str, DiscoveryResult] = {}
+        self._persistent_cache: Dict[str, Dict[str, Any]] = {}
+        self._cache_loaded = False
+
+        self._skip_dirs = tuple(merged_config["discovery"].get("skip_directories", ()))
+        self._skip_files = tuple(merged_config["discovery"].get("skip_files", ()))
+        self._extensions = tuple(merged_config["discovery"].get("extensions", (".py",)))
+        self._max_depth = int(merged_config["discovery"].get("max_depth", 12))
 
     # ------------------------------------------------------------------
     # Public API
     # ------------------------------------------------------------------
-    def discover(self, signature: Signature, *, load: bool = True) -> Any:
-        """Return the best match for ``signature``.
+    def discover(self, signature: Signature | Dict[str, Any], *, load: bool = True) -> Any:
+        signature_map = self._normalise_signature(signature)
+        cache_key = self._cache_key(signature_map)
 
-        When ``load`` is ``True`` (default) the concrete Python object is
-        returned. Set ``load=False`` to receive a :class:`DiscoveryResult`
-        without importing the module.
-        """
+        if self._cache_enabled:
+            self._ensure_cache_loaded()
+            cached = self._get_cached_result(cache_key)
+            if cached:
+                return cached.load() if load else cached
 
-        result = self._best_match(signature)
-        if load:
-            return result.load()
-        return result
+        result = self._best_match(signature_map)
+        if self._cache_enabled:
+            self._remember(cache_key, result)
+        return result.load() if load else result
 
-    def discover_all(self, signature: Signature) -> List[DiscoveryResult]:
-        """Return every candidate that matches the signature (sorted by score)."""
+    def discover_all(self, signature: Signature | Dict[str, Any]) -> List[DiscoveryResult]:
+        signature_map = self._normalise_signature(signature)
+        matches = list(self._match_candidates(signature_map))
+        if not matches:
+            raise DiscoveryError(f"Could not locate target matching {signature_map!r}")
+        matches.sort(key=lambda result: result.score, reverse=True)
+        return matches
 
-        results = sorted(self._match_candidates(signature), key=lambda candidate: candidate.score, reverse=True)
-        if not results:
-            raise DiscoveryError(f"Could not locate target matching {signature!r}")
-        return results
+    def explain(self, signature: Signature | Dict[str, Any], *, limit: int = 5) -> List[Dict[str, Any]]:
+        """Return top candidates with scoring details (Lens-style output)."""
+
+        signature_map = self._normalise_signature(signature)
+        candidates = list(self._match_candidates(signature_map))
+        candidates.sort(key=lambda result: result.score, reverse=True)
+        top = candidates[:limit]
+        explanation = []
+        for rank, candidate in enumerate(top, start=1):
+            data = candidate.explain()
+            data["rank"] = rank
+            explanation.append(data)
+        return explanation
+
+    def clear_cache(self) -> None:
+        self._runtime_cache.clear()
+        self._persistent_cache.clear()
+        self._cache_loaded = True
+        if self._cache_file.exists():
+            self._cache_file.unlink()
 
     # ------------------------------------------------------------------
     # Discovery internals
     # ------------------------------------------------------------------
-    def _best_match(self, signature: Signature) -> DiscoveryResult:
+    def _best_match(self, signature: Dict[str, Any]) -> DiscoveryResult:
         best: Optional[DiscoveryResult] = None
         for candidate in self._match_candidates(signature):
             if best is None or candidate.score > best.score:
@@ -209,11 +230,21 @@ class DiscoveryEngine:
             raise DiscoveryError(f"Could not locate target matching {signature!r}")
         return best
 
-    def _match_candidates(self, signature: Signature) -> Iterator[DiscoveryResult]:
+    def _match_candidates(self, signature: Dict[str, Any]) -> Iterator[DiscoveryResult]:
         for file_path in self._iter_python_files():
             for candidate in self._extract_candidates(file_path):
-                score = self._score_candidate(candidate, signature)
-                if score <= 0:
+                snapshot = CandidateSnapshot(
+                    name=candidate.name,
+                    type=candidate.type,
+                    module=candidate.module,
+                    file_path=candidate.file_path,
+                    methods=candidate.methods,
+                    decorators=candidate.decorators,
+                    bases=candidate.bases,
+                    docstring=candidate.docstring,
+                )
+                report = self.scoring_engine.score(snapshot, signature)
+                if report.total <= 0:
                     continue
                 yield DiscoveryResult(
                     name=candidate.name,
@@ -225,44 +256,48 @@ class DiscoveryEngine:
                     decorators=candidate.decorators,
                     bases=candidate.bases,
                     docstring=candidate.docstring,
-                    score=score,
+                    score=report.total,
+                    score_breakdown=report.breakdown,
+                    score_details=report.details,
                     root=self.root,
                 )
 
     def _iter_python_files(self) -> Iterable[Path]:
+        root_len = len(self.root.parts)
         for dirpath, dirnames, filenames in os.walk(self.root):
             dir_path = Path(dirpath)
-            rel_dir = dir_path.relative_to(self.root)
-            dirnames[:] = [
-                name
-                for name in dirnames
-                if not self._should_skip_directory(rel_dir / name)
-            ]
+            depth = len(dir_path.parts) - root_len
+            if depth > self._max_depth:
+                dirnames[:] = []
+                continue
+
+            filtered_dirs = []
+            for name in dirnames:
+                if self._should_skip_directory(Path(name)):
+                    continue
+                filtered_dirs.append(name)
+            dirnames[:] = filtered_dirs
 
             for filename in filenames:
-                if not filename.endswith(".py"):
-                    continue
                 file_path = dir_path / filename
+                if not file_path.suffix in self._extensions:
+                    continue
                 if self._should_skip_file(file_path):
                     continue
                 yield file_path
 
     def _should_skip_directory(self, relative: Path) -> bool:
-        if not relative.parts:
-            return False
         name = relative.name
         if name.startswith('.') and name not in {'.', '..'}:
             return True
-        if name in self._DEFAULT_IGNORES:
-            return True
-        rel = relative.as_posix()
-        return any(rel.startswith(pattern) for pattern in self.ignore)
+        return any(fragment.rstrip('/') == name or fragment in relative.as_posix() for fragment in self._skip_dirs)
 
     def _should_skip_file(self, file_path: Path) -> bool:
-        if file_path.name.startswith("test_") or file_path.name.endswith("_test.py"):
-            return True
         rel = file_path.relative_to(self.root).as_posix()
-        return any(rel.startswith(pattern) for pattern in self.ignore)
+        for pattern in self._skip_files:
+            if _matches_glob(rel, pattern):
+                return True
+        return False
 
     def _extract_candidates(self, file_path: Path) -> Iterator[_Candidate]:
         try:
@@ -311,94 +346,80 @@ class DiscoveryEngine:
                 )
 
     # ------------------------------------------------------------------
-    # Scoring
+    # Cache handling
     # ------------------------------------------------------------------
-    def _score_candidate(self, candidate: _Candidate, signature: Signature) -> float:
-        if not self._type_matches(signature.type, candidate.type):
-            return 0.0
+    def _ensure_cache_loaded(self) -> None:
+        if self._cache_loaded or not self._cache_enabled:
+            return
+        if self._cache_file.exists():
+            try:
+                self._persistent_cache = json.loads(self._cache_file.read_text(encoding="utf-8"))
+            except json.JSONDecodeError:
+                self._persistent_cache = {}
+        self._cache_loaded = True
 
-        name_score = self._name_score(candidate.name, signature)
-        if name_score == 0:
-            return 0.0
+    def _get_cached_result(self, cache_key: str) -> Optional[DiscoveryResult]:
+        entry = self._runtime_cache.get(cache_key)
+        if entry:
+            return entry
+        data = self._persistent_cache.get(cache_key)
+        if not data:
+            return None
+        file_path = Path(data["file_path"])
+        if not file_path.exists():
+            return None
+        mtime = file_path.stat().st_mtime
+        if data.get("mtime") and mtime != data["mtime"]:
+            return None
+        if self._cache_ttl:
+            age = time.time() - data.get("timestamp", 0)
+            if age > self._cache_ttl:
+                return None
+        result = DiscoveryResult(
+            name=data["name"],
+            type=data["type"],
+            module=data["module"],
+            file_path=file_path,
+            lineno=data.get("lineno", 0),
+            methods=tuple(data.get("methods", ())),
+            decorators=tuple(data.get("decorators", ())),
+            bases=tuple(data.get("bases", ())),
+            docstring=data.get("docstring"),
+            score=float(data.get("score", 0.0)),
+            score_breakdown=data.get("score_breakdown", {}),
+            score_details=data.get("score_details", []),
+            root=self.root,
+        )
+        self._runtime_cache[cache_key] = result
+        return result
 
-        score = name_score
-
-        if signature.methods:
-            matches = sum(1 for method in signature.methods if method in candidate.methods)
-            if matches != len(signature.methods):
-                ratio = matches / len(signature.methods)
-                if ratio < 0.5:
-                    return 0.0
-                score += 0.2 * ratio
-            else:
-                score += 0.3
-
-        if signature.decorators:
-            deco_matches = sum(1 for deco in signature.decorators if deco in candidate.decorators)
-            if deco_matches != len(signature.decorators):
-                return 0.0
-            score += 0.05
-
-        if signature.bases:
-            base_matches = sum(1 for base in signature.bases if base in candidate.bases)
-            if base_matches != len(signature.bases):
-                return 0.0
-            score += 0.1
-
-        if signature.docstring_contains:
-            docstring = (candidate.docstring or "").lower()
-            doc_matches = sum(1 for fragment in signature.docstring_contains if fragment.lower() in docstring)
-            score += 0.02 * doc_matches
-
-        if signature.module:
-            if candidate.module != signature.module:
-                return 0.0
-            score += 0.1
-        elif signature.module_pattern:
-            if not re.search(signature.module_pattern, candidate.module):
-                return 0.0
-            score += 0.05
-
-        file_stem = candidate.file_path.stem.lower()
-        if file_stem == signature.name.lower():
-            score += 0.02
-
-        return score
+    def _remember(self, cache_key: str, result: DiscoveryResult) -> None:
+        self._runtime_cache[cache_key] = result
+        entry = {
+            "name": result.name,
+            "type": result.type,
+            "module": result.module,
+            "file_path": result.file_path.as_posix(),
+            "lineno": result.lineno,
+            "methods": list(result.methods),
+            "decorators": list(result.decorators),
+            "bases": list(result.bases),
+            "docstring": result.docstring,
+            "score": result.score,
+            "score_breakdown": result.score_breakdown,
+            "score_details": result.score_details,
+            "mtime": result.file_path.stat().st_mtime if result.file_path.exists() else None,
+            "timestamp": time.time(),
+        }
+        self._persistent_cache[cache_key] = entry
+        try:
+            self._cache_file.write_text(json.dumps(self._persistent_cache, indent=2, sort_keys=True), encoding="utf-8")
+        except OSError:
+            pass
 
     # ------------------------------------------------------------------
     # Helpers
     # ------------------------------------------------------------------
-    def _name_score(self, candidate_name: str, signature: Signature) -> float:
-        if signature.regex:
-            flags = 0 if signature.case_sensitive else re.IGNORECASE
-            pattern = re.compile(signature.name, flags)
-            return 0.6 if pattern.search(candidate_name) else 0.0
-
-        candidate = candidate_name if signature.case_sensitive else candidate_name.lower()
-        target = signature.name if signature.case_sensitive else signature.name.lower()
-
-        if candidate == target:
-            return 0.7
-        if candidate.startswith(target):
-            return 0.5
-        if candidate.endswith(target):
-            return 0.4
-        if target in candidate:
-            return 0.3
-        return 0.0
-
-    @staticmethod
-    def _type_matches(requested: str, actual: str) -> bool:
-        requested = (requested or "class").lower()
-        actual = actual.lower()
-        if requested in {"any", "*"}:
-            return True
-        if requested == "class":
-            return actual == "class"
-        if requested == "function":
-            return actual in {"function", "async_function"}
-        return requested == actual
-
     def _module_name_for(self, file_path: Path) -> str:
         rel = file_path.relative_to(self.root)
         parts = list(rel.parts)
@@ -413,7 +434,7 @@ class DiscoveryEngine:
         if hasattr(ast, "unparse"):
             try:
                 return ast.unparse(expr)  # type: ignore[attr-defined]
-            except Exception:  # pragma: no cover - ast.unparse may fail for <3.9
+            except Exception:  # pragma: no cover
                 pass
         if isinstance(expr, ast.Name):
             return expr.id
@@ -422,3 +443,34 @@ class DiscoveryEngine:
         if isinstance(expr, ast.Call):
             return DiscoveryEngine._expr_to_name(expr.func)
         return ast.dump(expr, annotate_fields=False)
+
+    @staticmethod
+    def _normalise_signature(signature: Signature | Dict[str, Any]) -> Dict[str, Any]:
+        if isinstance(signature, Signature):
+            return signature.to_mapping()
+        return {
+            "name": signature.get("name"),
+            "type": signature.get("type", "class"),
+            "methods": list(signature.get("methods", ())),
+            "module": signature.get("module"),
+            "module_pattern": signature.get("module_pattern"),
+            "decorators": list(signature.get("decorators", ())),
+            "bases": list(signature.get("bases", ())),
+            "docstring_contains": list(signature.get("docstring_contains", ())),
+            "regex": bool(signature.get("regex", False)),
+            "case_sensitive": bool(signature.get("case_sensitive", True)),
+        }
+
+    @staticmethod
+    def _cache_key(signature: Dict[str, Any]) -> str:
+        payload = json.dumps(signature, sort_keys=True, separators=(",", ":"))
+        return sha1(payload.encode("utf-8")).hexdigest()
+
+
+# ----------------------------------------------------------------------
+# Utilities
+# ----------------------------------------------------------------------
+
+def _matches_glob(value: str, pattern: str) -> bool:
+    regex = re.escape(pattern).replace(r"\*", ".*") + "$"
+    return re.match(regex, value) is not None

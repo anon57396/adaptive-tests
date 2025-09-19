@@ -25,6 +25,24 @@ service = TodoService()
 service.add("Ship adaptive tests")
 ```
 
-Use `engine.discover_all(signature)` to inspect every ranked match when tuning signatures or debugging coverage.
+Use `engine.discover_all(signature)` to inspect every ranked match when tuning signatures or debugging coverage. The engine now mirrors the JavaScript implementation more closely:
 
-See `examples/python/` for a full pytest demo and advanced signatures.
+- **Configurable scoring** – drop an `adaptive-tests.config.json` (or pass inline overrides) to tweak path/file/method weighting.
+- **Persistent cache** – results are stored in `.adaptive-tests-cache.json` and re-used on future runs when the target file is unchanged.
+- **Lens explanations** – call `engine.explain(signature)` to retrieve top candidates with per-factor score breakdowns.
+
+### CLI
+
+The package ships with a lightweight CLI so you can run discovery diagnostics without writing code:
+
+```bash
+adaptive-tests-py why '{"name": "TodoService"}' --root examples/python/src --limit 3
+adaptive-tests-py why signature.json --json
+adaptive-tests-py discover '{"name": "TodoService"}' --root .
+```
+
+Use `--no-cache` for a fresh scan and `--config path/to/config.json` to supply overrides ad-hoc.
+
+### Python Example Project
+
+See `examples/python/` for a full pytest demo, custom configuration, and advanced signatures.
