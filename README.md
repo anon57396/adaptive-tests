@@ -5,6 +5,8 @@
 
 Documentation: [https://anon57396.github.io/adaptive-tests/](https://anon57396.github.io/adaptive-tests/)
 
+If this project helps you, please consider supporting it via the Sponsor button (GitHub Sponsors) or your preferred tip link. Thank you!
+
 Adaptive Tests keeps your suites green no matter how you reorganise your code. The
 engine uses **zero-runtime discovery** powered by AST analysis, so test targets are
 resolved without ever `require`-ing application modules during discovery. Move
