@@ -11,126 +11,52 @@ Adaptive Tests will become the standard way to write resilient test suites. We e
 - Test maintenance drops from 30% to near 0% of dev time
 - Every major framework has adaptive testing built-in
 
-## 📅 Release Timeline
+## ✅ Recently Shipped (0.2.2)
 
-### ✅ v0.1 - Foundation (Released)
+- Discovery Lens CLI (`npx adaptive-tests why`) with detailed scoring breakdowns and suggested signatures
+- Docs site + new guides: How It Works and Best Practices
+- Generated API reference (docs/api) with automatic rebuild in CI
+- Markdown link checker in CI; markdown lint integrated
+- Quiet Codecov policy (informational only); focused coverage scope
+- README + badges + website link; GitHub Pages setup
 
-- [x] Core discovery engine
-- [x] JavaScript support
-- [x] TypeScript support via ts-node
-- [x] Jest integration
-- [x] Basic caching mechanism
-- [x] Validation suite
+## 🧭 Roadmap (Theme‑based)
 
-### 🚧 v0.2 - Developer Experience (Q1 2024)
+We plan in three tracks. Each item links to an issue once opened.
 
-#### Theme: Making it dead simple to adopt
+### Now (ships next)
 
-- [ ] **CLI Improvements**
-  - [ ] Interactive setup wizard
-  - [ ] Migration tool from traditional tests
-  - [ ] Test generator from existing code
+- Developer Experience
+  - Smart Test Scaffolding (CLI: `scaffold`) — generate adaptive test skeletons from source metadata
+  - Framework recipes — React components + Express services
+  - Discovery Lens polish — friendlier error hints suggesting `why`
 
-- [ ] **Better Errors**
-  - [ ] Detailed discovery failure messages
-  - [ ] Suggestions for signature improvements
-  - [ ] Visual diff when discovery finds wrong module
+- Engine
+  - Heuristic tuning + docs examples informed by community repos
 
-- [ ] **Performance**
-  - [ ] Parallel discovery
-  - [ ] Smarter caching strategies
-  - [ ] Lazy loading optimizations
+### Next
 
-- [ ] **Documentation**
-  - [ ] Interactive tutorial site
-  - [ ] Video walkthroughs
-  - [ ] Framework-specific guides
+- Insights & Safety Nets
+  - Interactive Visualizer (CLI: `visualize`) — HTML graph: component ↔ tests ↔ importers
+  - Test Gap Analysis (CLI: `gaps`) — untested components + untested public methods (static MVP)
+  - PR artifacts — upload visualize/gaps HTML to CI for review
 
-### 🎯 v0.3 - Framework Integration (Q2 2024)
+- Developer Experience
+  - Vitest/Mocha recipes; TS templates for scaffolding
 
-#### Theme: Works everywhere developers work
+### Later
 
-- [ ] **Frontend Frameworks**
-  - [ ] React adapter with component discovery
-  - [ ] Vue.js integration
-  - [ ] Angular support
-  - [ ] Svelte compatibility
+- Safety Nets
+  - Refactor Assistant (CLI: `refactor`) — dry‑run AST import rewrites with diff preview; `--apply` to mutate
 
-- [ ] **Testing Frameworks**
-  - [ ] Mocha native support
-  - [ ] Vitest integration
-  - [ ] Playwright/Cypress adapters
+- Engine
+  - Selective TS migration of core surfaces for stronger types (keep zero‑config JS usage)
 
-- [ ] **Build Tools**
-  - [ ] Webpack plugin
-  - [ ] Vite plugin
-  - [ ] ESBuild integration
-  - [ ] Turbopack support
+- Ecosystem
+  - Optional IDE integrations (VS Code panel for Lens/Visualizer) once CLI is stable
+  - Python companion: keep “lightweight companion” scope unless parity investment is planned
 
-### 🚀 v0.4 - IDE Integration (Q3 2024)
-
-#### Theme: Seamless developer workflow
-
-- [ ] **VS Code Extension**
-  - [ ] Auto-generate adaptive tests
-  - [ ] Signature suggestions via IntelliSense
-  - [ ] Visual discovery path display
-  - [ ] One-click migration tool
-
-- [ ] **Other IDEs**
-  - [ ] IntelliJ IDEA plugin
-  - [ ] Sublime Text package
-  - [ ] Neovim plugin
-
-- [ ] **GitHub Integration**
-  - [ ] GitHub Actions
-  - [ ] PR checks for test resilience
-  - [ ] Discovery impact analysis
-
-### 🌍 v0.5 - Multi-Language (Q4 2024)
-
-#### Theme: Beyond JavaScript
-
-- [ ] **Python**
-  - [ ] pytest integration
-  - [ ] Django test runner
-  - [ ] FastAPI support
-
-- [ ] **Go**
-  - [ ] Native Go testing package
-  - [ ] Testify integration
-
-- [ ] **Rust**
-  - [ ] Cargo test integration
-  - [ ] Procedural macros for discovery
-
-- [ ] **Java/Kotlin**
-  - [ ] JUnit 5 extension
-  - [ ] Spring Boot starter
-
-### 🎉 v1.0 - Production Ready (Q1 2025)
-
-#### Theme: Enterprise scale
-
-- [ ] **Enterprise Features**
-  - [ ] Discovery analytics dashboard
-  - [ ] Test impact analysis
-  - [ ] Migration reporting
-  - [ ] Team adoption metrics
-
-- [ ] **Advanced Discovery**
-  - [ ] AI-powered signature generation
-  - [ ] Behavioral matching (not just structural)
-  - [ ] Cross-repository discovery
-  - [ ] Monorepo optimizations
-
-- [ ] **Ecosystem**
-  - [ ] Package manager plugins
-  - [ ] CI/CD integrations (Jenkins, CircleCI, etc.)
-  - [ ] Cloud test service integration
-  - [ ] Test management tool adapters
-
-## 🔮 Future Ideas (Post v1.0)
+## 🔮 Future Ideas
 
 ### Adaptive Tests Cloud
 
@@ -139,7 +65,7 @@ Adaptive Tests will become the standard way to write resilient test suites. We e
 - Global discovery cache
 - Analytics and insights
 
-### AI-Powered Testing
+### AI‑Powered Testing
 
 - Auto-generate tests from code changes
 - Predict which tests need updating
@@ -199,4 +125,4 @@ We'll know we've succeeded when:
 
 *This roadmap is a living document. We adjust based on community feedback and needs. Your input shapes our direction!*
 
-Last Updated: September 2024
+Last Updated: September 2025
