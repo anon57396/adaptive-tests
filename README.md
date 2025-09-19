@@ -178,6 +178,17 @@ You don't need complex test selection for adaptive tests because:
 
 ---
 
+## 🎯 VS Code Extension
+
+**NEW!** Install the VS Code extension for a visual discovery experience:
+
+- **Discovery Lens**: Interactive webview showing how discovery works visually
+- **Smart Scaffolding**: Right-click any file to generate adaptive tests
+- **CodeLens Integration**: See inline hints and generate tests directly from your code
+- **Live Discovery**: Watch the discovery engine find your code in real-time
+
+[Learn more about the VS Code extension →](extensions/vscode-adaptive-tests/README.md)
+
 ## Documentation & Examples
 
 - [Quick Start Guide](docs/QUICK_START.md)
@@ -189,6 +200,7 @@ You don't need complex test selection for adaptive tests because:
 - [API Reference](https://anon57396.github.io/adaptive-tests/api/)
 - [Java Quick Start](docs/JAVA_QUICKSTART.md)
 - [PHP Quick Start](docs/PHP_QUICKSTART.md)
+- [VS Code Extension](extensions/vscode-adaptive-tests/README.md)
 - [Proof & Demo Scripts](PROOF.md)
 - [Examples](examples/) (`calculator`, `api-service`, `todo-app`, `typescript`, `python`, `php`)
 
