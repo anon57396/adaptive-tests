@@ -12,22 +12,22 @@ Defined in: [adaptive/config-loader.d.ts:170](https://github.com/anon57396/adapt
 
 ## Type Declaration
 
-#### .cjs
+### .cjs
 
 > **.cjs**: `number`
 
-#### .js
+### .js
 
 > **.js**: `number`
 
-#### .mjs
+### .mjs
 
 > **.mjs**: `number`
 
-#### .ts
+### .ts
 
 > **.ts**: `number`
 
-#### .tsx
+### .tsx
 
 > **.tsx**: `number`
