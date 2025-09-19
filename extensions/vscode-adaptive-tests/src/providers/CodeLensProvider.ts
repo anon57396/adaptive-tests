@@ -20,7 +20,7 @@ export class AdaptiveTestsCodeLensProvider implements vscode.CodeLensProvider {
 
         // Only provide lenses for supported file types
         const ext = path.extname(document.fileName);
-        const supportedExtensions = ['.js', '.ts', '.jsx', '.tsx'];
+        const supportedExtensions = ['.js', '.ts', '.jsx', '.tsx', '.java', '.php', '.py'];
 
         if (!supportedExtensions.includes(ext)) {
             return codeLenses;
@@ -28,61 +28,48 @@ export class AdaptiveTestsCodeLensProvider implements vscode.CodeLensProvider {
 
         const text = document.getText();
 
-        // Find exported classes
-        const classRegex = /export\s+(?:default\s+)?class\s+(\w+)/g;
-        let match;
+        // Language-specific class detection
+        const patterns = this.getLanguagePatterns(ext);
 
-        while ((match = classRegex.exec(text)) !== null) {
-            const className = match[1];
-            const line = document.positionAt(match.index).line;
-            const range = new vscode.Range(line, 0, line, 0);
+        for (const pattern of patterns) {
+            let match;
+            while ((match = pattern.regex.exec(text)) !== null) {
+                const className = match[1];
+                const line = document.positionAt(match.index).line;
+                const range = new vscode.Range(line, 0, line, 0);
 
-            // Check if test exists
-            const testExists = this.checkTestExists(document, className);
+                // Check if test exists
+                const testExists = this.checkTestExists(document, className);
 
-            if (testExists) {
-                codeLenses.push(
-                    new vscode.CodeLens(range, {
-                        title: '✓ Adaptive test exists',
-                        tooltip: 'An adaptive test already exists for this class',
-                        command: 'adaptive-tests.openTest',
-                        arguments: [document.uri, className]
-                    })
-                );
-            } else {
-                codeLenses.push(
-                    new vscode.CodeLens(range, {
-                        title: '$(add) Generate adaptive test',
-                        tooltip: 'Generate an adaptive test for this class',
-                        command: 'adaptive-tests.scaffoldFile',
-                        arguments: [document.uri]
-                    })
-                );
+                if (testExists) {
+                    codeLenses.push(
+                        new vscode.CodeLens(range, {
+                            title: '✓ Adaptive test exists',
+                            tooltip: 'An adaptive test already exists for this class',
+                            command: 'adaptive-tests.openTest',
+                            arguments: [document.uri, className]
+                        })
+                    );
+                } else {
+                    codeLenses.push(
+                        new vscode.CodeLens(range, {
+                            title: '$(add) Generate adaptive test',
+                            tooltip: 'Generate an adaptive test for this class',
+                            command: 'adaptive-tests.scaffoldFile',
+                            arguments: [document.uri]
+                        })
+                    );
+                }
             }
+        }
 
-            // Add discovery lens
+        // Add general discovery lens at the beginning of the file if we found any patterns
+        if (codeLenses.length === 0 && patterns.length > 0) {
+            const range = new vscode.Range(0, 0, 0, 0);
             codeLenses.push(
                 new vscode.CodeLens(range, {
                     title: '$(search) Run discovery',
-                    tooltip: 'See how this class would be discovered',
-                    command: 'adaptive-tests.runDiscovery',
-                    arguments: [document.uri]
-                })
-            );
-        }
-
-        // Find exported functions
-        const functionRegex = /export\s+(?:default\s+)?(?:async\s+)?function\s+(\w+)/g;
-
-        while ((match = functionRegex.exec(text)) !== null) {
-            const functionName = match[1];
-            const line = document.positionAt(match.index).line;
-            const range = new vscode.Range(line, 0, line, 0);
-
-            codeLenses.push(
-                new vscode.CodeLens(range, {
-                    title: '$(search) Discover function',
-                    tooltip: 'See how this function would be discovered',
+                    tooltip: 'See how elements in this file would be discovered',
                     command: 'adaptive-tests.runDiscovery',
                     arguments: [document.uri]
                 })
@@ -97,6 +84,43 @@ export class AdaptiveTestsCodeLensProvider implements vscode.CodeLensProvider {
         token: vscode.CancellationToken
     ): vscode.CodeLens {
         return codeLens;
+    }
+
+    private getLanguagePatterns(ext: string): Array<{ regex: RegExp; type: string }> {
+        switch (ext) {
+            case '.js':
+            case '.ts':
+            case '.jsx':
+            case '.tsx':
+                return [
+                    { regex: /export\s+(?:default\s+)?class\s+(\w+)/g, type: 'class' },
+                    { regex: /export\s+(?:default\s+)?function\s+(\w+)/g, type: 'function' }
+                ];
+
+            case '.java':
+                return [
+                    { regex: /(?:public\s+)?class\s+(\w+)/g, type: 'class' },
+                    { regex: /(?:public\s+)?interface\s+(\w+)/g, type: 'interface' },
+                    { regex: /(?:public\s+)?enum\s+(\w+)/g, type: 'enum' }
+                ];
+
+            case '.php':
+                return [
+                    { regex: /class\s+(\w+)/g, type: 'class' },
+                    { regex: /interface\s+(\w+)/g, type: 'interface' },
+                    { regex: /trait\s+(\w+)/g, type: 'trait' },
+                    { regex: /function\s+(\w+)/g, type: 'function' }
+                ];
+
+            case '.py':
+                return [
+                    { regex: /^class\s+(\w+)/gm, type: 'class' },
+                    { regex: /^def\s+(\w+)/gm, type: 'function' }
+                ];
+
+            default:
+                return [];
+        }
     }
 
     private checkTestExists(document: vscode.TextDocument, className: string): boolean {

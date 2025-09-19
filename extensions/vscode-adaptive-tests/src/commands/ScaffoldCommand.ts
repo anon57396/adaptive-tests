@@ -53,11 +53,28 @@ export class ScaffoldCommand {
 
                 try {
                     const { stdout, stderr } = await exec(command, {
-                        cwd: workspaceFolder.uri.fsPath
+                        cwd: workspaceFolder.uri.fsPath,
+                        timeout: 60000, // 60 second timeout
+                        maxBuffer: 1024 * 1024 // 1MB max buffer
                     });
 
-                    if (stderr && !stderr.includes('Created')) {
-                        throw new Error(stderr);
+                    // Enhanced stderr parsing
+                    if (stderr) {
+                        const normalMessages = ['Created', 'Analyzing', 'Writing', 'Scaffolding'];
+                        const hasNormalMessage = normalMessages.some(msg => stderr.includes(msg));
+
+                        if (!hasNormalMessage) {
+                            // Check for specific error patterns
+                            if (stderr.includes('ENOENT')) {
+                                throw new Error('adaptive-tests CLI not found. Please ensure it is installed: npm install -g adaptive-tests');
+                            } else if (stderr.includes('EACCES')) {
+                                throw new Error('Permission denied. Please check file permissions.');
+                            } else if (stderr.includes('spawn')) {
+                                throw new Error('Failed to execute command. Please check your environment.');
+                            } else {
+                                throw new Error(`Command failed: ${stderr}`);
+                            }
+                        }
                     }
 
                     // Parse output to find created file
@@ -90,9 +107,16 @@ export class ScaffoldCommand {
                             if (overwrite === 'Overwrite') {
                                 // Re-run with --force flag
                                 const forceCommand = `${command} --force`;
-                                const { stdout: forceStdout } = await exec(forceCommand, {
-                                    cwd: workspaceFolder.uri.fsPath
+                                const { stdout: forceStdout, stderr: forceStderr } = await exec(forceCommand, {
+                                    cwd: workspaceFolder.uri.fsPath,
+                                    timeout: 60000,
+                                    maxBuffer: 1024 * 1024
                                 });
+
+                                // Check for force command errors
+                                if (forceStderr && !forceStderr.includes('Created')) {
+                                    throw new Error(`Force overwrite failed: ${forceStderr}`);
+                                }
 
                                 const forceMatch = forceStdout.match(/✅ Created (.+)/);
                                 if (forceMatch) {
@@ -114,12 +138,49 @@ export class ScaffoldCommand {
                         }
                     }
                 } catch (error: any) {
-                    throw new Error(`Scaffold command failed: ${error.message}`);
+                    // Enhanced error categorization
+                    let userMessage = 'Scaffold command failed';
+
+                    if (error.code === 'ETIMEDOUT') {
+                        userMessage = 'Scaffolding timed out. The file may be very large or the system is busy.';
+                    } else if (error.message.includes('ENOENT')) {
+                        userMessage = 'adaptive-tests CLI not found. Please install it first: npm install -g adaptive-tests';
+                    } else if (error.message.includes('not supported')) {
+                        userMessage = 'This file type is not supported for scaffolding yet.';
+                    } else if (error.message.includes('permission')) {
+                        userMessage = 'Permission denied. Please check file and directory permissions.';
+                    } else {
+                        userMessage = error.message;
+                    }
+
+                    throw new Error(userMessage);
                 }
             });
 
         } catch (error: any) {
-            vscode.window.showErrorMessage(`Failed to scaffold test: ${error.message}`);
+            // Show user-friendly error with action options
+            const action = await vscode.window.showErrorMessage(
+                `Failed to scaffold test: ${error.message}`,
+                'Show Details',
+                'Try Again',
+                'Open Logs'
+            );
+
+            if (action === 'Show Details') {
+                const outputChannel = vscode.window.createOutputChannel('Adaptive Tests');
+                outputChannel.appendLine('Scaffold Error Details:');
+                outputChannel.appendLine(`Error: ${error.message}`);
+                outputChannel.appendLine(`Stack: ${error.stack}`);
+                outputChannel.appendLine(`File: ${filePath}`);
+                outputChannel.appendLine(`Command: npx adaptive-tests scaffold`);
+                outputChannel.show();
+            } else if (action === 'Try Again') {
+                // Retry the scaffold operation
+                setTimeout(() => this.execute(vscode.Uri.file(filePath)), 1000);
+            } else if (action === 'Open Logs') {
+                vscode.commands.executeCommand('workbench.action.showLogs');
+            }
+
             console.error('Scaffold error:', error);
         }
     }

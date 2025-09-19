@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
+import { DiscoveryLensAPIFactory } from '../api/DiscoveryLensAPIFactory';
 
 export class DiscoveryTreeProvider implements vscode.TreeDataProvider<DiscoveryItem> {
     private _onDidChangeTreeData: vscode.EventEmitter<DiscoveryItem | undefined | null | void> =
@@ -8,9 +9,21 @@ export class DiscoveryTreeProvider implements vscode.TreeDataProvider<DiscoveryI
         this._onDidChangeTreeData.event;
 
     private results: DiscoveryItem[] = [];
+
     private lastSignature: any = null;
 
-    constructor() {}
+    constructor() {
+        // Subscribe to API factory state changes
+        this.subscribeToAPIChanges();
+    }
+
+    private subscribeToAPIChanges() {
+        // Get the API factory instance
+        const apiFactory = DiscoveryLensAPIFactory.getInstance();
+
+        // If there's a way to listen for state changes, connect it here
+        // For now, we'll implement manual updates through commands
+    }
 
     refresh(results?: any[], signature?: any): void {
         if (results) {

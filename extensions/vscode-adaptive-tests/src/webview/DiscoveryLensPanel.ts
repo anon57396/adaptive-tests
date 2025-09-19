@@ -114,18 +114,25 @@ export class DiscoveryLensPanel implements IDiscoveryLensAPI {
             // Update state
             this.updateState({ isLoading: true, signature, lastError: null });
 
-            // Import discovery engine from main package
-            const adaptiveTests = await this.loadAdaptiveTests();
-            const engine = adaptiveTests.getDiscoveryEngine();
-
             // Get workspace root
             const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
             if (!workspaceRoot) {
                 throw new Error('No workspace folder open');
             }
 
-            // Run discovery
-            const candidates = await engine.collectCandidates(workspaceRoot, signature);
+            // Detect language and use appropriate discovery method
+            const language = this.detectLanguageFromWorkspace(workspaceRoot);
+            let candidates: any[];
+
+            if (language === 'javascript' || language === 'typescript') {
+                // Use JavaScript/TypeScript engine
+                const adaptiveTests = await this.loadAdaptiveTests();
+                const engine = adaptiveTests.getDiscoveryEngine();
+                candidates = await engine.collectCandidates(workspaceRoot, signature);
+            } else {
+                // Use language-specific CLI
+                candidates = await this.runLanguageSpecificDiscovery(workspaceRoot, signature, language);
+            }
 
             // Sort by score
             candidates.sort((a: any, b: any) => b.score - a.score);
@@ -390,77 +397,172 @@ export class DiscoveryLensPanel implements IDiscoveryLensAPI {
     private getWebviewContent(): string {
         const styleUri = this.getWebviewUri('style.css');
         const scriptUri = this.getWebviewUri('script.js');
+        const htmlTemplate = this.loadHtmlTemplate();
 
-        return `<!DOCTYPE html>
+        return htmlTemplate
+            .replace('{{STYLE_URI}}', styleUri.toString())
+            .replace('{{SCRIPT_URI}}', scriptUri.toString());
+    }
+
+    private loadHtmlTemplate(): string {
+        try {
+            const htmlPath = vscode.Uri.joinPath(this.context.extensionUri, 'media', 'discovery.html');
+            const htmlContent = require('fs').readFileSync(htmlPath.fsPath, 'utf8');
+            return htmlContent;
+        } catch (error) {
+            // Fallback to inline HTML if template file doesn't exist
+            return `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Discovery Lens</title>
-    <link href="${styleUri}" rel="stylesheet">
+    <link href="{{STYLE_URI}}" rel="stylesheet">
 </head>
 <body>
     <div class="container">
-        <header>
-            <h1>🔍 Discovery Lens</h1>
-            <p class="subtitle">Visualize how adaptive-tests discovers your code</p>
-        </header>
-
-        <section class="input-section">
-            <label for="signature-input">Enter Discovery Signature (JSON)</label>
-            <textarea
-                id="signature-input"
-                placeholder='{"name": "Calculator", "type": "class", "methods": ["add", "subtract"]}'
-                rows="4"
-            ></textarea>
-
-            <div class="preset-buttons">
-                <button class="preset-btn" data-preset="class">Class Example</button>
-                <button class="preset-btn" data-preset="function">Function Example</button>
-                <button class="preset-btn" data-preset="interface">Interface Example</button>
-            </div>
-
-            <button id="run-discovery" class="primary-btn">
-                Run Discovery
-            </button>
-        </section>
-
-        <section class="results-section" style="display: none;">
-            <h2>Discovery Results</h2>
-            <div class="results-summary"></div>
-            <div id="results-container"></div>
-        </section>
-
-        <section class="error-section" style="display: none;">
-            <div class="error-message"></div>
-        </section>
-
-        <section class="help-section">
-            <details>
-                <summary>How Discovery Works</summary>
-                <div class="help-content">
-                    <p>The discovery engine uses multiple strategies to find your code:</p>
-                    <ul>
-                        <li><strong>Name Matching:</strong> Searches for files and exports matching the signature name</li>
-                        <li><strong>Type Analysis:</strong> Matches based on code structure (class, function, interface)</li>
-                        <li><strong>Method Signatures:</strong> Compares available methods with expected ones</li>
-                        <li><strong>Path Scoring:</strong> Prefers standard locations (src/, lib/, etc.)</li>
-                        <li><strong>AST Analysis:</strong> Deep code structure analysis for accurate matching</li>
-                    </ul>
-                    <p>Each candidate receives a score based on how well it matches the signature. Higher scores indicate better matches.</p>
-                </div>
-            </details>
-        </section>
+        <h1>🔍 Discovery Lens</h1>
+        <p>HTML template not found. Please check media/discovery.html</p>
     </div>
-
-    <script src="${scriptUri}"></script>
+    <script src="{{SCRIPT_URI}}"></script>
 </body>
 </html>`;
+        }
     }
 
     private getWebviewUri(fileName: string): vscode.Uri {
         return this.panel.webview.asWebviewUri(
             vscode.Uri.joinPath(this.context.extensionUri, 'media', fileName)
         );
+    }
+
+    private detectLanguageFromWorkspace(workspaceRoot: string): string {
+        const fs = require('fs');
+        const path = require('path');
+
+        // Check for language-specific files and config
+        if (fs.existsSync(path.join(workspaceRoot, 'package.json'))) {
+            const packageJson = JSON.parse(fs.readFileSync(path.join(workspaceRoot, 'package.json'), 'utf8'));
+            if (packageJson.devDependencies?.typescript || packageJson.dependencies?.typescript) {
+                return 'typescript';
+            }
+            return 'javascript';
+        }
+
+        if (fs.existsSync(path.join(workspaceRoot, 'pom.xml')) || fs.existsSync(path.join(workspaceRoot, 'build.gradle'))) {
+            return 'java';
+        }
+
+        if (fs.existsSync(path.join(workspaceRoot, 'composer.json'))) {
+            return 'php';
+        }
+
+        if (fs.existsSync(path.join(workspaceRoot, 'requirements.txt')) || fs.existsSync(path.join(workspaceRoot, 'pyproject.toml'))) {
+            return 'python';
+        }
+
+        // Default to JavaScript for mixed or unknown projects
+        return 'javascript';
+    }
+
+    private async runLanguageSpecificDiscovery(workspaceRoot: string, signature: any, language: string): Promise<any[]> {
+        const { exec } = require('child_process');
+        const util = require('util');
+        const execAsync = util.promisify(exec);
+
+        try {
+            let command: string;
+            let args: string;
+
+            switch (language) {
+                case 'java':
+                    // Use Maven/Gradle CLI for Java discovery
+                    command = 'java';
+                    args = `-jar ${workspaceRoot}/cli/target/adaptive-tests-java-cli-*-shaded.jar discover --root "${workspaceRoot}" --signature '${JSON.stringify(signature)}'`;
+                    break;
+
+                case 'php':
+                    // Use npm CLI for PHP discovery
+                    command = 'npx';
+                    args = `adaptive-tests why '${JSON.stringify(signature)}' --json`;
+                    break;
+
+                case 'python':
+                    // Use Python CLI for Python discovery
+                    command = 'python3';
+                    args = `-m adaptive_tests_py discover --root "${workspaceRoot}" --signature '${JSON.stringify(signature)}'`;
+                    break;
+
+                default:
+                    throw new Error(`Unsupported language: ${language}`);
+            }
+
+            const { stdout, stderr } = await execAsync(`${command} ${args}`, {
+                cwd: workspaceRoot,
+                timeout: 30000, // 30 second timeout
+                maxBuffer: 1024 * 1024 // 1MB max buffer
+            });
+
+            if (stderr) {
+                console.warn('Discovery CLI stderr:', stderr);
+            }
+
+            // Parse JSON output
+            const result = JSON.parse(stdout);
+            return Array.isArray(result) ? result : result.candidates || [];
+
+        } catch (error: any) {
+            console.error(`Language-specific discovery failed for ${language}:`, error);
+
+            // Fallback to basic file system search
+            return this.fallbackFileSystemSearch(workspaceRoot, signature, language);
+        }
+    }
+
+    private async fallbackFileSystemSearch(workspaceRoot: string, signature: any, language: string): Promise<any[]> {
+        const fs = require('fs');
+        const path = require('path');
+        const glob = require('glob');
+
+        // Define file patterns for each language
+        const patterns: { [key: string]: string[] } = {
+            java: ['**/*.java'],
+            php: ['**/*.php'],
+            python: ['**/*.py'],
+            javascript: ['**/*.js', '**/*.jsx'],
+            typescript: ['**/*.ts', '**/*.tsx']
+        };
+
+        const filePatterns = patterns[language] || patterns.javascript;
+        const candidates: any[] = [];
+
+        for (const pattern of filePatterns) {
+            try {
+                const files = glob.sync(pattern, {
+                    cwd: workspaceRoot,
+                    ignore: ['**/node_modules/**', '**/vendor/**', '**/.git/**', '**/target/**']
+                });
+
+                for (const file of files.slice(0, 20)) { // Limit to first 20 files
+                    const fullPath = path.join(workspaceRoot, file);
+                    const content = fs.readFileSync(fullPath, 'utf8');
+
+                    // Basic name matching
+                    if (signature.name && content.toLowerCase().includes(signature.name.toLowerCase())) {
+                        candidates.push({
+                            path: fullPath,
+                            relativePath: file,
+                            score: 50,
+                            reason: 'Name match in content',
+                            language
+                        });
+                    }
+                }
+            } catch (error) {
+                console.warn(`Failed to search pattern ${pattern}:`, error);
+            }
+        }
+
+        return candidates;
     }
 }

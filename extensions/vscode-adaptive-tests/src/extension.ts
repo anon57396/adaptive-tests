@@ -16,12 +16,15 @@ export function activate(context: vscode.ExtensionContext) {
     console.log('Adaptive Tests extension is now active!');
 
     // Initialize API factory for cross-extension communication
-    DiscoveryLensAPIFactory.getInstance().initialize(context);
+    const apiFactory = DiscoveryLensAPIFactory.getInstance();
+    apiFactory.initialize(context);
 
     // Register Discovery Lens command
     const showDiscoveryLensCommand = vscode.commands.registerCommand(
         'adaptive-tests.showDiscoveryLens',
         () => {
+            // Use API factory to get consistent panel instance
+            const api = apiFactory.getDiscoveryLensAPI({ autoShow: true });
             if (discoveryLensPanel) {
                 discoveryLensPanel.reveal();
             } else {
@@ -66,7 +69,16 @@ export function activate(context: vscode.ExtensionContext) {
     const discoveryCommand = new DiscoveryCommand();
     const runDiscoveryCommand = vscode.commands.registerCommand(
         'adaptive-tests.runDiscovery',
-        (uri: vscode.Uri) => discoveryCommand.execute(uri)
+        async (uri: vscode.Uri) => {
+            // Use API factory for discovery operations
+            const api = apiFactory.getDiscoveryLensAPI();
+            try {
+                await discoveryCommand.execute(uri);
+            } catch (error) {
+                console.error('Discovery command failed:', error);
+                vscode.window.showErrorMessage(`Discovery failed: ${error}`);
+            }
+        }
     );
 
     // Register Tree Data Provider for Discovery View
