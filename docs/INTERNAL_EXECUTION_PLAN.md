@@ -199,6 +199,8 @@ This document translates our recent prioritization into concrete, actionable wor
 
 Goal: Bring the Python adaptive-tests package to feature parity with the JavaScript engine and ship it as a first-class, OSS-friendly package. Leverage patterns already explored in `CodeCypher/core/tests/infrastructure`.
 
+**Status update (static discovery)** – The Python `DiscoveryEngine` now mirrors the JS zero-runtime guarantees: candidates are scored via `ast` traversal and modules are only imported on-demand when a caller chooses to load the winning result.
+
 ### Phase 1 – Core Parity
 
 - Configuration

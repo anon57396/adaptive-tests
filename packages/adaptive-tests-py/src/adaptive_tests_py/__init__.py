@@ -1,5 +1,5 @@
 """Adaptive Tests for Python."""
 
-from .discovery import DiscoveryEngine, Signature, DiscoveryError
+from .discovery import DiscoveryEngine, DiscoveryResult, Signature, DiscoveryError
 
-__all__ = ["DiscoveryEngine", "Signature", "DiscoveryError"]
+__all__ = ["DiscoveryEngine", "DiscoveryResult", "Signature", "DiscoveryError"]
