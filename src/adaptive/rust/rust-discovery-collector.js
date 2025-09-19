@@ -12,6 +12,7 @@ const fs = require('fs');
 const path = require('path');
 const { parser } = require('@lezer/rust');
 const { Tree } = require('@lezer/common');
+const { ErrorHandler, ErrorCodes } = require('../error-handler');
 
 class RustDiscoveryCollector {
   constructor(config = {}) {
@@ -31,6 +32,7 @@ class RustDiscoveryCollector {
 
     this.parser = parser;
     this.initialized = false;
+    this.errorHandler = new ErrorHandler('rust-collector');
   }
 
   async initialize() {
@@ -53,55 +55,69 @@ class RustDiscoveryCollector {
   async parseFile(filePath) {
     await this.initialize();
 
-    try {
-      const source = await fs.promises.readFile(filePath, 'utf8');
-      return this.extractMetadata(source, filePath);
-    } catch (error) {
-      if (process.env.DEBUG_DISCOVERY) {
-        console.error(`[adaptive-tests] Failed to parse Rust file ${filePath}:`, error);
+    const result = await this.errorHandler.safeAsync(
+      async () => {
+        const source = await fs.promises.readFile(filePath, 'utf8');
+        return this.extractMetadata(source, filePath);
+      },
+      { filePath, operation: 'parseFile' }
+    );
+
+    if (!result.success) {
+      // Handle specific file errors
+      if (result.error === 'ENOENT') {
+        return this.errorHandler.handleFileError(
+          { code: 'ENOENT', message: result.message },
+          filePath,
+          'read'
+        );
       }
       return null;
     }
+
+    return result.data;
   }
 
   extractMetadata(source, filePath) {
-    try {
-      const tree = this.parser.parse(source);
-      const metadata = {
-        path: filePath,
-        crateName: null,
-        uses: [],
-        structs: [],
-        enums: [],
-        traits: [],
-        impls: [],
-        functions: [],
-        constants: [],
-        statics: [],
-        types: [],
-        macros: [],
-        errors: []
-      };
+    const metadata = {
+      path: filePath,
+      crateName: null,
+      uses: [],
+      structs: [],
+      enums: [],
+      traits: [],
+      impls: [],
+      functions: [],
+      constants: [],
+      statics: [],
+      types: [],
+      macros: [],
+      errors: []
+    };
 
-      this.traverseTree(tree, source, metadata);
-      return metadata;
-    } catch (error) {
-      return {
-        path: filePath,
-        crateName: null,
-        uses: [],
-        structs: [],
-        enums: [],
-        traits: [],
-        impls: [],
-        functions: [],
-        constants: [],
-        statics: [],
-        types: [],
-        macros: [],
-        errors: [error.message]
-      };
+    const result = this.errorHandler.safeSync(
+      () => {
+        const tree = this.parser.parse(source);
+        this.traverseTree(tree, source, metadata);
+        return metadata;
+      },
+      { filePath, operation: 'extractMetadata' }
+    );
+
+    if (!result.success) {
+      const parseError = this.errorHandler.handleParseError(
+        new Error(result.message),
+        filePath,
+        'rust'
+      );
+      metadata.errors.push(parseError.message);
+      this.errorHandler.logWarning(
+        `Metadata extraction failed, returning partial metadata`,
+        { filePath, error: result.error }
+      );
     }
+
+    return metadata;
   }
 
   traverseTree(tree, source, metadata) {

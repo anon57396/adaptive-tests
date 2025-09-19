@@ -6,12 +6,19 @@
  * 2. adaptive-tests.config.js
  * 3. .adaptive-testsrc.json
  * 4. package.json "adaptive-tests" field
- * 5. Default config (lowest priority)
+ * 5. Enhanced default config (lowest priority)
+ *
+ * Enhanced with language-specific configuration support.
  */
 
 const fs = require('fs');
 const path = require('path');
 const { getLogger } = require('./logger');
+const {
+  ENHANCED_CONFIG_SCHEMA,
+  ConfigSchemaValidator,
+  LANGUAGE_EXTENSIONS
+} = require('./enhanced-config-schema');
 
 const DEFAULT_CONFIG = {
   discovery: {
@@ -141,6 +148,8 @@ class ConfigLoader {
   constructor(rootPath = process.cwd()) {
     this.rootPath = rootPath;
     this.config = null;
+    this.validator = new ConfigSchemaValidator();
+    this.logger = getLogger('ConfigLoader');
   }
 
   /**
@@ -153,8 +162,11 @@ class ConfigLoader {
       return this.config;
     }
 
-    // Start with default config
-    let config = this.deepClone(DEFAULT_CONFIG);
+    // Start with enhanced default schema
+    let config = this.deepClone(ENHANCED_CONFIG_SCHEMA);
+
+    // Backward compatibility: merge old default config for missing sections
+    config = this.deepMerge(config, this.deepClone(DEFAULT_CONFIG));
 
     // Load from package.json
     const packageConfig = this.loadFromPackageJson();
@@ -179,8 +191,11 @@ class ConfigLoader {
       config = this.deepMerge(config, inlineConfig);
     }
 
+    // Auto-detect and configure languages based on project structure
+    config = this.autoConfigureLanguages(config);
+
     // Validate and normalize the config
-    this.config = this.validateConfig(config);
+    this.config = this.validateEnhancedConfig(config);
     return this.config;
   }
 
@@ -364,6 +379,195 @@ class ConfigLoader {
    */
   static getDefaultConfig() {
     return DEFAULT_CONFIG;
+  }
+
+  /**
+   * Auto-detect and configure languages based on project structure
+   */
+  autoConfigureLanguages(config) {
+    try {
+      // Detect languages by scanning for common files and dependencies
+      const detectedLanguages = this.detectProjectLanguages();
+
+      // Enable language configurations for detected languages
+      if (!config.discovery.languages) {
+        config.discovery.languages = {};
+      }
+
+      for (const language of detectedLanguages) {
+        if (!config.discovery.languages[language]) {
+          // Use default language config from enhanced schema
+          config.discovery.languages[language] =
+            ENHANCED_CONFIG_SCHEMA.discovery.languages[language] || { enabled: true };
+        }
+      }
+
+      this.logger.debug(`Auto-detected languages: ${detectedLanguages.join(', ')}`);
+    } catch (error) {
+      this.logger.warn('Failed to auto-detect languages:', error);
+    }
+
+    return config;
+  }
+
+  /**
+   * Detect project languages based on files and dependencies
+   */
+  detectProjectLanguages() {
+    const languages = new Set();
+
+    try {
+      // Check for language-specific files
+      const files = fs.readdirSync(this.rootPath);
+
+      for (const file of files) {
+        // Check for specific config files
+        if (file === 'package.json') languages.add('javascript');
+        if (file === 'tsconfig.json') languages.add('typescript');
+        if (file === 'Cargo.toml') languages.add('rust');
+        if (file === 'go.mod' || file === 'go.sum') languages.add('go');
+        if (file === 'pom.xml' || file === 'build.gradle') languages.add('java');
+        if (file === 'composer.json') languages.add('php');
+        if (file === 'Gemfile') languages.add('ruby');
+        if (file === 'requirements.txt' || file === 'setup.py' || file === 'pyproject.toml') {
+          languages.add('python');
+        }
+      }
+
+      // Scan source directories for language files
+      const srcDirs = ['src', 'app', 'lib', 'source'];
+      for (const dir of srcDirs) {
+        const dirPath = path.join(this.rootPath, dir);
+        if (fs.existsSync(dirPath) && fs.statSync(dirPath).isDirectory()) {
+          this.scanDirectoryForLanguages(dirPath, languages);
+        }
+      }
+
+      // Check package.json dependencies for language indicators
+      const packageJsonPath = path.join(this.rootPath, 'package.json');
+      if (fs.existsSync(packageJsonPath)) {
+        const packageData = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+        const deps = { ...(packageData.dependencies || {}), ...(packageData.devDependencies || {}) };
+
+        if (deps.typescript || deps['@types/node']) languages.add('typescript');
+        if (deps.react || deps['@types/react']) languages.add('javascript');
+      }
+    } catch (error) {
+      this.logger.warn('Error detecting languages:', error);
+    }
+
+    return Array.from(languages);
+  }
+
+  /**
+   * Recursively scan directory for language files
+   */
+  scanDirectoryForLanguages(dirPath, languages, depth = 0) {
+    if (depth > 3) return; // Limit recursion depth
+
+    try {
+      const entries = fs.readdirSync(dirPath, { withFileTypes: true });
+
+      for (const entry of entries) {
+        if (entry.isDirectory() && !entry.name.startsWith('.')) {
+          this.scanDirectoryForLanguages(
+            path.join(dirPath, entry.name),
+            languages,
+            depth + 1
+          );
+        } else if (entry.isFile()) {
+          const ext = path.extname(entry.name);
+
+          // Map extensions to languages
+          if (LANGUAGE_EXTENSIONS.javascript.includes(ext)) languages.add('javascript');
+          if (LANGUAGE_EXTENSIONS.typescript.includes(ext)) languages.add('typescript');
+          if (LANGUAGE_EXTENSIONS.java.includes(ext)) languages.add('java');
+          if (LANGUAGE_EXTENSIONS.python.includes(ext)) languages.add('python');
+          if (LANGUAGE_EXTENSIONS.rust.includes(ext)) languages.add('rust');
+          if (LANGUAGE_EXTENSIONS.go.includes(ext)) languages.add('go');
+          if (LANGUAGE_EXTENSIONS.php.includes(ext)) languages.add('php');
+          if (LANGUAGE_EXTENSIONS.ruby.includes(ext)) languages.add('ruby');
+        }
+      }
+    } catch (error) {
+      // Silently ignore directory read errors
+    }
+  }
+
+  /**
+   * Validate configuration using enhanced schema
+   */
+  validateEnhancedConfig(config) {
+    const validation = this.validator.validate(config);
+
+    if (!validation.valid) {
+      this.logger.warn('Configuration validation errors:', validation.errors);
+
+      // Log warnings but continue with invalid config for now
+      // In a production environment, you might want to throw an error
+      for (const error of validation.errors) {
+        this.logger.warn(`Config validation: ${error}`);
+      }
+    }
+
+    return this.normalizeConfig(config);
+  }
+
+  /**
+   * Normalize configuration values
+   */
+  normalizeConfig(config) {
+    // Ensure arrays are properly initialized
+    if (!config.discovery.extensions) {
+      config.discovery.extensions = [];
+    }
+
+    if (!config.discovery.skipDirectories) {
+      config.discovery.skipDirectories = [];
+    }
+
+    // Ensure language configurations are properly initialized
+    if (config.discovery.languages) {
+      for (const [language, langConfig] of Object.entries(config.discovery.languages)) {
+        if (langConfig.enabled === undefined) {
+          langConfig.enabled = true;
+        }
+      }
+    }
+
+    // Merge language-specific extensions into global extensions
+    if (config.discovery.languages) {
+      const languageExtensions = new Set(config.discovery.extensions);
+
+      for (const [language, langConfig] of Object.entries(config.discovery.languages)) {
+        if (langConfig.enabled && langConfig.extensions) {
+          langConfig.extensions.forEach(ext => languageExtensions.add(ext));
+        }
+      }
+
+      config.discovery.extensions = Array.from(languageExtensions);
+    }
+
+    return config;
+  }
+
+  /**
+   * Get language-specific configuration
+   */
+  getLanguageConfig(language) {
+    if (!this.config) {
+      this.load();
+    }
+
+    return this.config.discovery.languages?.[language] || null;
+  }
+
+  /**
+   * Check if a language is enabled
+   */
+  isLanguageEnabled(language) {
+    const langConfig = this.getLanguageConfig(language);
+    return langConfig ? langConfig.enabled !== false : false;
   }
 
   /**

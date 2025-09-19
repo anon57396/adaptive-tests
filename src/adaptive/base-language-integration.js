@@ -6,10 +6,15 @@
  * language-specific methods while leveraging shared scoring algorithms.
  */
 
+const { ErrorHandler, ErrorCodes } = require('./error-handler');
+const { LanguageIntegrationAsync } = require('./async-utils');
+
 class BaseLanguageIntegration {
   constructor(discoveryEngine, language) {
     this.engine = discoveryEngine;
     this.language = language;
+    this.errorHandler = new ErrorHandler(`${language}-integration`);
+    this.asyncHelper = new LanguageIntegrationAsync(language);
     this.addExtensionToConfig();
   }
 
@@ -310,6 +315,101 @@ class BaseLanguageIntegration {
    */
   generateTestContent(target, options = {}) {
     throw new Error(`generateTestContent() must be implemented by ${this.constructor.name}`);
+  }
+
+  /**
+   * Safe wrapper for file parsing operations (legacy - use standardized async methods)
+   * @deprecated Use evaluateCandidateAsync or parseFileAsync instead
+   */
+  async safeParseFile(filePath, parseOperation) {
+    return await this.errorHandler.safeAsync(
+      parseOperation,
+      { filePath, language: this.language, operation: 'parseFile' }
+    );
+  }
+
+  /**
+   * Standardized async candidate evaluation
+   */
+  async evaluateCandidateAsync(filePath, signature = {}) {
+    return this.asyncHelper.evaluateCandidate(filePath, signature, async (path, sig) => {
+      // This method should be overridden by subclasses
+      // Default implementation delegates to legacy sync method if it exists
+      if (typeof this.evaluateCandidate === 'function') {
+        return await this.evaluateCandidate(path, sig);
+      }
+      throw new Error(`evaluateCandidateAsync() must be implemented by ${this.constructor.name}`);
+    });
+  }
+
+  /**
+   * Standardized async file parsing
+   */
+  async parseFileAsync(filePath, options = {}) {
+    return this.asyncHelper.parseFile(filePath, async (content, path) => {
+      // This method should be overridden by subclasses
+      // Default implementation delegates to collector if available
+      if (this.collector && typeof this.collector.parseFile === 'function') {
+        return await this.collector.parseFile(path);
+      }
+      throw new Error(`parseFileAsync() must be implemented by ${this.constructor.name}`);
+    }, options);
+  }
+
+  /**
+   * Standardized async test generation
+   */
+  async generateTestAsync(target, options = {}) {
+    return this.asyncHelper.generateTest(target, async (tgt, opts) => {
+      // This method should be overridden by subclasses
+      // Default implementation delegates to legacy sync method if it exists
+      if (typeof this.generateTestContent === 'function') {
+        return this.generateTestContent(tgt, opts);
+      }
+      throw new Error(`generateTestAsync() must be implemented by ${this.constructor.name}`);
+    }, options);
+  }
+
+  /**
+   * Handle evaluation errors consistently across all language integrations
+   */
+  handleEvaluationError(error, filePath, signature) {
+    this.errorHandler.logError(error, {
+      filePath,
+      language: this.language,
+      signature: signature?.name || 'unknown',
+      operation: 'evaluate'
+    });
+    return null;
+  }
+
+  /**
+   * Validate signature before processing
+   */
+  validateSignature(signature) {
+    if (!signature || typeof signature !== 'object') {
+      this.errorHandler.logWarning('Invalid signature provided', {
+        language: this.language,
+        signature
+      });
+      return false;
+    }
+    return true;
+  }
+
+  /**
+   * Log debug information for scoring
+   */
+  logScoreDebug(candidate, signature, score) {
+    this.errorHandler.logDebug(
+      `Scored candidate: ${candidate?.name || 'unknown'} = ${score}`,
+      {
+        language: this.language,
+        candidateName: candidate?.name,
+        signatureName: signature?.name,
+        score
+      }
+    );
   }
 }
 

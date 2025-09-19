@@ -18,6 +18,7 @@ const { analyzeModuleExports: parseModuleExports } = require('./parser');
 const { ScoringEngine } = require('./scoring-engine');
 const { createTsconfigResolver } = require('./tsconfig-resolver');
 const { getLogger } = require('./logger');
+const { AsyncOperationManager, executeParallel } = require('./async-utils');
 
 // Cache for module requirements with size limit
 const MAX_MODULE_CACHE_SIZE = 100;
@@ -120,6 +121,12 @@ class DiscoveryEngine {
     this.cachedModules = new Set();
     this.moduleVersions = new LRUCache(50); // Limit version cache
     this.MAX_CACHED_MODULES = 100; // Limit cached module paths
+
+    // Async operation manager for consistent patterns
+    this.asyncManager = new AsyncOperationManager({
+      timeout: this.config.discovery?.timeout || 15000,
+      retries: this.config.discovery?.retries || 1
+    });
 
     // Periodically clean up cachedModules to prevent unbounded growth
     this.cleanupCachedModules();

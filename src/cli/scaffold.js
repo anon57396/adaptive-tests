@@ -4,12 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const { DiscoveryEngine, getDiscoveryEngine } = require('../adaptive/discovery-engine');
-const { PHPDiscoveryIntegration } = require('../adaptive/php/php-discovery-integration');
-const { PythonDiscoveryIntegration } = require('../adaptive/python/python-discovery-integration');
-const { JavaDiscoveryIntegration } = require('../adaptive/java/java-discovery-integration');
-const { GoDiscoveryIntegration } = require('../adaptive/go/go-discovery-integration');
-const { RubyDiscoveryIntegration } = require('../adaptive/ruby/ruby-discovery-integration');
-const { RustDiscoveryIntegration } = require('../adaptive/rust/rust-discovery-integration');
+const { LanguagePluginRegistry } = require('../adaptive/language-plugin-registry');
 
 const COLORS = {
   reset: '\x1b[0m',
@@ -164,8 +159,9 @@ const slugify = (value) => {
     .toLowerCase() || 'target';
 };
 
-const generatePHPTestContent = ({ signature, phpMetadata }) => {
-  const phpIntegration = new PHPDiscoveryIntegration(null);
+const generatePHPTestContent = async ({ signature, phpMetadata }) => {
+  const registry = LanguagePluginRegistry.getInstance();
+  const phpIntegration = await registry.getPlugin('php');
 
   // Find the target in metadata
   let target = null;
@@ -205,13 +201,18 @@ const generatePHPTestContent = ({ signature, phpMetadata }) => {
 };
 
 
-const javaIntegration = new JavaDiscoveryIntegration(null);
-const goIntegration = new GoDiscoveryIntegration(null);
-const rustIntegration = new RustDiscoveryIntegration(null);
-const pythonIntegration = new PythonDiscoveryIntegration();
-const rubyIntegration = new RubyDiscoveryIntegration();
+// Plugin helper function
+const getLanguagePlugin = async (language) => {
+  const registry = LanguagePluginRegistry.getInstance();
+  return await registry.getPlugin(language);
+};
 
 const analyzeJavaFile = async (filePath) => {
+  const javaIntegration = await getLanguagePlugin('java');
+  if (!javaIntegration) {
+    return null;
+  }
+
   const javaMetadata = await javaIntegration.collector.parseFile(filePath);
   if (!javaMetadata) {
     return null;
@@ -246,6 +247,11 @@ const analyzeJavaFile = async (filePath) => {
 };
 
 const analyzeGoFile = async (filePath) => {
+  const goIntegration = await getLanguagePlugin('go');
+  if (!goIntegration) {
+    return null;
+  }
+
   const goMetadata = await goIntegration.collector.parseFile(filePath);
   if (!goMetadata) {
     return null;
@@ -332,6 +338,11 @@ const analyzeGoFile = async (filePath) => {
 };
 
 const analyzeRustFile = async (filePath) => {
+  const rustIntegration = await getLanguagePlugin('rust');
+  if (!rustIntegration) {
+    return null;
+  }
+
   const rustMetadata = await rustIntegration.collector.parseFile(filePath);
   if (!rustMetadata) {
     return null;
@@ -515,10 +526,15 @@ const generateRustOutputPath = (root, filePath, options, targetName, rustMetadat
   return path.join(sourceDir, testFileName);
 };
 
-const generateGoTestContent = ({ signature, goMetadata, goType, options = {} }) => {
+const generateGoTestContent = async ({ signature, goMetadata, goType, options = {} }) => {
   const target = goType || findGoTarget(goMetadata, signature);
   if (!target) {
     throw new Error('Unable to resolve Go target for scaffolding');
+  }
+
+  const goIntegration = await getLanguagePlugin('go');
+  if (!goIntegration) {
+    throw new Error('Go language plugin not available');
   }
 
   const goTarget = {
@@ -531,10 +547,15 @@ const generateGoTestContent = ({ signature, goMetadata, goType, options = {} }) 
   return goIntegration.generateGoTest(goTarget, options);
 };
 
-const generateRustTestContent = ({ signature, rustMetadata, rustType, options = {} }) => {
+const generateRustTestContent = async ({ signature, rustMetadata, rustType, options = {} }) => {
   const target = rustType || findRustTarget(rustMetadata, signature);
   if (!target) {
     throw new Error('Unable to resolve Rust target for scaffolding');
+  }
+
+  const rustIntegration = await getLanguagePlugin('rust');
+  if (!rustIntegration) {
+    throw new Error('Rust language plugin not available');
   }
 
   const rustTarget = {
@@ -592,7 +613,12 @@ const generateJavaOutputPath = (root, filePath, options, targetName, javaMetadat
   return path.join(baseDir, testFileName);
 };
 
-const generateJavaTestContent = ({ signature, javaMetadata, javaType, options = {} }) => {
+const generateJavaTestContent = async ({ signature, javaMetadata, javaType, options = {} }) => {
+  const javaIntegration = await getLanguagePlugin('java');
+  if (!javaIntegration) {
+    throw new Error('Java language plugin not available');
+  }
+
   const target = javaType || findJavaTarget(javaMetadata, signature);
   if (!target) {
     throw new Error('Unable to resolve Java target type for scaffolding');
@@ -609,7 +635,12 @@ const generateJavaTestContent = ({ signature, javaMetadata, javaType, options = 
 };
 
 const analyzePythonFile = async (filePath) => {
-  const result = pythonIntegration.parseFile(filePath);
+  const pythonIntegration = await getLanguagePlugin('python');
+  if (!pythonIntegration) {
+    return null;
+  }
+
+  const result = await pythonIntegration.parseFile(filePath);
   if (!result) {
     return null;
   }
@@ -621,7 +652,12 @@ const analyzePythonFile = async (filePath) => {
 };
 
 const analyzeRubyFile = async (filePath) => {
-  const metadata = rubyIntegration.parseFile(filePath);
+  const rubyIntegration = await getLanguagePlugin('ruby');
+  if (!rubyIntegration) {
+    return null;
+  }
+
+  const metadata = await rubyIntegration.parseFile(filePath);
   if (!metadata) {
     return null;
   }
@@ -644,7 +680,12 @@ const generatePythonOutputPath = (root, filePath, options, targetName) => {
   return path.join(baseDir, `test_${slug}.py`);
 };
 
-const generatePythonTestContent = ({ signature, moduleName, pythonKind, depth }) => {
+const generatePythonTestContent = async ({ signature, moduleName, pythonKind, depth }) => {
+  const pythonIntegration = await getLanguagePlugin('python');
+  if (!pythonIntegration) {
+    throw new Error('Python language plugin not available');
+  }
+
   return pythonIntegration.generatePytestTest({
     signature,
     moduleName,
@@ -660,7 +701,12 @@ const generateRubyOutputPath = (root, filePath, options, targetName) => {
   return path.join(baseDir, `${slug}_spec.rb`);
 };
 
-const generateRubyTestContent = ({ signature, rubyInfo, requirePath }) => {
+const generateRubyTestContent = async ({ signature, rubyInfo, requirePath }) => {
+  const rubyIntegration = await getLanguagePlugin('ruby');
+  if (!rubyIntegration) {
+    throw new Error('Ruby language plugin not available');
+  }
+
   return rubyIntegration.generateRSpecTest({
     target: { ruby: rubyInfo },
     signature,
@@ -731,8 +777,12 @@ const analyzeSourceFile = (engine, filePath) => {
 };
 
 const analyzePHPFile = async (filePath) => {
-  const phpIntegration = new PHPDiscoveryIntegration(null);
-  const metadata = await phpIntegration.phpCollector.parseFile(filePath);
+  const phpIntegration = await getLanguagePlugin('php');
+  if (!phpIntegration) {
+    return null;
+  }
+
+  const metadata = await phpIntegration.collector.parseFile(filePath);
   if (!metadata) return null;
 
   // Convert PHP metadata to export-like format for consistency
@@ -1019,7 +1069,7 @@ const processSingleFile = async (engine, filePath, options, results) => {
       const baseName = signature.name || path.basename(filePath, path.extname(filePath));
       outputPath = path.join(baseDir, `${baseName}Test.php`);
 
-      content = generatePHPTestContent({
+      content = await generatePHPTestContent({
         signature: exportEntry.info,
         phpMetadata
       });
@@ -1028,7 +1078,7 @@ const processSingleFile = async (engine, filePath, options, results) => {
       const targetName = options.allExports ? signature.name : signature.name || path.basename(filePath, path.extname(filePath));
       outputPath = generateJavaOutputPath(options.root, filePath, options, targetName, javaMetadata);
 
-      content = generateJavaTestContent({
+      content = await generateJavaTestContent({
         signature,
         javaMetadata,
         javaType,
@@ -1041,7 +1091,7 @@ const processSingleFile = async (engine, filePath, options, results) => {
       const targetName = options.allExports ? signature.name : signature.name || path.basename(filePath, path.extname(filePath));
       outputPath = generateGoOutputPath(options.root, filePath, options, targetName, goMetadata);
 
-      content = generateGoTestContent({
+      content = await generateGoTestContent({
         signature,
         goMetadata,
         goType,
@@ -1054,7 +1104,7 @@ const processSingleFile = async (engine, filePath, options, results) => {
       const targetName = options.allExports ? signature.name : signature.name || path.basename(filePath, path.extname(filePath));
       outputPath = generateRustOutputPath(options.root, filePath, options, targetName, rustMetadata);
 
-      content = generateRustTestContent({
+      content = await generateRustTestContent({
         signature,
         rustMetadata,
         rustType,
@@ -1071,7 +1121,7 @@ const processSingleFile = async (engine, filePath, options, results) => {
       const relativeDir = path.relative(options.root, path.dirname(outputPath));
       const depth = relativeDir ? relativeDir.split(path.sep).filter(Boolean).length : 0;
 
-      content = generatePythonTestContent({
+      content = await generatePythonTestContent({
         signature,
         moduleName: signature.module,
         pythonKind: pythonInfo?.type || signature.type || 'class',
@@ -1086,7 +1136,7 @@ const processSingleFile = async (engine, filePath, options, results) => {
       const normalizedRequire = requireRelative.replace(/\.rb$/, '');
       const requirePath = normalizedRequire.startsWith('.') ? normalizedRequire : `./${normalizedRequire}`;
 
-      content = generateRubyTestContent({
+      content = await generateRubyTestContent({
         signature,
         rubyInfo,
         requirePath

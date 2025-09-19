@@ -6,37 +6,56 @@
  */
 
 const path = require('path');
+const { BaseLanguageIntegration } = require('../base-language-integration');
 const { JavaDiscoveryCollector } = require('./java-discovery-collector');
 
-class JavaDiscoveryIntegration {
+class JavaDiscoveryIntegration extends BaseLanguageIntegration {
   constructor(discoveryEngine) {
-    this.engine = discoveryEngine;
+    super(discoveryEngine, 'java');
     this.collector = new JavaDiscoveryCollector();
-
-    if (this.engine && this.engine.config && this.engine.config.discovery) {
-      const { extensions } = this.engine.config.discovery;
-      if (Array.isArray(extensions) && !extensions.includes('.java')) {
-        extensions.push('.java');
-      }
-    }
   }
 
+  /**
+   * Get the file extension for Java files
+   */
+  getFileExtension() {
+    return '.java';
+  }
+
+  /**
+   * Evaluate a Java file as a candidate (legacy method)
+   * @deprecated Use evaluateCandidateAsync for consistent async patterns
+   */
   async evaluateJavaCandidate(filePath, signature = {}) {
-    const metadata = await this.collector.parseFile(filePath);
-    if (!metadata) {
-      return null;
-    }
-    const evaluation = this.calculateJavaScore(metadata, signature);
-    if (!evaluation || evaluation.score <= 0) {
-      return null;
-    }
-    return {
-      path: filePath,
-      score: evaluation.score,
-      metadata,
-      match: evaluation.match,
-      language: 'java'
-    };
+    return this.evaluateCandidateAsync(filePath, signature);
+  }
+
+  /**
+   * Standardized async candidate evaluation for Java
+   */
+  async evaluateCandidateAsync(filePath, signature = {}) {
+    return this.asyncHelper.evaluateCandidate(filePath, signature, async (path, sig) => {
+      const metadata = await this.parseFileAsync(path);
+      if (!metadata) {
+        this.errorHandler.logWarning('Failed to parse Java file', { filePath: path });
+        return null;
+      }
+
+      const evaluation = this.calculateJavaScore(metadata, sig);
+      if (!evaluation || evaluation.score <= 0) {
+        this.logScoreDebug(evaluation?.match, sig, evaluation?.score || 0);
+        return null;
+      }
+
+      this.logScoreDebug(evaluation.match, sig, evaluation.score);
+      return {
+        path,
+        score: evaluation.score,
+        metadata,
+        match: evaluation.match,
+        language: 'java'
+      };
+    });
   }
 
   calculateJavaScore(metadata, signature = {}) {

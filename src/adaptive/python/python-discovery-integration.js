@@ -1,6 +1,7 @@
 const { spawnSync } = require('child_process');
 const path = require('path');
 const fs = require('fs');
+const { ErrorHandler, ErrorCodes } = require('../error-handler');
 
 const PYTHON_BRIDGE_SCRIPT = `import ast, json, sys
 from pathlib import Path
@@ -44,11 +45,13 @@ function buildPythonEnv() {
 class PythonDiscoveryIntegration {
   constructor() {
     this.pythonEnv = buildPythonEnv();
+    this.errorHandler = new ErrorHandler('python-integration');
   }
 
   parseFile(filePath) {
     // Validate file path to prevent injection
     if (!filePath || typeof filePath !== 'string') {
+      this.errorHandler.logWarning('Invalid file path provided', { filePath });
       return null;
     }
 
@@ -56,35 +59,66 @@ class PythonDiscoveryIntegration {
     const absolutePath = path.resolve(filePath);
 
     // Verify the file exists and is a Python file
-    if (!fs.existsSync(absolutePath) || !absolutePath.endsWith('.py')) {
+    if (!fs.existsSync(absolutePath)) {
+      return this.errorHandler.handleFileError(
+        { code: 'ENOENT', message: 'File not found' },
+        absolutePath,
+        'read'
+      );
+    }
+
+    if (!absolutePath.endsWith('.py')) {
+      this.errorHandler.logWarning('File is not a Python file', { filePath: absolutePath });
       return null;
     }
 
     // Use absolute path to prevent directory traversal
-    const result = spawnSync('python3', ['-c', PYTHON_BRIDGE_SCRIPT, absolutePath], {
-      encoding: 'utf8',
-      env: this.pythonEnv,
-      timeout: 5000, // Add timeout to prevent hanging
-      maxBuffer: 1024 * 1024 // 1MB max buffer
-    });
+    const result = this.errorHandler.safeSync(
+      () => spawnSync('python3', ['-c', PYTHON_BRIDGE_SCRIPT, absolutePath], {
+        encoding: 'utf8',
+        env: this.pythonEnv,
+        timeout: 5000, // Add timeout to prevent hanging
+        maxBuffer: 1024 * 1024 // 1MB max buffer
+      }),
+      { filePath: absolutePath, operation: 'spawnPython' }
+    );
 
-    if (result.error || result.status !== 0) {
-      if (process.env.DEBUG_DISCOVERY) {
-        const reason = result.error ? result.error.message : result.stderr || result.stdout;
-        console.error('[adaptive-tests] Python metadata extraction failed:', reason);
-      }
-      return null;
+    if (!result.success) {
+      return this.errorHandler.handleProcessError(
+        new Error(result.message),
+        'python3',
+        absolutePath
+      );
+    }
+
+    const spawnResult = result.data;
+    if (spawnResult.error || spawnResult.status !== 0) {
+      const reason = spawnResult.error ?
+        spawnResult.error.message :
+        spawnResult.stderr || spawnResult.stdout;
+
+      return this.errorHandler.handleProcessError(
+        spawnResult.error || new Error(reason),
+        'python3',
+        absolutePath
+      );
     }
 
     let payload = null;
-    try {
-      payload = JSON.parse(result.stdout || '{}');
-    } catch (error) {
-      if (process.env.DEBUG_DISCOVERY) {
-        console.error('[adaptive-tests] Failed to parse Python metadata:', error.message);
-      }
-      return null;
+    const parseResult = this.errorHandler.safeSync(
+      () => JSON.parse(spawnResult.stdout || '{}'),
+      { filePath: absolutePath, operation: 'parseJSON' }
+    );
+
+    if (!parseResult.success) {
+      return this.errorHandler.handleParseError(
+        new Error(parseResult.message),
+        absolutePath,
+        'python'
+      );
     }
+
+    payload = parseResult.data;
 
     const classes = Array.isArray(payload.classes) ? payload.classes : [];
     const functions = Array.isArray(payload.functions) ? payload.functions : [];
