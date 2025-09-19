@@ -1,38 +1,213 @@
+/**
+ * @fileoverview Main script for the Adaptive Tests Discovery Lens webview.
+ * Manages test discovery, state management, UI interactions, and module coordination
+ * for the VS Code extension with lazy-loaded ES modules.
+ *
+ * @author VS Code Adaptive Tests Extension
+ * @version 2.0.0
+ */
+
 (function () {
+    /**
+     * VS Code API instance for extension communication.
+     * @type {Object}
+     */
     const vscode = acquireVsCodeApi();
 
-    // Core elements - available immediately
+    // Core DOM elements - available immediately
+    /** @type {HTMLInputElement} Signature input textarea */
     const signatureInput = document.getElementById('signature-input');
+    /** @type {HTMLButtonElement} Discovery run button */
     const runButton = document.getElementById('run-discovery');
+    /** @type {HTMLElement} Results display section */
     const resultsSection = document.querySelector('.results-section');
+    /** @type {HTMLElement} Results container for items */
     const resultsContainer = document.getElementById('results-container');
+    /** @type {HTMLElement} Results summary display */
     const resultsSummary = document.querySelector('.results-summary');
+    /** @type {HTMLElement} Error display section */
     const errorSection = document.querySelector('.error-section');
+    /** @type {HTMLElement} Error message container */
     const errorMessage = document.querySelector('.error-message');
+    /** @type {NodeList} Preset selection buttons */
     const presetButtons = document.querySelectorAll('.preset-btn');
+    /** @type {HTMLElement} Screen reader announcements */
     const statusAnnouncements = document.getElementById('status-announcements');
+    /** @type {HTMLElement} Progress indicator container */
     const progressContainer = document.querySelector('.discovery-progress');
+    /** @type {HTMLElement} Progress text display */
     const progressText = document.getElementById('progress-text');
+    /** @type {NodeList} Progress step indicators */
     const progressSteps = document.querySelectorAll('.progress-step');
 
-    // State
-    let isLoading = false;
-    let lastSignature = null;
-    let lastResults = [];
-    let validationTimeout = null;
-    let currentStep = 0;
+    /**
+     * Central state management system for the Discovery Lens application.
+     * Provides structured state management with subscription system for reactive UI updates.
+     *
+     * @class StateManager
+     */
+    class StateManager {
+        /**
+         * Creates an instance of StateManager with initial state and subscription system.
+         */
+        constructor() {
+            /**
+             * @private
+             * @type {Object} The current application state
+             */
+            this.state = {
+                /** @type {boolean} Loading state indicator */
+                isLoading: false,
+                /** @type {Object|null} Last discovery signature */
+                lastSignature: null,
+                /** @type {Array} Last discovery results */
+                lastResults: [],
+                /** @type {number|null} Validation timeout reference */
+                validationTimeout: null,
+                /** @type {number} Current progress step */
+                currentStep: 0,
+                /** @type {Object} UI-specific state */
+                ui: {
+                    /** @type {string|null} Current error message */
+                    currentError: null,
+                    /** @type {string|null} Current error type */
+                    currentErrorType: null,
+                    /** @type {boolean} Whether results are currently displayed */
+                    resultsVisible: false,
+                    /** @type {number} Selected result index for navigation */
+                    selectedResultIndex: -1,
+                    /** @type {Array} Accessibility announcements queue */
+                    announcements: []
+                }
+            };
 
-    // Lazy-loaded modules
+            /**
+             * @private
+             * @type {Array<Function>} List of subscriber functions
+             */
+            this.subscribers = [];
+        }
+
+        /**
+         * Gets the current state or a specific property from state.
+         *
+         * @param {string} [key] - Optional key to get specific state property
+         * @returns {any} The entire state object or specific property value
+         */
+        getState(key) {
+            return key ? this.state[key] : { ...this.state };
+        }
+
+        /**
+         * Updates the state with new values and notifies subscribers.
+         *
+         * @param {Object} updates - Object containing state updates
+         * @param {boolean} [silent=false] - If true, doesn't notify subscribers
+         */
+        setState(updates, silent = false) {
+            const previousState = { ...this.state };
+            
+            // Deep merge updates into current state
+            this.state = this._deepMerge(this.state, updates);
+            
+            if (!silent) {
+                this._notifySubscribers(previousState, this.state);
+            }
+        }
+
+        /**
+         * Subscribes to state changes.
+         *
+         * @param {Function} callback - Function to call when state changes
+         * @returns {Function} Unsubscribe function
+         */
+        subscribe(callback) {
+            this.subscribers.push(callback);
+            
+            // Return unsubscribe function
+            return () => {
+                const index = this.subscribers.indexOf(callback);
+                if (index > -1) {
+                    this.subscribers.splice(index, 1);
+                }
+            };
+        }
+
+        /**
+         * Performs a deep merge of two objects.
+         *
+         * @private
+         * @param {Object} target - Target object
+         * @param {Object} source - Source object to merge
+         * @returns {Object} Merged object
+         */
+        _deepMerge(target, source) {
+            const result = { ...target };
+            
+            for (const key in source) {
+                if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
+                    result[key] = this._deepMerge(result[key] || {}, source[key]);
+                } else {
+                    result[key] = source[key];
+                }
+            }
+            
+            return result;
+        }
+
+        /**
+         * Notifies all subscribers of state changes.
+         *
+         * @private
+         * @param {Object} previousState - Previous state object
+         * @param {Object} newState - New state object
+         */
+        _notifySubscribers(previousState, newState) {
+            this.subscribers.forEach(callback => {
+                try {
+                    callback(newState, previousState);
+                } catch (error) {
+                    console.error('Error in state subscriber:', error);
+                }
+            });
+        }
+    }
+
+    // Global state manager instance
+    const stateManager = new StateManager();
+    
+    // Make stateManager globally accessible for modules
+    window.stateManager = stateManager;
+
+    // Lazy-loaded modules - loaded on demand for performance
+    /** @type {Object|null} Presets module for signature templates */
     let presetModule = null;
+    /** @type {Object|null} Results module for discovery result display */
     let resultsModule = null;
+    /** @type {Object|null} Navigation module for keyboard navigation */
     let navigationModule = null;
+    /** @type {Object|null} Errors module for error handling and display */
     let errorsModule = null;
 
-    // Initialize
+    /**
+     * Initializes the application by setting up state subscriptions, event listeners,
+     * restoring previous state, and configuring accessibility features.
+     *
+     * @function init
+     */
     function init() {
+        // Set up state change subscriptions
+        setupStateSubscriptions();
+        
         // Restore previous state
         const state = vscode.getState();
         if (state) {
+            // Update state manager with restored data
+            stateManager.setState({
+                lastResults: state.results || [],
+                lastSignature: state.lastSignature || null
+            }, true); // Silent update during initialization
+            
             if (state.signature) {
                 signatureInput.value = state.signature;
             }
@@ -68,7 +243,57 @@
         setupDetailsAccessibility();
     }
 
-    // Lazy loading functions
+    /**
+     * Sets up state change subscriptions to automatically update UI when state changes.
+     * Manages reactive updates for loading states, errors, results, and UI elements.
+     *
+     * @function setupStateSubscriptions
+     */
+    function setupStateSubscriptions() {
+        stateManager.subscribe((newState, previousState) => {
+            // Handle loading state changes
+            if (newState.isLoading !== previousState.isLoading) {
+                setLoading(newState.isLoading);
+            }
+            
+            // Handle error state changes
+            if (newState.ui.currentError !== previousState.ui.currentError) {
+                if (newState.ui.currentError) {
+                    showError(newState.ui.currentError, newState.ui.currentErrorType);
+                } else {
+                    hideError();
+                }
+            }
+            
+            // Handle results visibility changes
+            if (newState.ui.resultsVisible !== previousState.ui.resultsVisible) {
+                if (!newState.ui.resultsVisible) {
+                    hideResults();
+                }
+            }
+            
+            // Handle signature input synchronization
+            if (newState.lastSignature !== previousState.lastSignature && newState.lastSignature) {
+                const signatureJson = JSON.stringify(newState.lastSignature, null, 2);
+                if (signatureInput.value !== signatureJson) {
+                    signatureInput.value = signatureJson;
+                }
+            }
+        });
+    }
+
+    /**
+     * Lazy loading functions for ES modules - loads modules only when needed
+     * to improve initial load performance and reduce memory footprint.
+     */
+
+    /**
+     * Loads the presets module for signature templates.
+     *
+     * @async
+     * @function loadPresetModule
+     * @returns {Promise<Object>} The presets module
+     */
     async function loadPresetModule() {
         if (!presetModule) {
             presetModule = await import('./modules/presets.js');
@@ -76,6 +301,13 @@
         return presetModule;
     }
 
+    /**
+     * Loads the results module for discovery result display.
+     *
+     * @async
+     * @function loadResultsModule
+     * @returns {Promise<Object>} The results module
+     */
     async function loadResultsModule() {
         if (!resultsModule) {
             resultsModule = await import('./modules/results.js');
@@ -83,6 +315,13 @@
         return resultsModule;
     }
 
+    /**
+     * Loads the navigation module for keyboard navigation and accessibility.
+     *
+     * @async
+     * @function loadNavigationModule
+     * @returns {Promise<Object>} The navigation module
+     */
     async function loadNavigationModule() {
         if (!navigationModule) {
             navigationModule = await import('./modules/navigation.js');
@@ -90,6 +329,13 @@
         return navigationModule;
     }
 
+    /**
+     * Loads the errors module for error handling and display.
+     *
+     * @async
+     * @function loadErrorsModule
+     * @returns {Promise<Object>} The errors module
+     */
     async function loadErrorsModule() {
         if (!errorsModule) {
             errorsModule = await import('./modules/errors.js');
@@ -97,23 +343,66 @@
         return errorsModule;
     }
 
-    // Setup functions with lazy loading
+    /**
+     * Setup functions with lazy loading - configure components as needed
+     */
+
+    /**
+     * Sets up preset button handlers with lazy-loaded presets module.
+     *
+     * @async
+     * @function setupPresetHandlers
+     */
     async function setupPresetHandlers() {
         const module = await loadPresetModule();
         module.setupPresetHandlers(signatureInput, presetButtons, announceToScreenReader, saveState);
     }
 
+    /**
+     * Sets up result navigation with lazy-loaded navigation module.
+     *
+     * @async
+     * @function setupResultNavigation
+     * @param {HTMLElement} resultsContainer - Container element for results
+     * @returns {Promise<any>} Navigation setup result
+     */
     async function setupResultNavigation(resultsContainer) {
         const module = await loadNavigationModule();
         return module.setupResultNavigation(resultsContainer);
     }
 
-    // Core accessibility helper functions (always available)
+    /**
+     * Core accessibility helper functions (always available)
+     */
+
+    /**
+     * Announces a message to screen readers for accessibility.
+     * Updates state manager with announcement history and provides live region updates.
+     *
+     * @function announceToScreenReader
+     * @param {string} message - Message to announce to screen readers
+     * @param {string} [priority='polite'] - Announcement priority ('polite' or 'assertive')
+     */
     function announceToScreenReader(message, priority = 'polite') {
         if (!statusAnnouncements) return;
         
         statusAnnouncements.textContent = message;
         statusAnnouncements.setAttribute('aria-live', priority);
+        
+        // Update state with accessibility announcement
+        const currentState = stateManager.getState();
+        const announcements = [...currentState.ui.announcements, {
+            message,
+            priority,
+            timestamp: Date.now()
+        }];
+        
+        stateManager.setState({
+            ui: {
+                ...currentState.ui,
+                announcements: announcements.slice(-10) // Keep last 10 announcements
+            }
+        });
         
         // Clear after announcement to avoid repetition
         setTimeout(() => {
@@ -121,6 +410,14 @@
         }, 1000);
     }
 
+    /**
+     * Manages focus with optional delay for better accessibility.
+     *
+     * @function manageFocus
+     * @param {HTMLElement} element - Element to focus
+     * @param {Object} [options={}] - Focus options
+     * @param {number} [options.delay=100] - Delay before focusing in milliseconds
+     */
     function manageFocus(element, options = {}) {
         setTimeout(() => {
             if (element && typeof element.focus === 'function') {
@@ -132,7 +429,17 @@
     // Make announceToScreenReader available globally for modules
     window.announceToScreenReader = announceToScreenReader;
 
-    // Essential keyboard handlers (always loaded)
+    /**
+     * Essential keyboard handlers (always loaded)
+     */
+
+    /**
+     * Handles keyboard input in the signature textarea.
+     * Supports Ctrl+Enter for discovery and Escape for error clearing.
+     *
+     * @function handleInputKeydown
+     * @param {KeyboardEvent} e - Keyboard event
+     */
     function handleInputKeydown(e) {
         if (e.key === 'Enter' && e.ctrlKey) {
             e.preventDefault();
@@ -142,6 +449,14 @@
         }
     }
 
+    /**
+     * Handles global keyboard navigation and shortcuts.
+     * Manages escape key handling and results navigation delegation.
+     *
+     * @async
+     * @function handleGlobalKeydown
+     * @param {KeyboardEvent} e - Keyboard event
+     */
     async function handleGlobalKeydown(e) {
         // Handle escape to clear focus/selections
         if (e.key === 'Escape') {
@@ -151,7 +466,7 @@
         }
 
         // Handle results navigation when focus is in results area
-        if (resultsContainer.contains(document.activeElement) || 
+        if (resultsContainer.contains(document.activeElement) ||
             (document.activeElement && document.activeElement.classList.contains('result-item'))) {
             
             if (!navigationModule) {
@@ -161,13 +476,29 @@
         }
     }
 
+    /**
+     * Debounces signature validation to avoid excessive validation calls.
+     *
+     * @function debounceValidation
+     */
     function debounceValidation() {
-        clearTimeout(validationTimeout);
-        validationTimeout = setTimeout(async () => {
+        const currentTimeout = stateManager.getState('validationTimeout');
+        clearTimeout(currentTimeout);
+        
+        const newTimeout = setTimeout(async () => {
             await validateSignature();
         }, 500);
+        
+        stateManager.setState({ validationTimeout: newTimeout });
     }
 
+    /**
+     * Validates the current signature input asynchronously.
+     * Uses the errors module to display validation feedback.
+     *
+     * @async
+     * @function validateSignature
+     */
     async function validateSignature() {
         const signatureText = signatureInput.value.trim();
         if (!signatureText) return;
@@ -182,8 +513,16 @@
         }
     }
 
+    /**
+     * Initiates the test discovery process.
+     * Validates input, updates state, and sends discovery request to extension.
+     *
+     * @async
+     * @function runDiscovery
+     */
     async function runDiscovery() {
-        if (isLoading) return;
+        const currentState = stateManager.getState();
+        if (currentState.isLoading) return;
 
         const signatureText = signatureInput.value.trim();
         if (!signatureText) {

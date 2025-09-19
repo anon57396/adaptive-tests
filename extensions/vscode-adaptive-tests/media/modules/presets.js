@@ -1,4 +1,15 @@
-// Preset signatures for the Discovery Lens
+/**
+ * @fileoverview Preset signatures module for the Discovery Lens.
+ * Provides predefined test signatures and manages preset selection functionality.
+ *
+ * @module PresetModule
+ */
+
+/**
+ * Collection of predefined test signature presets for common patterns.
+ * @type {Object}
+ * @readonly
+ */
 export const presets = {
     class: {
         name: 'Calculator',
@@ -16,7 +27,16 @@ export const presets = {
     }
 };
 
-// Preset button event handler
+/**
+ * Sets up event handlers for preset buttons with keyboard navigation support.
+ * Integrates with state manager if available and provides accessibility features.
+ *
+ * @function setupPresetHandlers
+ * @param {HTMLInputElement} signatureInput - Signature input element
+ * @param {NodeList} presetButtons - Collection of preset button elements
+ * @param {Function} announceToScreenReader - Function for screen reader announcements
+ * @param {Function} saveState - Function to save application state
+ */
 export function setupPresetHandlers(signatureInput, presetButtons, announceToScreenReader, saveState) {
     presetButtons.forEach((button, index) => {
         button.addEventListener('click', () => {
@@ -24,6 +44,18 @@ export function setupPresetHandlers(signatureInput, presetButtons, announceToScr
             if (preset) {
                 signatureInput.value = JSON.stringify(preset, null, 2);
                 announceToScreenReader(`Loaded ${button.textContent.toLowerCase()}`);
+                
+                // Update state manager if available
+                if (window.stateManager) {
+                    window.stateManager.setState({
+                        lastSignature: preset,
+                        ui: {
+                            ...window.stateManager.getState('ui'),
+                            selectedPreset: button.dataset.preset
+                        }
+                    });
+                }
+                
                 saveState();
                 // Focus back to input for immediate editing
                 signatureInput.focus();
@@ -36,6 +68,15 @@ export function setupPresetHandlers(signatureInput, presetButtons, announceToScr
     });
 }
 
+/**
+ * Handles keyboard navigation for preset buttons.
+ * Supports arrow keys, Home/End navigation, and activation with Enter/Space.
+ *
+ * @function handlePresetKeyNavigation
+ * @param {KeyboardEvent} e - Keyboard event
+ * @param {number} currentIndex - Current button index
+ * @param {NodeList} presetButtons - Collection of preset button elements
+ */
 function handlePresetKeyNavigation(e, currentIndex, presetButtons) {
     let targetIndex = currentIndex;
     

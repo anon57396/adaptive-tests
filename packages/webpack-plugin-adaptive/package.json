@@ -1,0 +1,58 @@
+{
+  "name": "webpack-plugin-adaptive",
+  "version": "1.0.0",
+  "description": "Webpack plugin for adaptive-tests - build-time discovery optimization and development enhancements",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "jest",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "webpack",
+    "webpack-plugin",
+    "adaptive-tests",
+    "testing",
+    "discovery",
+    "build-optimization",
+    "refactoring",
+    "loader"
+  ],
+  "author": "Jason Kempf <jasonkempf@gmail.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/anon57396/adaptive-tests.git",
+    "directory": "packages/webpack-plugin-adaptive"
+  },
+  "bugs": {
+    "url": "https://github.com/anon57396/adaptive-tests/issues"
+  },
+  "homepage": "https://github.com/anon57396/adaptive-tests/tree/main/packages/webpack-plugin-adaptive",
+  "peerDependencies": {
+    "webpack": ">=4.0.0 || >=5.0.0",
+    "adaptive-tests": ">=0.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.12.7",
+    "@types/webpack": "^5.28.5",
+    "adaptive-tests": "file:../../",
+    "jest": "^29.7.0",
+    "typescript": "^5.4.5",
+    "webpack": "^5.89.0"
+  },
+  "dependencies": {
+    "@babel/parser": "^7.25.0",
+    "loader-utils": "^3.2.1",
+    "schema-utils": "^4.2.0"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}

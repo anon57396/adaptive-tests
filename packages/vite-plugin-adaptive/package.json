@@ -1,0 +1,66 @@
+{
+  "name": "vite-plugin-adaptive",
+  "version": "1.0.0",
+  "description": "Vite plugin for adaptive-tests - build-time discovery optimization and HMR integration",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "vite",
+    "vite-plugin",
+    "adaptive-tests",
+    "testing",
+    "discovery",
+    "hmr",
+    "build-optimization",
+    "refactoring"
+  ],
+  "author": "Jason Kempf <jasonkempf@gmail.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/anon57396/adaptive-tests.git",
+    "directory": "packages/vite-plugin-adaptive"
+  },
+  "bugs": {
+    "url": "https://github.com/anon57396/adaptive-tests/issues"
+  },
+  "homepage": "https://github.com/anon57396/adaptive-tests/tree/main/packages/vite-plugin-adaptive",
+  "peerDependencies": {
+    "vite": ">=3.0.0 || >=4.0.0 || >=5.0.0",
+    "adaptive-tests": ">=0.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.12.7",
+    "adaptive-tests": "file:../../",
+    "tsup": "^8.0.1",
+    "typescript": "^5.4.5",
+    "vite": "^5.0.0",
+    "vitest": "^1.0.0"
+  },
+  "dependencies": {
+    "@babel/parser": "^7.25.0",
+    "magic-string": "^0.30.5",
+    "picocolors": "^1.0.0"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}

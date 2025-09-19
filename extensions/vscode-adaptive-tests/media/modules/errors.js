@@ -1,5 +1,15 @@
-// Error handling functionality
+/**
+ * @fileoverview Error handling and display module for the Discovery Lens.
+ * Manages error categorization, display, and user interaction with error states.
+ *
+ * @module ErrorsModule
+ */
 
+/**
+ * Error type definitions with display configuration.
+ * @type {Object}
+ * @readonly
+ */
 const ERROR_TYPES = {
     VALIDATION: {
         category: 'validation',
@@ -23,6 +33,20 @@ const ERROR_TYPES = {
     }
 };
 
+/**
+ * Displays an error message with enhanced structure and actions.
+ * Creates categorized error display with appropriate styling and user actions.
+ *
+ * @function showError
+ * @param {string} message - Error message to display
+ * @param {HTMLElement} errorSection - Error display section element
+ * @param {HTMLElement} errorMessage - Error message container element
+ * @param {HTMLElement} resultsSection - Results section to hide during error
+ * @param {Function} announceToScreenReader - Function for accessibility announcements
+ * @param {Function} manageFocus - Function for focus management
+ * @param {string} [errorType='UNKNOWN'] - Error type for categorization
+ * @param {Object} [originalSignature=null] - Original signature for retry functionality
+ */
 export function showError(message, errorSection, errorMessage, resultsSection, announceToScreenReader, manageFocus, errorType = 'UNKNOWN', originalSignature = null) {
     const errorConfig = ERROR_TYPES[errorType] || ERROR_TYPES.UNKNOWN;
     
@@ -53,6 +77,18 @@ export function showError(message, errorSection, errorMessage, resultsSection, a
     
     // Setup error actions
     setupErrorActions(errorType, originalSignature, errorSection);
+    
+    // Update state manager if available
+    if (window.stateManager) {
+        window.stateManager.setState({
+            ui: {
+                ...window.stateManager.getState('ui'),
+                currentError: message,
+                currentErrorType: errorType,
+                resultsVisible: false
+            }
+        });
+    }
     
     // Show error section, hide results
     errorSection.style.display = 'block';
