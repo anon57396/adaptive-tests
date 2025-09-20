@@ -1,3 +1,19 @@
+export type TargetType = 'class' | 'function' | 'object' | 'module';
+export interface DiscoverySignature {
+    name?: string | RegExp;
+    type?: TargetType;
+    exports?: string;
+    methods?: string[];
+    properties?: string[];
+    extends?: string | Function;
+    instanceof?: string | Function;
+    language?: string;
+    [key: string]: any;
+}
+export interface DiscoveryOptions {
+    rootPath?: string;
+    config?: any;
+}
 export class DiscoveryEngine {
     constructor(rootPath?: string, config?: {});
     rootPath: string;
@@ -13,15 +29,15 @@ export class DiscoveryEngine {
     /**
      * Discover a target module/class/function
      */
-    discoverTarget(signature: any): Promise<any>;
+    discoverTarget<T = unknown>(signature: DiscoverySignature): Promise<T>;
     /**
      * Collect all candidates matching the signature
      */
-    collectCandidates(dir: any, signature: any, depth?: number, candidates?: any[]): Promise<any[]>;
+    collectCandidates(dir: any, signature: DiscoverySignature, depth?: number, candidates?: any[]): Promise<any[]>;
     /**
      * Evaluate a file as a potential candidate
      */
-    evaluateCandidate(filePath: any, signature: any): Promise<{
+    evaluateCandidate(filePath: any, signature: DiscoverySignature): Promise<{
         path: any;
         fileName: string;
         content: string;
@@ -90,18 +106,18 @@ export class DiscoveryEngine {
     getMemberName(node: any): any;
     getSpecifierName(node: any): any;
     resolveExpressionName(node: any): any;
-    selectExportFromMetadata(candidate: any, signature: any): any;
-    matchesSignatureMetadata(entry: any, signature: any): boolean;
+    selectExportFromMetadata(candidate: any, signature: DiscoverySignature): any;
+    matchesSignatureMetadata(entry: any, signature: DiscoverySignature): boolean;
     extractExportByAccess(moduleExports: any, access: any): any;
     tokenizeName(name: any): any;
     /**
      * Quick check if file name could match signature
      */
-    quickNameCheck(fileName: any, signature: any): boolean;
+    quickNameCheck(fileName: any, signature: DiscoverySignature): boolean;
     /**
      * Try to resolve a candidate by loading and validating it
      */
-    tryResolveCandidate(candidate: any, signature: any): Promise<{
+    tryResolveCandidate(candidate: any, signature: DiscoverySignature): Promise<{
         target: any;
         access: {
             type: string;
@@ -123,7 +139,7 @@ export class DiscoveryEngine {
     /**
      * Resolve target from module exports
      */
-    resolveTargetFromModule(moduleExports: any, signature: any, candidate: any): {
+    resolveTargetFromModule(moduleExports: any, signature: DiscoverySignature, candidate: any): {
         target: any;
         access: {
             type: string;
@@ -141,7 +157,7 @@ export class DiscoveryEngine {
     /**
      * Validate that a target matches the signature requirements
      */
-    validateTarget(target: any, signature: any): {
+    validateTarget(target: any, signature: DiscoverySignature): {
         score: number;
     } | null;
     /**
@@ -179,21 +195,21 @@ export class DiscoveryEngine {
     /**
      * Normalize signature
      */
-    normalizeSignature(signature: any): any;
+    normalizeSignature(signature: DiscoverySignature): DiscoverySignature;
     /**
      * Get cache key for signature
      */
-    getCacheKey(signature: any): string;
+    getCacheKey(signature: DiscoverySignature): string;
     serializeCacheValue(value: any): any;
     calculateRecencyBonus(mtimeMs: any): any;
     /**
      * Load module from cache entry
      */
-    loadModule(cacheEntry: any, signature: any): any;
+    loadModule(cacheEntry: any, signature: DiscoverySignature): any;
     /**
      * Create discovery error with helpful message
      */
-    createDiscoveryError(signature: any, candidates?: any[]): Error;
+    createDiscoveryError(signature: DiscoverySignature, candidates?: any[]): Error;
     /**
      * Load cache from disk
      */

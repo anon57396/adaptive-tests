@@ -215,6 +215,7 @@ The action automatically comments on pull requests with test results:
 ```
 
 Example comment:
+
 > ## 🧪 Adaptive Tests Results
 >
 > **Status:** ✅ Passed
@@ -356,7 +357,7 @@ MIT - See [LICENSE](LICENSE) for details.
 
 ## Support
 
-- 📧 Email: support@adaptive-tests.dev
+- 📧 Email: <support@adaptive-tests.dev>
 - 💬 Discord: [Join our community](https://discord.gg/adaptive-tests)
 - 🐛 Issues: [GitHub Issues](https://github.com/adaptive-tests/adaptive-tests/issues)
 

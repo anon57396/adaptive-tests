@@ -15,6 +15,9 @@ from typing import Any, Iterable, List, Optional
 class Signature:
     name: str
     methods: Optional[List[str]] = None
+    type: Optional[str] = None  # 'class', 'module', 'function'
+    properties: Optional[List[str]] = None
+    exports: Optional[List[str]] = None
 
 
 class DiscoveryEngine:
@@ -32,7 +35,14 @@ class DiscoveryEngine:
         for file in self.root.rglob('*.py'):
             if file.name.startswith('test_'):
                 continue
-            spec = importlib.util.spec_from_file_location(file.stem, file)
+
+            # For __init__.py files, use the package name (parent directory)
+            if file.name == '__init__.py':
+                module_name = file.parent.name
+            else:
+                module_name = file.stem
+
+            spec = importlib.util.spec_from_file_location(module_name, file)
             if not spec or not spec.loader:
                 continue
             module = importlib.util.module_from_spec(spec)
@@ -43,11 +53,41 @@ class DiscoveryEngine:
             yield module
 
     def _match(self, module: ModuleType, signature: Signature) -> Optional[Any]:
+        # Handle module-level discovery
+        if signature.type == 'module' and signature.exports:
+            # Check various module name patterns
+            module_file = str(module.__file__) if module.__file__ else ""
+            is_match = (
+                module.__name__ == signature.name or
+                module.__name__.endswith(f".{signature.name}") or
+                module.__name__.endswith(f".{signature.name}.__init__") or
+                f"/{signature.name}/__init__.py" in module_file or
+                f"/{signature.name}.py" in module_file
+            )
+            if is_match:
+                # Check if module has the required exports
+                if all(hasattr(module, export) for export in signature.exports):
+                    return module
+
+        # Handle class and other discoveries
         for name, obj in inspect.getmembers(module):
             if name != signature.name:
                 continue
-            if inspect.isclass(obj) and self._has_methods(obj, signature.methods):
+
+            # Check class discovery
+            if inspect.isclass(obj):
+                # Check methods
+                if not self._has_methods(obj, signature.methods):
+                    continue
+                # Check properties if specified
+                if signature.properties and not self._has_properties(obj, signature.properties):
+                    continue
                 return obj
+
+            # Check function discovery
+            if signature.type == 'function' and inspect.isfunction(obj):
+                return obj
+
         return None
 
     @staticmethod
@@ -55,3 +95,9 @@ class DiscoveryEngine:
         if not methods:
             return True
         return all(hasattr(obj, method) for method in methods)
+
+    @staticmethod
+    def _has_properties(obj: Any, properties: Optional[List[str]]) -> bool:
+        if not properties:
+            return True
+        return all(hasattr(obj, prop) for prop in properties)

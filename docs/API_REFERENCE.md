@@ -3,6 +3,7 @@
 Complete API documentation for adaptive-tests across all supported languages.
 
 ## Table of Contents
+
 - [Core API](#core-api)
 - [Discovery Engine](#discovery-engine)
 - [CLI Commands](#cli-commands)
@@ -95,6 +96,7 @@ Creates a reusable discovery engine instance.
 #### Returns
 
 DiscoveryEngine instance with methods:
+
 - `collectCandidates(signature)`: Find all matching candidates
 - `scoreCandidate(candidate, signature)`: Score a specific candidate
 - `clearCache()`: Clear the cache
@@ -608,6 +610,7 @@ const Module = await discover({ name: 'ModuleName' });
 ```
 
 Key changes:
+
 - Async by default (use `await`)
 - Signature objects instead of strings
 - Built-in caching

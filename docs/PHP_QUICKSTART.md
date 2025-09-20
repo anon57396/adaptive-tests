@@ -5,6 +5,7 @@ Adaptive Tests now supports PHP discovery and PHPUnit test generation! This guid
 ## Overview
 
 The PHP implementation allows you to:
+
 - Discover PHP classes, interfaces, traits, and functions
 - Generate PHPUnit test scaffolds automatically
 - Maintain resilient tests that survive refactoring
@@ -37,6 +38,7 @@ npx adaptive-tests scaffold src/Calculator.php --force
 ### Generated Test Structure
 
 The scaffold command generates PHPUnit test files with:
+
 - Proper namespace (Tests\YourNamespace)
 - Correct use statements
 - Test methods for all public methods
@@ -225,6 +227,7 @@ tests/
 The PHP discovery engine supports:
 
 ### Classes
+
 - Public, protected, and private methods
 - Properties with visibility modifiers
 - Abstract and final classes
@@ -232,14 +235,17 @@ The PHP discovery engine supports:
 - Interface implementation
 
 ### Interfaces
+
 - Method signatures
 - Interface inheritance
 
 ### Traits
+
 - Trait methods
 - Use in classes
 
 ### Functions
+
 - Global functions
 - Function parameters and return types
 
@@ -256,6 +262,7 @@ npx adaptive-tests scaffold src/Calculator.php --output-dir=tests/Unit
 ## Examples
 
 The repository includes PHP examples in `examples/php/`:
+
 - `Calculator.php` - Simple calculator class
 - `UserService.php` - Complex service with interface and trait
 
@@ -284,6 +291,7 @@ composer test
 ## PHP Version Support
 
 The discovery engine uses the `php-parser` npm package which supports:
+
 - PHP 5.x
 - PHP 7.x
 - PHP 8.x (including PHP 8.2+ features)

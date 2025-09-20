@@ -28,6 +28,7 @@ Add adaptive tests to your CI/CD pipeline with **just one line**:
 ```
 
 That's it! The action automatically:
+
 - ✅ Runs all adaptive tests
 - 🔍 Discovers components in your codebase
 - 📊 Generates coverage reports
@@ -106,6 +107,7 @@ npm install --save-dev jest-adaptive adaptive-tests
 ```
 
 Add to your `jest.config.js`:
+
 ```javascript
 module.exports = {
   preset: 'jest-adaptive',
@@ -216,6 +218,7 @@ Each template comes with:
 ### Template Details
 
 #### Next.js Template
+
 ```bash
 templates/nextjs-adaptive/
 ├── src/
@@ -228,6 +231,7 @@ templates/nextjs-adaptive/
 ```
 
 #### Vite Template
+
 ```bash
 templates/vite-adaptive/
 ├── src/
@@ -240,6 +244,7 @@ templates/vite-adaptive/
 ```
 
 #### Express Template
+
 ```bash
 templates/express-adaptive/
 ├── src/
@@ -295,12 +300,14 @@ npx adaptive-tests migrate [directory]
 ```
 
 The migration tool:
+
 - Analyzes your existing test files to extract imports and test structure
 - Identifies the classes/modules being tested and their methods
 - Generates adaptive test files that use `discover()` instead of hardcoded imports
 - Preserves your test logic structure while making imports refactor-proof
 
 Migration strategies:
+
 1. **Create new files** (default) - Creates `*.adaptive.test.js` alongside originals
 2. **Replace existing** - Backs up originals and replaces them
 
@@ -357,6 +364,10 @@ The script runs four scenarios:
 3. ✅ When we introduce real bugs, both suites fail with assertion errors.
 4. ✅ TypeScript mirrors the JavaScript story.
 
+> ℹ️ Python (pytest) and Java (Maven) demos only run when those runtimes are
+> available. In sandboxed or offline environments the validator reports those
+> scenarios as “skipped” so the core JavaScript/TypeScript proof still completes.
+
 ---
 
 ## CI/CD Strategy
@@ -385,11 +396,13 @@ jobs:
 ### The Key Insight
 
 You don't need complex test selection for adaptive tests because:
+
 - ✅ They survive file moves and renames
 - ✅ They're fast enough to run completely
 - ✅ They catch real bugs, not import errors
 
 **Example**: Move `Calculator.js` to a new folder?
+
 - Traditional tests: ❌ `Cannot find module '../src/Calculator'`
 - Adaptive tests: ✅ Find it automatically and pass!
 
@@ -400,12 +413,14 @@ You don't need complex test selection for adaptive tests because:
 ## Documentation & Examples
 
 ### Getting Started
+
 - [Quick Start Guide](docs/QUICK_START.md)
 - [Migration Guide](docs/MIGRATION_GUIDE.md)
 - [Troubleshooting Guide](docs/TROUBLESHOOTING.md)
 - [Common Issues](docs/COMMON_ISSUES.md)
 
 ### Framework Guides
+
 - [React Quick Start](docs/REACT_QUICKSTART.md)
 - [Vue.js Quick Start](docs/VUE_QUICKSTART.md)
 - [Express Quick Start](docs/EXPRESS_QUICKSTART.md)
@@ -413,6 +428,7 @@ You don't need complex test selection for adaptive tests because:
 - [PHP Quick Start](docs/PHP_QUICKSTART.md)
 
 ### Technical Documentation
+
 - [How It Works](docs/HOW_IT_WORKS.md)
 - [API Reference](docs/API_REFERENCE.md)
 - [Best Practices](docs/BEST_PRACTICES.md)
@@ -420,6 +436,7 @@ You don't need complex test selection for adaptive tests because:
 - Prompt Guide (AIs & automation): PROMPT_GUIDE.md
 
 ### Extensions & Tools
+
 - [VS Code Extension](extensions/vscode-adaptive-tests/README.md)
 - [Proof & Demo Scripts](PROOF.md)
 - [Examples](examples/) (`calculator`, `api-service`, `todo-app`, `typescript`, `python`, `php`, `java`)

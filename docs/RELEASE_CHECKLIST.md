@@ -35,6 +35,10 @@ npm run validate
 npm run test:typescript
 ```
 
+> Tip: Python (pytest) and Java (Maven) portions of `npm run validate` require
+> local interpreters. If they’re unavailable the script marks those scenarios as
+> skipped; rerun locally once the runtimes are installed before publishing.
+
 ## 4. Update documentation & changelog
 
 - Ensure `CHANGELOG.md` reflects the release (include the date).

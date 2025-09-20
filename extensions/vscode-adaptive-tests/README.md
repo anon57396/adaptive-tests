@@ -5,6 +5,7 @@ Visual discovery and scaffolding for resilient test suites. This extension bring
 ## ✨ Features
 
 ### 🔍 Discovery Lens
+
 The crown jewel of this extension - a beautiful, interactive webview that visualizes how adaptive-tests discovers your code.
 
 - **Visual Discovery**: See exactly how the discovery engine finds and scores your code
@@ -15,6 +16,7 @@ The crown jewel of this extension - a beautiful, interactive webview that visual
 ![Discovery Lens Demo](media/discovery-lens-demo.gif)
 
 ### 📝 Smart Scaffolding
+
 Generate adaptive test files with incredible flexibility:
 
 - **Smart Context Menu**: Shows "Scaffold Test" for files without tests, "Open Test" for files with existing tests
@@ -25,13 +27,17 @@ Generate adaptive test files with incredible flexibility:
 - **Multiple Languages**: Supports JavaScript, TypeScript, PHP, Java, and Python
 
 #### 🎯 Smart Test Detection
+
 The extension intelligently detects whether a test already exists:
+
 - If no test exists → Shows "Scaffold Adaptive Test" in context menu
 - If test exists → Shows "Open Adaptive Test" to jump directly to the test file
 - Automatically updates as you create or delete test files
 
 #### 📁 Batch Scaffolding
+
 Right-click any folder to scaffold tests for all files inside:
+
 - Shows preview of files to be scaffolded
 - Allows selection of specific files
 - Progress tracking for large folders
@@ -39,6 +45,7 @@ Right-click any folder to scaffold tests for all files inside:
 - Automatically opens first few generated tests
 
 ### 🎯 CodeLens Integration
+
 See test hints directly in your code:
 
 - Inline indicators showing if adaptive tests exist
@@ -46,6 +53,7 @@ See test hints directly in your code:
 - One-click discovery visualization
 
 ### 📊 Discovery Tree View
+
 A dedicated activity bar view showing:
 
 - Current discovery results
@@ -53,6 +61,7 @@ A dedicated activity bar view showing:
 - Quick navigation to discovered files
 
 ### 💡 Status Bar Integration
+
 Quick access to Discovery Lens from the status bar - always just one click away.
 
 ## 🚀 Getting Started
@@ -96,17 +105,20 @@ Configure the extension through VS Code settings:
 The Discovery Lens provides an intuitive interface for understanding discovery:
 
 ### Input Section
+
 - **JSON Signature Editor**: Enter discovery signatures with syntax highlighting
 - **Preset Buttons**: Quick examples for common patterns
 - **Run Discovery Button**: Execute discovery with visual feedback
 
 ### Results Section
+
 - **Ranked Results**: Files sorted by discovery score
 - **Score Indicators**: Visual badges showing match quality (High/Medium/Low)
 - **Score Breakdown**: Detailed explanation of scoring factors
 - **Quick Actions**: Open files or scaffold tests directly
 
 ### Help Section
+
 - **How It Works**: Collapsible guide explaining discovery strategies
 - **Scoring Explanation**: Understanding how scores are calculated
 
@@ -123,6 +135,7 @@ The discovery engine uses multiple strategies:
 ## 📚 Use Cases
 
 ### Finding Lost Code
+
 ```json
 {
   "name": "UserService",
@@ -132,6 +145,7 @@ The discovery engine uses multiple strategies:
 ```
 
 ### Discovering Implementations
+
 ```json
 {
   "name": "Repository",
@@ -140,6 +154,7 @@ The discovery engine uses multiple strategies:
 ```
 
 ### Locating Utilities
+
 ```json
 {
   "name": "formatDate",
@@ -159,16 +174,19 @@ This extension complements the CLI tools:
 ## 🐛 Troubleshooting
 
 ### Discovery Returns No Results
+
 - Check that your workspace contains the target code
 - Verify the signature JSON is valid
 - Try broader signatures (just name, no methods)
 
 ### Scaffolding Fails
+
 - Ensure the file exports testable code
 - Check that adaptive-tests is installed in your project
 - Verify file permissions
 
 ### Extension Not Activating
+
 - Check that you have a workspace folder open
 - Verify VS Code version compatibility (≥1.74.0)
 - Check the extension output panel for errors

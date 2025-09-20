@@ -7,12 +7,14 @@ Unlike traditional test selection strategies that rely on dependency graphs, ada
 ## The Two-Track Approach
 
 ### 🎯 Track 1: Traditional Tests (Fast Feedback)
+
 - **What**: Run only traditional tests affected by your changes
 - **When**: On every push/PR
 - **Why**: Quick feedback on direct changes
 - **How**: `jest --onlyChanged`
 
 ### 🛡️ Track 2: Adaptive Tests (Comprehensive Safety Net)
+
 - **What**: Run ALL adaptive tests
 - **When**: On every push/PR
 - **Why**: They won't fail from refactoring, only from real bugs
@@ -50,6 +52,7 @@ Our CI runs four parallel jobs:
 ## The Key Insight
 
 **You don't need intelligent test selection for adaptive tests because:**
+
 - They don't break from file moves/renames
 - They're fast enough to run all of them
 - They provide comprehensive coverage without false positives
@@ -71,6 +74,7 @@ Both catch real bugs, but only adaptive tests survive refactoring!
 ## Performance Considerations
 
 Running all adaptive tests is practical because:
+
 - Discovery results are cached (only file paths, not content)
 - Tests load fresh modules every time (no stale cache issues)
 - Parallel execution across multiple Node versions
@@ -78,6 +82,7 @@ Running all adaptive tests is practical because:
 ## Summary
 
 The beauty of adaptive tests in CI/CD is their simplicity:
+
 - No complex dependency tracking needed
 - No test selection algorithms required
 - Just run them all and trust their resilience

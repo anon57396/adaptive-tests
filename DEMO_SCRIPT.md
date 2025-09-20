@@ -1,6 +1,7 @@
 # Adaptive Tests Demo Video Script
 
 ## 🎬 Video Overview
+
 **Duration**: 2-3 minutes
 **Target Audience**: JavaScript/TypeScript developers who have experienced test breakage during refactoring
 **Goal**: Show the problem, demonstrate the solution, and showcase the VS Code extension's "wow" features
@@ -46,6 +47,7 @@ describe('Calculator', () => {
 **Narrator**: "But then you refactor. Maybe you reorganize your project structure..."
 
 **Action**:
+
 1. Create new folder `src/math/operations/`
 2. Move `Calculator.js` to new location
 3. Show file tree changing
@@ -55,6 +57,7 @@ describe('Calculator', () => {
 **Action**: Run `npm test` again
 
 **Terminal Output** (in red):
+
 ```
 FAIL tests/Calculator.test.js
   ● Cannot find module '../src/utils/Calculator'
@@ -101,10 +104,12 @@ describe('Calculator - Adaptive', () => {
 **Narrator**: "Watch what happens when we run the same refactor..."
 
 **Action**:
+
 1. Show `Calculator.js` already moved to `src/math/operations/`
 2. Run `npm run test:adaptive`
 
 **Terminal Output** (in green):
+
 ```
 PASS tests/adaptive/Calculator.test.js
   Calculator - Adaptive
@@ -120,6 +125,7 @@ PASS tests/adaptive/Calculator.test.js
 **Action**: Run `npx adaptive-tests why '{"name":"Calculator"}'`
 
 **Terminal Output**:
+
 ```
 🔍 Discovery Results for Calculator
 
@@ -143,12 +149,14 @@ Found 1 match:
 **Narrator**: "But here's where it gets really exciting. With our VS Code extension..."
 
 **Action**:
+
 1. Click Discovery Lens icon in status bar
 2. Beautiful webview opens
 
 **[1:25-1:40]** *Interactive Discovery*
 
 **Action**: Type signature in Discovery Lens
+
 ```json
 {
   "name": "UserService",
@@ -160,6 +168,7 @@ Found 1 match:
 **Action**: Click "Run Discovery"
 
 **Visual**: Results appear with scores and breakdowns:
+
 - `src/services/UserService.js` - Score: 92
 - `src/api/UserService.js` - Score: 78
 - `src/legacy/UserSvc.js` - Score: 45
@@ -171,6 +180,7 @@ Found 1 match:
 **Narrator**: "Need to add tests to an existing project? Watch this..."
 
 **Action**:
+
 1. Right-click on `src/services` folder
 2. Select "Scaffold Tests for Folder"
 3. Progress bar shows "Processing 12 files..."
@@ -178,6 +188,7 @@ Found 1 match:
 **Visual**: Multiple test files being created
 
 **Terminal-like output in VS Code**:
+
 ```
 ✅ Created tests/UserServiceTest.js
 ✅ Created tests/AuthServiceTest.js
@@ -188,6 +199,7 @@ Found 1 match:
 **[1:50-2:00]** *Smart Context Menus*
 
 **Action**:
+
 1. Right-click on a file without tests
 2. Menu shows "Scaffold Adaptive Test"
 3. Right-click on a file WITH tests
@@ -204,6 +216,7 @@ Found 1 match:
 **[2:00-2:15]** *Rapid workflow demonstration*
 
 **Quick cuts showing**:
+
 1. CodeLens hints above classes: "Generate adaptive test"
 2. Discovery tree in activity bar showing recent results
 3. Test file auto-opening after scaffolding
@@ -228,6 +241,7 @@ npm install adaptive-tests
 **Visual**: Logo and tagline
 
 **Text on screen**:
+
 ```
 Adaptive Tests
 Tests that find your code, not your folders.
@@ -263,6 +277,7 @@ npm: adaptive-tests
 ## 📝 Alternative Shorter Version (60 seconds)
 
 For social media or quick demos, focus on:
+
 1. Problem (10s): Test breaks after moving file
 2. Solution (20s): Adaptive test still passes
 3. Discovery Lens (20s): Visual discovery in VS Code

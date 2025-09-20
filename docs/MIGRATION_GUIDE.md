@@ -5,6 +5,7 @@
 This guide helps you migrate existing test suites to adaptive tests, whether you're starting fresh or maintaining both approaches side-by-side.
 
 ## Table of Contents
+
 - [Quick Migration](#quick-migration)
 - [Gradual Migration Strategy](#gradual-migration-strategy)
 - [Framework-Specific Guides](#framework-specific-guides)
@@ -34,6 +35,7 @@ npm test -- tests/adaptive/Button.test.js     # Adaptive
 ## Gradual Migration Strategy
 
 ### Phase 1: Parallel Testing (Recommended)
+
 Run both traditional and adaptive tests during transition:
 
 ```javascript
@@ -51,24 +53,29 @@ Run both traditional and adaptive tests during transition:
 ### Phase 2: File-by-File Migration
 
 1. **Start with leaf components** (no dependencies):
+
 ```bash
 npx adaptive-tests scaffold src/utils/validators.js
 npx adaptive-tests scaffold src/components/Button.js
 ```
 
 2. **Move to service layers**:
+
 ```bash
 npx adaptive-tests scaffold src/services/AuthService.js
 npx adaptive-tests scaffold src/services/DataService.js
 ```
 
 3. **Finish with integration tests**:
+
 ```bash
 npx adaptive-tests scaffold src/api/endpoints.js
 ```
 
 ### Phase 3: Consolidation
+
 Once confident, remove traditional tests:
+
 ```bash
 rm -rf tests/traditional
 mv tests/adaptive tests
@@ -80,7 +87,8 @@ mv tests/adaptive tests
 
 ### React Applications
 
-#### Before (Traditional Test):
+#### Before (Traditional Test)
+
 ```javascript
 // tests/Button.test.js
 import Button from '../src/components/Button';
@@ -94,7 +102,8 @@ test('handles click', () => {
 });
 ```
 
-#### After (Adaptive Test):
+#### After (Adaptive Test)
+
 ```javascript
 // tests/adaptive/Button.test.js
 const { discover } = require('adaptive-tests');
@@ -116,7 +125,8 @@ test('handles click', async () => {
 
 ### Express APIs
 
-#### Before (Traditional Test):
+#### Before (Traditional Test)
+
 ```javascript
 // tests/userRoutes.test.js
 const request = require('supertest');
@@ -129,7 +139,8 @@ test('GET /users returns list', async () => {
 });
 ```
 
-#### After (Adaptive Test):
+#### After (Adaptive Test)
+
 ```javascript
 // tests/adaptive/userRoutes.test.js
 const { discover } = require('adaptive-tests');
@@ -150,7 +161,8 @@ test('GET /users returns list', async () => {
 
 ### Vue.js Components
 
-#### Before:
+#### Before
+
 ```javascript
 import { mount } from '@vue/test-utils';
 import Counter from '@/components/Counter.vue';
@@ -162,7 +174,8 @@ test('increments count', () => {
 });
 ```
 
-#### After:
+#### After
+
 ```javascript
 const { discover } = require('adaptive-tests');
 const { mount } = require('@vue/test-utils');
@@ -182,7 +195,8 @@ test('increments count', async () => {
 
 ### Angular Services
 
-#### Before:
+#### Before
+
 ```typescript
 import { TestBed } from '@angular/core/testing';
 import { AuthService } from '../src/services/auth.service';
@@ -201,7 +215,8 @@ describe('AuthService', () => {
 });
 ```
 
-#### After:
+#### After
+
 ```typescript
 import { discover } from 'adaptive-tests';
 import { TestBed } from '@angular/core/testing';
@@ -307,6 +322,7 @@ test('lazy loads component', async () => {
 **Symptom**: `Error: No candidates found for signature`
 
 **Solutions**:
+
 ```bash
 # 1. Check if module is in search paths
 npx adaptive-tests why '{"name":"YourModule"}'
@@ -327,6 +343,7 @@ const Module = await discover({
 ### Issue: TypeScript Types Not Recognized
 
 **Solution**: Install TypeScript support:
+
 ```bash
 npm install --save-dev ts-node @types/node
 ```
@@ -346,6 +363,7 @@ npm install --save-dev ts-node @types/node
 **Cause**: Module caching conflicts
 
 **Solution**: Clear cache between tests:
+
 ```javascript
 beforeEach(() => {
   // Clear adaptive cache
@@ -359,6 +377,7 @@ beforeEach(() => {
 **Solutions**:
 
 1. **Enable persistent caching**:
+
 ```javascript
 // jest.setup.js
 const { enablePersistentCache } = require('adaptive-tests');
@@ -369,6 +388,7 @@ enablePersistentCache({
 ```
 
 2. **Limit search scope**:
+
 ```javascript
 const Component = await discover({
   name: 'Component'

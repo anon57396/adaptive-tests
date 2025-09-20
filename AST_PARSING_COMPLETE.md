@@ -7,6 +7,7 @@ All language integrations in adaptive-tests now use **proper AST parsing** as th
 ## 🎯 AST Parsing Strategy
 
 ### Core Philosophy
+
 **"Every developer has their language runtime installed"**
 
 - Ruby developers have Ruby → Use native Ripper AST
@@ -56,6 +57,7 @@ All language integrations in adaptive-tests now use **proper AST parsing** as th
 ## 🚀 Implementation Details
 
 ### Ruby AST Bridge (`ruby-ast-bridge.rb`)
+
 ```ruby
 # Uses Ripper - Ruby's built-in AST parser (since Ruby 1.9)
 require 'ripper'
@@ -67,12 +69,14 @@ ast = Parser::CurrentRuby.new.parse(buffer)
 ```
 
 **Why it's superior:**
+
 - Ripper is built into Ruby, no dependencies needed
 - Provides complete AST with all language constructs
 - Handles Ruby 3.x syntax perfectly
 - Location tracking for accurate line numbers
 
 ### PHP AST Bridge (`php-ast-bridge.php`)
+
 ```php
 // Uses token_get_all - PHP's built-in tokenizer
 $tokens = token_get_all($content);
@@ -83,34 +87,40 @@ $ast = $parser->parse($content);
 ```
 
 **Why it's superior:**
+
 - token_get_all is always available in PHP
 - Handles all PHP 8.x features
 - Full AST with namespace resolution
 - Doc comment extraction
 
 ### Python AST Bridge (existing)
+
 ```python
 import ast
 module = ast.parse(source)
 ```
 
 **Already superior:**
+
 - Python's ast module is comprehensive
 - Handles all Python 3.x syntax
 - Type hints and async/await support
 
 ### Go Binary Parser (existing)
+
 ```go
 import "go/parser"
 file, _ := parser.ParseFile(fset, filename, nil, 0)
 ```
 
 **Already superior:**
+
 - Uses Go's official parser
 - Complete type information
 - Module-aware
 
 ### Wolfram AST (newly added)
+
 ```mathematica
 (* Uses CodeParse for modern versions *)
 Needs["CodeParser`"]
@@ -121,6 +131,7 @@ ToExpression[content, InputForm, Hold]
 ```
 
 **Why it's superior:**
+
 - Native Wolfram parsing
 - Pattern matching support
 - Context-aware symbol resolution
@@ -128,6 +139,7 @@ ToExpression[content, InputForm, Hold]
 ## 🎨 Developer Experience
 
 ### Automatic Detection
+
 ```javascript
 // Ruby automatically detects best parser
 const collector = new RubyDiscoveryCollector();
@@ -143,6 +155,7 @@ const collector = new PHPDiscoveryCollector();
 ```
 
 ### Clear Feedback
+
 ```
 Ruby Info: {
   available: true,
@@ -163,27 +176,32 @@ PHP Info: {
 ## 💪 Benefits of Native AST Parsing
 
 ### 1. **Accuracy**
+
 - Understands ALL language constructs
 - Handles edge cases properly
 - Respects language semantics
 
 ### 2. **Completeness**
+
 - Extracts doc comments
 - Preserves type information
 - Maintains scope hierarchy
 - Tracks line numbers
 
 ### 3. **Performance**
+
 - Native parsers are optimized
 - Caching at multiple levels
 - Parallel processing support
 
 ### 4. **Reliability**
+
 - Official parsers don't break
 - Version-aware parsing
 - Graceful error handling
 
 ### 5. **Developer Trust**
+
 - "It uses the same parser as my IDE"
 - "It understands my code like the compiler does"
 - "It won't miss anything"
@@ -201,6 +219,7 @@ PHP Info: {
 ## 🔧 Installation Recommendations
 
 ### For Ruby Developers
+
 ```bash
 # Ruby is already installed! Just run:
 npm install adaptive-tests
@@ -211,6 +230,7 @@ gem install parser
 ```
 
 ### For PHP Developers
+
 ```bash
 # PHP is already installed! Just run:
 npm install adaptive-tests
@@ -221,6 +241,7 @@ composer require nikic/php-parser
 ```
 
 ### For Python Developers
+
 ```bash
 # Python is already installed! Just run:
 npm install adaptive-tests
@@ -229,19 +250,22 @@ npm install adaptive-tests
 
 ## 🎯 Key Selling Points
 
-### We Are NOT a Regex System!
+### We Are NOT a Regex System
+
 - **Primary:** Native language AST parsers
 - **Secondary:** JavaScript AST parsers
 - **Tertiary:** Regex only as last resort
 - **Result:** 100% accurate parsing when runtime available
 
 ### Developer-Friendly
+
 - Uses the tools developers already have
 - No complex setup required
 - Clear feedback about parsing method
 - Graceful degradation
 
 ### Production-Ready
+
 - Battle-tested parsers (Ripper since 2007, token_get_all since PHP 4)
 - Used by major tools (RuboCop uses Ripper, PHPStan uses token_get_all)
 - Officially supported by language teams
@@ -251,16 +275,19 @@ npm install adaptive-tests
 For existing users who thought we were "regex-based":
 
 1. **Update adaptive-tests**
+
    ```bash
    npm update adaptive-tests
    ```
 
 2. **Check parser status**
+
    ```bash
    adaptive-tests info --parsers
    ```
 
 3. **See AST in action**
+
    ```bash
    adaptive-tests parse --show-ast file.rb
    ```

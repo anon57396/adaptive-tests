@@ -7,27 +7,32 @@ Full Wolfram Language support has been added to the adaptive-tests framework, en
 ## Features
 
 ### 🎯 Pattern-Based Discovery
+
 - Recognizes Wolfram's pattern matching syntax (`_`, `__`, `___`)
 - Tracks function definitions with conditions (`/;`)
 - Identifies memoization patterns (`f[x_]:=f[x]=...`)
 
 ### 📦 Package & Context Support
+
 - Full `BeginPackage`/`EndPackage` parsing
 - Context-aware symbol resolution
 - Private/public symbol distinction
 - Package dependency tracking
 
 ### 📓 Notebook Integration
+
 - Parses `.nb` notebook files
 - Extracts code cells and definitions
 - Supports notebook-to-package migration testing
 
 ### 🧪 VerificationTest Generation
+
 - Automatically generates Wolfram's native `VerificationTest` format
 - Creates context-aware test suites
 - Includes discovery verification tests
 
 ### 🔍 Smart Symbol Resolution
+
 - Cross-file symbol tracking
 - Context path resolution
 - Related symbol discovery
@@ -160,6 +165,7 @@ EndPackage[]
 ## Unique Wolfram Features Supported
 
 ### 1. Pattern Types
+
 - `_` - Single blank (any expression)
 - `__` - Double blank (sequence)
 - `___` - Triple blank (null sequence)
@@ -167,18 +173,21 @@ EndPackage[]
 - Conditional patterns with `/;`
 
 ### 2. Definition Types
+
 - `:=` - Delayed definitions
 - `=` - Immediate definitions
 - `/:` - Tagged rules
 - `/;` - Conditional definitions
 
 ### 3. Special Functions
+
 - `Compile[]` - Compiled functions
 - `Function[]` - Pure functions
 - `Options[]` - Option specifications
 - Pattern-based overloading
 
 ### 4. Context Management
+
 - Nested contexts
 - Private/public symbol separation
 - Package dependencies
@@ -187,21 +196,25 @@ EndPackage[]
 ## Benefits for Wolfram Developers
 
 ### ✅ Refactoring Safety
+
 - Tests survive when packages are reorganized
 - Symbol movement doesn't break tests
 - Context renaming is handled automatically
 
 ### ✅ Notebook Migration
+
 - Test notebooks can be converted to packages
 - Package structure changes don't affect tests
 - Mixed notebook/package projects supported
 
 ### ✅ Pattern Evolution
+
 - Pattern refinements don't break discovery
 - Function signature changes are tracked
 - Overloaded definitions are recognized
 
 ### ✅ Performance Testing
+
 - Memoization verification
 - Compile[] function tracking
 - Performance regression detection

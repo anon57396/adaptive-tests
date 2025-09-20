@@ -279,6 +279,7 @@ my-react-app/
 ## VS Code Integration
 
 Install the Adaptive Tests extension for:
+
 - Right-click to scaffold tests
 - Discovery Lens visualization
 - CodeLens hints

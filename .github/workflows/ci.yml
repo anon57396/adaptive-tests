@@ -61,6 +61,12 @@ jobs:
           echo "These tests are resilient to refactoring and will find targets wherever they move!"
           npm run test:adaptive
 
+      - name: Build companion packages
+        run: npm run build:plugins
+
+      - name: Clean generated artifacts
+        run: npm run clean:artifacts
+
   # TypeScript adaptive tests
   typescript-tests:
     name: TypeScript Adaptive Tests
@@ -82,6 +88,9 @@ jobs:
         run: |
           echo "📘 Running TypeScript adaptive tests..."
           npm run test:typescript
+
+      - name: Build TypeScript definitions
+        run: npm run build:types
 
   # Quick smoke test to ensure adaptive tests actually catch bugs
   resilience-check:

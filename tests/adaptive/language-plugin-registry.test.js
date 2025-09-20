@@ -1,3 +1,7 @@
+jest.mock('java-parser', () => ({
+  parse: () => ({ children: {} })
+}));
+
 const { LanguagePluginRegistry } = require('../../src/adaptive/language-plugin-registry');
 
 describe('LanguagePluginRegistry', () => {

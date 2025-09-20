@@ -1,0 +1,1 @@
+export { AdaptiveTest, adaptiveTest } from 'adaptive-tests';

@@ -3,11 +3,13 @@
 ## 🚀 Quick Start
 
 ### Prerequisites
+
 - Node.js 16+ and npm
 - Visual Studio Code
 - TypeScript installed globally: `npm install -g typescript`
 
 ### Setup
+
 ```bash
 cd extensions/vscode-adaptive-tests
 npm install
@@ -17,6 +19,7 @@ npm run compile
 ### Running the Extension
 
 1. **Open in VS Code**:
+
    ```bash
    code .
    ```
@@ -72,6 +75,7 @@ npx vsce publish
 ### Manual Testing Checklist
 
 #### Discovery Lens
+
 - [ ] Opens from status bar
 - [ ] Opens from command palette
 - [ ] JSON signature validation works
@@ -84,6 +88,7 @@ npx vsce publish
 - [ ] State persists when panel is hidden/shown
 
 #### Scaffolding
+
 - [ ] Context menu appears on supported files
 - [ ] Scaffold generates correct test file
 - [ ] Output directory configuration works
@@ -93,6 +98,7 @@ npx vsce publish
 - [ ] Works for JS, TS, PHP, Java, Python
 
 #### CodeLens
+
 - [ ] Shows inline hints for classes
 - [ ] Shows inline hints for functions
 - [ ] "Generate test" action works
@@ -100,6 +106,7 @@ npx vsce publish
 - [ ] Detects existing tests correctly
 
 #### Tree View
+
 - [ ] Shows in activity bar
 - [ ] Displays discovery results
 - [ ] Click to open file works
@@ -141,11 +148,13 @@ The webview UI is built with vanilla HTML/CSS/JavaScript for maximum compatibili
 ## 🚀 Publishing
 
 ### First Time Setup
+
 1. Install vsce: `npm install -g @vscode/vsce`
-2. Create a publisher: https://marketplace.visualstudio.com/manage
+2. Create a publisher: <https://marketplace.visualstudio.com/manage>
 3. Get a Personal Access Token from Azure DevOps
 
 ### Publishing Steps
+
 ```bash
 # Package the extension
 npx vsce package
@@ -160,6 +169,7 @@ npx vsce publish -p <token>
 ```
 
 ### Pre-publish Checklist
+
 - [ ] Update version in package.json
 - [ ] Update CHANGELOG.md
 - [ ] Test all features
@@ -173,6 +183,7 @@ npx vsce publish -p <token>
 ### Adding a New Command
 
 1. Register in `package.json`:
+
 ```json
 "commands": [{
     "command": "adaptive-tests.newCommand",
@@ -182,6 +193,7 @@ npx vsce publish -p <token>
 ```
 
 2. Implement handler in `extension.ts`:
+
 ```typescript
 const disposable = vscode.commands.registerCommand(
     'adaptive-tests.newCommand',

@@ -7,6 +7,7 @@ Ready-to-use project templates with adaptive testing pre-configured for various 
 ### JavaScript/TypeScript
 
 #### `vite-react-ts` ⚡
+
 - **Stack**: Vite + React + TypeScript
 - **Testing**: Vitest with adaptive discovery
 - **Features**:
@@ -22,6 +23,7 @@ npm run validate  # Run validation demo
 ```
 
 #### `nextjs` 🔺
+
 - **Stack**: Next.js + React
 - **Testing**: Jest with adaptive discovery
 - **Features**:
@@ -30,6 +32,7 @@ npm run validate  # Run validation demo
   - App Router support
 
 #### `express-js` 🚂
+
 - **Stack**: Express.js + Node.js
 - **Testing**: Jest/Mocha with adaptive discovery
 - **Features**:
@@ -38,6 +41,7 @@ npm run validate  # Run validation demo
   - Service layer patterns
 
 #### `cra` ⚛️
+
 - **Stack**: Create React App
 - **Testing**: Jest + React Testing Library
 - **Features**:
@@ -48,6 +52,7 @@ npm run validate  # Run validation demo
 ### Python
 
 #### `flask-python` 🐍
+
 - **Stack**: Flask + Python 3.9+
 - **Testing**: pytest with adaptive discovery
 - **Features**:
@@ -64,6 +69,7 @@ make validate  # Run validation demo
 ### Java
 
 #### `spring-boot-java` ☕
+
 - **Stack**: Spring Boot + Java 17
 - **Testing**: JUnit 5 with adaptive discovery
 - **Features**:
@@ -103,6 +109,7 @@ template-name/
 All templates include validation scripts that demonstrate adaptive testing benefits:
 
 ### JavaScript/TypeScript Templates
+
 ```json
 {
   "scripts": {
@@ -116,6 +123,7 @@ All templates include validation scripts that demonstrate adaptive testing benef
 ```
 
 ### Python Templates
+
 ```makefile
 validate: test-traditional test-adaptive
     @echo "✅ Validation complete"
@@ -125,6 +133,7 @@ refactor-demo:
 ```
 
 ### Java Templates
+
 ```xml
 <build>
   <plugins>
@@ -212,6 +221,7 @@ Each template includes a refactoring demo that:
 4. **Shows adaptive tests still passing**
 
 Run with:
+
 ```bash
 npm run validate       # JavaScript/TypeScript
 make validate         # Python

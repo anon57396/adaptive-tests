@@ -7,6 +7,7 @@ This comprehensive guide helps you resolve common issues with adaptive-tests acr
 ---
 
 ## Table of Contents
+
 - [Discovery Issues](#discovery-issues)
 - [Performance Problems](#performance-problems)
 - [Language-Specific Issues](#language-specific-issues)
@@ -21,6 +22,7 @@ This comprehensive guide helps you resolve common issues with adaptive-tests acr
 ### "No candidates found for signature"
 
 **Symptoms**:
+
 ```
 Error: No candidates found for signature {"name":"MyComponent"}
 ```
@@ -28,18 +30,21 @@ Error: No candidates found for signature {"name":"MyComponent"}
 **Solutions**:
 
 1. **Check the exact export name**:
+
 ```bash
 # See what's actually exported
 npx adaptive-tests analyze src/components/MyComponent.js
 ```
 
 2. **Use the Discovery Lens to debug**:
+
 ```bash
 # See why discovery is failing
 npx adaptive-tests why '{"name":"MyComponent"}' --json
 ```
 
 3. **Verify file is in search path**:
+
 ```javascript
 const Component = await discover({
   name: 'MyComponent'
@@ -50,6 +55,7 @@ const Component = await discover({
 ```
 
 4. **Check for case sensitivity issues**:
+
 ```javascript
 // Wrong - case mismatch
 { name: 'mycomponent' }
@@ -65,6 +71,7 @@ const Component = await discover({
 **Solutions**:
 
 1. **Add more specific criteria**:
+
 ```javascript
 const Service = await discover({
   name: 'UserService',
@@ -75,6 +82,7 @@ const Service = await discover({
 ```
 
 2. **Use full path matching**:
+
 ```javascript
 const Service = await discover({
   name: 'UserService',
@@ -87,6 +95,7 @@ const Service = await discover({
 **Solutions**:
 
 1. **Enable caching**:
+
 ```javascript
 // In jest.setup.js or test setup
 const { enablePersistentCache } = require('adaptive-tests');
@@ -97,6 +106,7 @@ enablePersistentCache({
 ```
 
 2. **Limit search scope**:
+
 ```javascript
 // Don't search node_modules or build directories
 const engine = getDiscoveryEngine(process.cwd(), {
@@ -106,6 +116,7 @@ const engine = getDiscoveryEngine(process.cwd(), {
 ```
 
 3. **Use specific file extensions**:
+
 ```javascript
 const Component = await discover({
   name: 'Component'
@@ -123,6 +134,7 @@ const Component = await discover({
 **Solutions**:
 
 1. **Parallelize test execution**:
+
 ```json
 // package.json
 {
@@ -133,6 +145,7 @@ const Component = await discover({
 ```
 
 2. **Cache discovery results between runs**:
+
 ```javascript
 // jest.config.js
 module.exports = {
@@ -146,6 +159,7 @@ module.exports = {
 ```
 
 3. **Pre-warm the cache**:
+
 ```bash
 # Run before tests to build cache
 npx adaptive-tests warm --all
@@ -158,6 +172,7 @@ npx adaptive-tests warm --all
 **Solutions**:
 
 1. **Clear cache between test suites**:
+
 ```javascript
 afterAll(() => {
   const { clearCache } = require('adaptive-tests');
@@ -166,12 +181,14 @@ afterAll(() => {
 ```
 
 2. **Limit cache size**:
+
 ```javascript
 const { setMaxCacheSize } = require('adaptive-tests');
 setMaxCacheSize(100);  // Max 100 cached modules
 ```
 
 3. **Use worker isolation**:
+
 ```json
 // jest.config.js
 {
@@ -188,6 +205,7 @@ setMaxCacheSize(100);  // Max 100 cached modules
 #### Issue: "Cannot use import statement outside a module"
 
 **Solution**:
+
 ```json
 // package.json
 {
@@ -196,6 +214,7 @@ setMaxCacheSize(100);  // Max 100 cached modules
 ```
 
 Or use Babel:
+
 ```javascript
 // babel.config.js
 module.exports = {
@@ -208,6 +227,7 @@ module.exports = {
 #### Issue: TypeScript types not found
 
 **Solution**:
+
 ```bash
 npm install --save-dev ts-node @types/node
 ```
@@ -228,6 +248,7 @@ npm install --save-dev ts-node @types/node
 #### Issue: "Maven project not detected"
 
 **Solution**:
+
 ```bash
 # Ensure pom.xml exists
 ls pom.xml
@@ -240,6 +261,7 @@ mvn clean install
 #### Issue: "Package structure doesn't match"
 
 **Solution**: Ensure proper Maven/Gradle structure:
+
 ```
 src/
 ├── main/
@@ -255,6 +277,7 @@ src/
 #### Issue: "Composer autoload not found"
 
 **Solution**:
+
 ```bash
 composer install
 composer dump-autoload
@@ -263,6 +286,7 @@ composer dump-autoload
 #### Issue: "PHPUnit not configured"
 
 **Solution**:
+
 ```xml
 <!-- phpunit.xml -->
 <phpunit bootstrap="vendor/autoload.php">
@@ -279,6 +303,7 @@ composer dump-autoload
 #### Issue: "Module not found"
 
 **Solution**:
+
 ```bash
 # Add project to Python path
 export PYTHONPATH="${PYTHONPATH}:$(pwd)"
@@ -291,6 +316,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 #### Issue: "Invalid signature for Python"
 
 **Solution**: Use Python-specific signatures:
+
 ```python
 # discover.json
 {
@@ -326,6 +352,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 **Solutions**:
 
 1. **Verify adaptive-tests is installed**:
+
 ```bash
 npm list adaptive-tests
 ```
@@ -342,6 +369,7 @@ npm list adaptive-tests
 **Solutions**:
 
 1. **Enable CodeLens in settings**:
+
 ```json
 // .vscode/settings.json
 {
@@ -363,6 +391,7 @@ npm list adaptive-tests
 **Common causes**:
 
 1. **Different Node.js versions**:
+
 ```yaml
 # .github/workflows/test.yml
 - uses: actions/setup-node@v3
@@ -371,11 +400,13 @@ npm list adaptive-tests
 ```
 
 2. **Missing dependencies**:
+
 ```yaml
 - run: npm ci  # Use ci instead of install
 ```
 
 3. **File path case sensitivity**:
+
 ```javascript
 // Wrong - works on Windows/Mac, fails on Linux
 import Component from './MyComponent';
@@ -410,6 +441,7 @@ jobs:
 **Cause**: File path issues, often on Windows
 
 **Solution**:
+
 ```javascript
 // Use path.join instead of string concatenation
 const path = require('path');
@@ -421,6 +453,7 @@ const testPath = path.join(__dirname, 'tests', 'adaptive');
 **Cause**: Incorrect import
 
 **Solution**:
+
 ```javascript
 // Wrong
 import discover from 'adaptive-tests';
@@ -436,6 +469,7 @@ const { discover } = require('adaptive-tests');
 **Cause**: Circular dependencies or infinite recursion
 
 **Solution**:
+
 ```javascript
 // Add cycle detection
 const { discover } = require('adaptive-tests');
@@ -453,6 +487,7 @@ const Module = await discover({
 **Cause**: ES6 modules not transpiled
 
 **Solution**:
+
 ```javascript
 // jest.config.js
 module.exports = {
@@ -480,6 +515,7 @@ process.env.DEBUG = 'adaptive-tests:*';
 ```
 
 Debug categories:
+
 - `adaptive-tests:discovery` - Discovery engine logs
 - `adaptive-tests:cache` - Cache operations
 - `adaptive-tests:ast` - AST parsing details
@@ -494,17 +530,20 @@ Debug categories:
 2. **Ask on Discord**: [Join our community](https://discord.gg/adaptive-tests)
 
 3. **Provide reproduction**:
+
 ```bash
 # Create minimal reproduction
 npx create-adaptive-repro my-issue
 ```
 
 4. **Include debug info**:
+
 ```bash
 npx adaptive-tests debug --system-info > debug.log
 ```
 
 When reporting issues, include:
+
 - Adaptive-tests version
 - Node.js/Python/Java version
 - Operating system

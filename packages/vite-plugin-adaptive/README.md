@@ -123,6 +123,7 @@ adaptiveTests({
 ```
 
 Output:
+
 ```
 [vite-plugin-adaptive] Bundle Size Analysis:
 
@@ -212,6 +213,7 @@ adaptiveTests({
 ```
 
 Debug output:
+
 ```
 [vite-plugin-adaptive] Found 3 discovery signatures in tests/user.test.ts
 [vite-plugin-adaptive] Using cached discovery for UserService

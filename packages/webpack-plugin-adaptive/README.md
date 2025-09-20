@@ -105,6 +105,7 @@ new AdaptiveTestsPlugin({
 ```
 
 Output:
+
 ```
 [webpack-plugin-adaptive] Bundle Size Analysis:
 ══════════════════════════════════════════════════
@@ -208,6 +209,7 @@ describe('UserService', () => {
 ```
 
 With the plugin enabled:
+
 1. The loader automatically injects adaptive-tests imports
 2. Discovery signatures are extracted at build time
 3. Dependencies are tracked for smart rebuilds
@@ -249,6 +251,7 @@ new AdaptiveTestsPlugin({
 ```
 
 Debug output:
+
 ```
 [webpack-plugin-adaptive] Watch run triggered
 [webpack-plugin-adaptive] Found 3 signatures in src/test.adaptive.js

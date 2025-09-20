@@ -206,11 +206,13 @@ module.exports = {
 jest-adaptive includes TypeScript definitions. For the best experience:
 
 1. Install type definitions:
+
 ```bash
 npm install --save-dev @types/jest @types/node
 ```
 
 2. Add to your `tsconfig.json`:
+
 ```json
 {
   "compilerOptions": {
@@ -220,6 +222,7 @@ npm install --save-dev @types/jest @types/node
 ```
 
 3. Use with full type safety:
+
 ```typescript
 import type { DiscoverySignature } from 'adaptive-tests';
 
@@ -314,6 +317,7 @@ describe('Utils Module', () => {
 ## 🚦 Migration from Traditional Tests
 
 ### Before (Traditional)
+
 ```javascript
 // Hardcoded import path - breaks when file moves
 const UserService = require('../../../services/UserService');
@@ -327,6 +331,7 @@ describe('UserService', () => {
 ```
 
 ### After (Adaptive)
+
 ```javascript
 // No hardcoded paths - automatically finds UserService
 describe('UserService', () => {

@@ -436,6 +436,7 @@ const wrapper = mount(Component, {
 ## Performance Tips
 
 1. **Cache component discovery**
+
 ```javascript
 const componentCache = new Map();
 
@@ -449,6 +450,7 @@ async function getComponent(name) {
 ```
 
 2. **Use shallow mount for unit tests**
+
 ```javascript
 import { shallowMount } from '@vue/test-utils';
 
@@ -456,6 +458,7 @@ const wrapper = shallowMount(Component); // Faster than mount
 ```
 
 3. **Pre-compile templates**
+
 ```javascript
 // vue.config.js
 module.exports = {

@@ -23,11 +23,13 @@ def cache_decorator(func: Callable) -> Callable:
 
     @functools.wraps(func)
     def wrapper(*args):
-        if args in cache:
+        # Convert args to hashable form
+        cache_key = str(args)
+        if cache_key in cache:
             print(f"Cache hit for {func.__name__}{args}")
-            return cache[args]
+            return cache[cache_key]
         result = func(*args)
-        cache[args] = result
+        cache[cache_key] = result
         return result
     return wrapper
 

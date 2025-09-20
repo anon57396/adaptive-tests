@@ -69,6 +69,7 @@ npm run scaffold:batch
 ## 🎯 Why Adaptive Tests?
 
 Traditional Next.js tests break when you:
+
 - Move components to different folders
 - Reorganize your project structure
 - Refactor component hierarchies
@@ -87,11 +88,13 @@ const Button = await discover({
 ## 📝 Creating New Adaptive Tests
 
 1. **For a new component**:
+
 ```bash
 npm run scaffold src/components/NewComponent.tsx
 ```
 
 2. **Manually create a test**:
+
 ```typescript
 import { discover } from 'adaptive-tests';
 
@@ -112,7 +115,9 @@ describe('MyComponent - Adaptive', () => {
 ## 🔧 Configuration
 
 ### Jest Configuration
+
 The `jest.config.js` is pre-configured to work with:
+
 - Next.js transpilation
 - TypeScript
 - CSS Modules
@@ -120,6 +125,7 @@ The `jest.config.js` is pre-configured to work with:
 - Adaptive test discovery
 
 ### Discovery Engine
+
 The discovery engine is initialized in `jest.setup.js` and available globally in tests.
 
 ## 📦 Included Dependencies

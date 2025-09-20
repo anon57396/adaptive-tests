@@ -5,6 +5,7 @@ This guide explains how to set up automated publishing to npm, PyPI, Maven, and 
 ## Overview
 
 The automated publishing workflow (`publish.yml`) handles:
+
 - **npm**: Main package + all plugin packages
 - **PyPI**: Python companion package
 - **Maven**: Java packages (if present)
@@ -18,35 +19,45 @@ The automated publishing workflow (`publish.yml`) handles:
 Go to **Settings → Secrets and variables → Actions** in your GitHub repository and add:
 
 #### NPM Publishing
+
 ```
 NPM_TOKEN = <your-npm-automation-token>
 ```
-Get from: https://www.npmjs.com/settings/YOUR_USERNAME/tokens
+
+Get from: <https://www.npmjs.com/settings/YOUR_USERNAME/tokens>
+
 - Create token with "Automation" type
 - Select "Publish" permission
 
 #### PyPI Publishing
+
 ```
 PYPI_TOKEN = <your-pypi-api-token>
 TEST_PYPI_TOKEN = <your-test-pypi-api-token>  # Optional, for pre-releases
 ```
-Get from: https://pypi.org/manage/account/token/
+
+Get from: <https://pypi.org/manage/account/token/>
+
 - Create API token scoped to your project
-- For Test PyPI: https://test.pypi.org/manage/account/token/
+- For Test PyPI: <https://test.pypi.org/manage/account/token/>
 
 #### Maven Publishing (Optional)
+
 ```
 OSSRH_USERNAME = <your-sonatype-username>
 OSSRH_TOKEN = <your-sonatype-token>
 MAVEN_GPG_PRIVATE_KEY = <your-gpg-private-key>
 MAVEN_GPG_PASSPHRASE = <your-gpg-passphrase>
 ```
-Setup guide: https://central.sonatype.org/publish/publish-guide/
+
+Setup guide: <https://central.sonatype.org/publish/publish-guide/>
 
 ### 2. Package Configuration
 
 #### npm Packages
+
 Ensure each `package.json` has:
+
 ```json
 {
   "name": "@your-scope/package-name",
@@ -59,7 +70,9 @@ Ensure each `package.json` has:
 ```
 
 #### Python Package
+
 In `packages/adaptive-tests-py/setup.py` or `pyproject.toml`:
+
 ```python
 # setup.py
 setup(
@@ -70,6 +83,7 @@ setup(
 ```
 
 Or with `pyproject.toml`:
+
 ```toml
 [project]
 name = "adaptive-tests-py"
@@ -92,6 +106,7 @@ version = "0.0.0"  # Will be updated by workflow
 ### Automatic Publishing
 
 #### Option 1: Git Tags
+
 ```bash
 # Create and push a version tag
 git tag v1.2.3
@@ -101,6 +116,7 @@ git push origin v1.2.3
 The workflow automatically triggers and publishes version `1.2.3`.
 
 #### Option 2: GitHub Release
+
 1. Go to **Releases** → **"Create a new release"**
 2. Create tag `v1.2.3`
 3. Fill in release notes
@@ -109,6 +125,7 @@ The workflow automatically triggers and publishes version `1.2.3`.
 ### Pre-releases
 
 For beta/alpha versions:
+
 ```bash
 git tag v1.2.3-beta.1
 git push origin v1.2.3-beta.1
@@ -121,12 +138,14 @@ Or use manual trigger with "Pre-release" checked.
 ### npm Publishing
 
 The workflow publishes these packages:
+
 1. `adaptive-tests` (main package)
-2. `jest-adaptive` 
+2. `jest-adaptive`
 3. `vite-plugin-adaptive`
 4. `webpack-plugin-adaptive`
 
 Each package:
+
 - Builds if TypeScript
 - Runs tests
 - Updates version
@@ -155,6 +174,7 @@ Each package:
 ### Version Sources
 
 The workflow determines version from (in order):
+
 1. Manual input (workflow_dispatch)
 2. Git tag (removes `v` prefix)
 3. GitHub release tag
@@ -170,11 +190,13 @@ The workflow determines version from (in order):
 ### npm Publishing Issues
 
 **Error: 401 Unauthorized**
+
 - Check `NPM_TOKEN` is valid
 - Ensure token has publish permissions
 - For scoped packages, ensure public access
 
 **Error: 403 Forbidden**
+
 - Package name might be taken
 - You might not have permissions
 - Check `publishConfig.access` is "public"
@@ -182,21 +204,25 @@ The workflow determines version from (in order):
 ### PyPI Publishing Issues
 
 **Error: Invalid distribution**
+
 - Run `twine check dist/*` locally
 - Ensure `long_description` is valid
 - Check metadata in `setup.py`
 
 **Error: Version already exists**
+
 - PyPI doesn't allow overwriting versions
 - Bump to a new version
 
 ### Maven Publishing Issues
 
 **Error: Unauthorized**
+
 - Check OSSRH credentials
-- Verify account at https://s01.oss.sonatype.org/
+- Verify account at <https://s01.oss.sonatype.org/>
 
 **Error: PGP signature failed**
+
 - Ensure GPG key is valid
 - Check key isn't expired
 - Verify passphrase
@@ -204,6 +230,7 @@ The workflow determines version from (in order):
 ## Local Testing
 
 ### Test npm Publishing
+
 ```bash
 # Dry run
 npm publish --dry-run
@@ -215,6 +242,7 @@ npm publish --registry http://localhost:4873
 ```
 
 ### Test PyPI Publishing
+
 ```bash
 # Build
 python -m build
@@ -227,6 +255,7 @@ twine upload --repository testpypi dist/*
 ```
 
 ### Test Maven Publishing
+
 ```bash
 # Validate
 mvn validate
@@ -262,11 +291,13 @@ mvn deploy -DaltDeploymentRepository=local::default::file:./target/staging-deplo
 ### npm on GitHub Packages
 
 Packages are available at:
+
 ```
 https://npm.pkg.github.com/@OWNER/PACKAGE
 ```
 
 To use:
+
 ```bash
 echo "@OWNER:registry=https://npm.pkg.github.com" >> .npmrc
 npm install @OWNER/package-name
@@ -275,6 +306,7 @@ npm install @OWNER/package-name
 ### Maven on GitHub Packages
 
 Add to `pom.xml`:
+
 ```xml
 <repositories>
   <repository>
@@ -289,9 +321,9 @@ Add to `pom.xml`:
 ### Check Publishing Status
 
 1. **GitHub Actions**: Actions tab → Workflow runs
-2. **npm**: https://www.npmjs.com/package/YOUR-PACKAGE
-3. **PyPI**: https://pypi.org/project/YOUR-PACKAGE/
-4. **Maven**: https://search.maven.org/
+2. **npm**: <https://www.npmjs.com/package/YOUR-PACKAGE>
+3. **PyPI**: <https://pypi.org/project/YOUR-PACKAGE/>
+4. **Maven**: <https://search.maven.org/>
 
 ### Set Up Notifications
 
