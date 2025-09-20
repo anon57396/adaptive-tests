@@ -1,5 +1,15 @@
 # Quick Start – 5 Minutes to Resilient Tests
 
+## Table of Contents
+
+- [Install](#1-install)
+- [Write Your First Adaptive Test](#2-write-your-first-adaptive-test)
+- [Useful Signatures](#3-useful-signatures)
+- [Move Files – Tests Still Pass](#4-move-files--tests-still-pass)
+- [Helpful Commands](#5-helpful-commands)
+- [Learn More](#learn-more)
+- [What Not To Do](#what-not-to-do)
+
 ## 1. Install
 
 ```bash

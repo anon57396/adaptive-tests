@@ -1,5 +1,13 @@
 # Security Policy
 
+## Table of Contents
+
+- [Supported Versions](#supported-versions)
+- [Reporting a Vulnerability](#reporting-a-vulnerability)
+- [Response Timeline](#response-timeline)
+- [Security Best Practices](#security-best-practices)
+- [Known Security Considerations](#known-security-considerations)
+
 ## Supported Versions
 
 | Version | Supported          |

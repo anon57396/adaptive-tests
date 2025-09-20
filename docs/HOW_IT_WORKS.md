@@ -1,5 +1,12 @@
 # How It Works – Discovery, Scoring, and “Why”
 
+## Table of Contents
+
+- [Scoring Categories](#scoring-categories)
+- [Lifecycle](#lifecycle)
+- [Using Discovery Lens to Debug](#using-discovery-lens-to-debug)
+- [Configuration Pointers](#configuration-pointers)
+
 This guide explains exactly how the discovery engine ranks candidates and how to
 use the Discovery Lens CLI to verify the reasoning in your own repo.
 

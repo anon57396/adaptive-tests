@@ -1,5 +1,16 @@
 # CI/CD Strategy for Adaptive Tests
 
+## Table of Contents
+
+- [Philosophy](#philosophy-leverage-resilience-not-dependencies)
+- [The Two-Track Approach](#the-two-track-approach)
+- [Why This Works](#why-this-works)
+- [CI Workflow Jobs](#ci-workflow-jobs)
+- [The Key Insight](#the-key-insight)
+- [Real-World Example](#real-world-example)
+- [Performance Considerations](#performance-considerations)
+- [Summary](#summary)
+
 ## Philosophy: Leverage Resilience, Not Dependencies
 
 Unlike traditional test selection strategies that rely on dependency graphs, adaptive tests have a unique superpower: **they don't break when you refactor code**. This fundamentally changes how we approach CI/CD.

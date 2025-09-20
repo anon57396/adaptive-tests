@@ -19,6 +19,23 @@ If this project helps you, please consider supporting it via the Sponsor button 
 
 ---
 
+## Table of Contents
+
+- [CI/CD Integration](#ci-cd-integration)
+- [VS Code Extension (Development Alpha)](#vs-code-extension-development-alpha)
+- [Why AI-Powered Teams Choose Adaptive Tests](#why-ai-powered-teams-choose-adaptive-tests)
+- [Quick Start](#quick-start)
+- [Framework Templates](#framework-templates)
+- [CLI Helper](#cli-helper)
+- [Validation Flow](#validation-flow)
+- [CI/CD Strategy](#cicd-strategy)
+- [Documentation & Examples](#documentation--examples)
+- [Publishing](#publishing)
+- [For Developers](#for-developers)
+- [Contributing & Support](#contributing--support)
+
+---
+
 ## 🚀 CI/CD Integration
 
 You can run adaptive tests in CI using either the official GitHub Action (if available) or a standard Node.js job.

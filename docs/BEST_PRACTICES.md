@@ -1,5 +1,15 @@
 # Best Practices for Discoverable Code
 
+## Table of Contents
+
+- [Exports and modules](#exports-and-modules)
+- [File and directory layout](#file-and-directory-layout)
+- [Structure that matches signatures](#structure-that-matches-signatures)
+- [TypeScript](#typescript)
+- [Dynamic patterns](#dynamic-patterns)
+- [Scoring configuration](#scoring-configuration)
+- [Caching and iterations](#caching-and-iterations)
+
 These tips help adaptive discovery consistently find the right targets with
 minimal configuration.
 

@@ -2,6 +2,18 @@
 
 > **Our Mission**: Eliminate test maintenance burden so developers can focus on building great software.
 
+## Table of Contents
+
+- [Vision](#-vision)
+- [Recently Shipped](#-recently-shipped-024)
+- [Roadmap (Theme‑based)](#-roadmap-themebased)
+- [Exploratory Ideas](#-exploratory-ideas)
+- [How to Contribute](#-how-to-contribute)
+- [Success Metrics](#-success-metrics)
+- [Get Involved](#-get-involved)
+
+---
+
 ## 🎯 Vision
 
 Adaptive Tests aims to be a widely adopted way to write resilient test suites. We envision a world where:

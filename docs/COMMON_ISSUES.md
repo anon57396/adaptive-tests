@@ -1,5 +1,16 @@
 # Common Issues & Solutions
 
+## Table of Contents
+
+- [Discovery Lens for fast feedback](#discovery-lens-for-fast-feedback)
+- [Discovery skipped my module](#1-discovery-skipped-my-module)
+- [AST parse failures](#2-ast-parse-failures)
+- [Moved file returns old implementation](#3-i-moved-a-file-and-still-get-the-old-implementation)
+- [Multiple exports in one module](#4-multiple-exports-in-one-module)
+- [Tests/fixtures selected as candidates](#5-test-files-or-fixtures-getting-picked-as-candidates)
+- [Inheritance/properties matching issues](#6-discovering-by-inheritance-or-properties-still-fails)
+- [Debug Checklist](#debug-checklist)
+
 ## Discovery Lens for fast feedback
 
 When discovery surprises you (wrong top hit, no candidates, confusing scores), use the Discovery Lens CLI to see exactly why:

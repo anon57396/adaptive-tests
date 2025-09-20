@@ -1,5 +1,14 @@
 # Proof: Adaptive Tests Are Real Tests
 
+## Table of Contents
+
+- [The Three-Scenario Test](#the-three-scenario-test)
+- [What This Proves](#what-this-proves)
+- [The Key Difference](#the-key-difference)
+- [Try It Yourself](#try-it-yourself)
+- [Common Misconceptions](#common-misconceptions)
+- [The Bottom Line](#the-bottom-line)
+
 Some skeptics might think adaptive tests just always pass because they "find something."
 
 **This is false. Here's proof:**
