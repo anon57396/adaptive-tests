@@ -3,6 +3,7 @@
 ## 🎯 Major Improvements
 
 ### AST-First Testing Architecture
+
 - **All languages now use native AST parsers** as the primary discovery method
 - Ruby: Native Ripper AST parser
 - PHP: Native token_get_all parser
@@ -11,12 +12,14 @@
 - Three-tier fallback strategy ensures 100% availability
 
 ### Python Fixes
+
 - Fixed Signature API compatibility issues
 - Fixed cache decorator unhashable dict error
-- Fixed module-level discovery for __init__.py files
+- Fixed module-level discovery for `__init__.py` files
 - All Python tests now passing (12/12)
 
 ### Developer Experience
+
 - Added automated developer setup script (`npm run dev:setup`)
 - Created comprehensive development guide (`.github/DEVELOPMENT.md`)
 - Added GitHub Discussion templates for Q&A, Ideas, Show & Tell
@@ -24,6 +27,7 @@
 - Added welcome workflow for new contributors
 
 ### Documentation & Platform Strategy
+
 - **Single platform strategy**: Everything on GitHub (Pages, Discussions, Issues)
 - Removed all external platform references (Discord, videos, etc.)
 - Fixed all broken links to point to correct GitHub resources
@@ -34,7 +38,7 @@
 
 - Fixed Python Signature class missing parameters (type, properties, exports)
 - Fixed Python cache decorator with unhashable dict arguments
-- Fixed Python module discovery for package __init__.py files
+- Fixed Python module discovery for package **init**.py files
 - Fixed `.adaptive-tests-cache.json` files being tracked in git
 - Fixed broken GitHub Marketplace and issues links
 - Fixed markdown linting issues (reduced from 500+ to 74)
@@ -85,4 +89,4 @@ Special thanks to contributors and the community for feedback and testing.
 
 ---
 
-**Full Changelog**: https://github.com/anon57396/adaptive-tests/compare/v0.2.4...v0.2.5
+**Full Changelog**: <https://github.com/anon57396/adaptive-tests/compare/v0.2.4...v0.2.5>

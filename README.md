@@ -466,7 +466,7 @@ When you are ready to publish a new release:
 
 ## 🧑‍💻 For Developers
 
-### Quick Start
+### Developer Setup
 
 ```bash
 # Clone and setup

@@ -1,6 +1,6 @@
 {
   "name": "adaptive-tests",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "description": "AI-ready testing infrastructure that survives refactors without breaking. Built for autonomous development workflows.",
   "main": "src/adaptive/index.js",
   "bin": {
