@@ -89,4 +89,4 @@ Special thanks to contributors and the community for feedback and testing.
 
 ---
 
-**Full Changelog**: <https://github.com/anon57396/adaptive-tests/compare/v0.2.4...v0.2.5>
+**Full Changelog**: [v0.2.2...main](https://github.com/anon57396/adaptive-tests/compare/v0.2.2...main)

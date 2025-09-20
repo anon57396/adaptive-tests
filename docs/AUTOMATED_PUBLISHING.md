@@ -24,9 +24,9 @@ Go to **Settings → Secrets and variables → Actions** in your GitHub reposito
 NPM_TOKEN = <your-npm-automation-token>
 ```
 
-Get from: <https://www.npmjs.com/settings/YOUR_USERNAME/tokens>
+Learn more: <https://docs.npmjs.com/about-access-tokens/>
 
-- Create token with "Automation" type
+- Create token with "Automation" type from your npm account settings
 - Select "Publish" permission
 
 #### PyPI Publishing
@@ -36,10 +36,10 @@ PYPI_TOKEN = <your-pypi-api-token>
 TEST_PYPI_TOKEN = <your-test-pypi-api-token>  # Optional, for pre-releases
 ```
 
-Get from: <https://pypi.org/manage/account/token/>
+Create API tokens from your PyPI account settings (Account → API tokens).
 
-- Create API token scoped to your project
-- For Test PyPI: <https://test.pypi.org/manage/account/token/>
+- Generate a token scoped to your project
+- For Test PyPI, repeat the process on <https://test.pypi.org/>
 
 #### Maven Publishing (Optional)
 
@@ -321,8 +321,8 @@ Add to `pom.xml`:
 ### Check Publishing Status
 
 1. **GitHub Actions**: Actions tab → Workflow runs
-2. **npm**: <https://www.npmjs.com/package/YOUR-PACKAGE>
-3. **PyPI**: <https://pypi.org/project/YOUR-PACKAGE/>
+2. **npm**: Confirm your package is published (npm package page)
+3. **PyPI**: Confirm your package is published (PyPI project page)
 4. **Maven**: <https://search.maven.org/>
 
 ### Set Up Notifications
@@ -364,7 +364,7 @@ strategy:
 ## Resources
 
 - [GitHub Actions Documentation](https://docs.github.com/en/actions)
-- [npm Publishing Guide](https://docs.npmjs.com/packages-and-modules/publishing-packages)
+- [npm Publishing Guide](https://docs.npmjs.com/cli/v10/commands/npm-publish/)
 - [PyPI Publishing Tutorial](https://packaging.python.org/tutorials/packaging-projects/)
-- [Maven Central Guide](https://central.sonatype.org/publish/)
+- [Maven Central Guide](https://central.sonatype.org/publish/publish-guide/)
 - [GitHub Packages Docs](https://docs.github.com/en/packages)

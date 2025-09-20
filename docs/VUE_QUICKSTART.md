@@ -486,7 +486,7 @@ const wrapper = mount(Component, {
 ## Next Steps
 
 1. **Try the Vite template**: `cp -r adaptive-tests/templates/vite-adaptive my-app`
-2. **Explore examples**: [Vue Examples](../examples/vue-todo-app)
+2. **Explore examples**: [Repository Examples](../examples)
 3. **Read migration guide**: [Migration Guide](./MIGRATION_GUIDE.md)
 4. **Join community**: [GitHub Discussions](https://github.com/anon57396/adaptive-tests/discussions)
 

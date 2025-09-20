@@ -72,7 +72,7 @@ EOF
 cat > ACTION_README.md << 'EOF'
 # Adaptive Tests GitHub Action
 
-Official GitHub Action for [Adaptive Tests](https://github.com/adaptive-tests/adaptive-tests) - the AI-ready testing framework that survives refactoring.
+Official GitHub Action for [Adaptive Tests](https://github.com/anon57396/adaptive-tests) - the AI-ready testing framework that survives refactoring.
 
 ## Quick Start
 
@@ -82,7 +82,7 @@ Official GitHub Action for [Adaptive Tests](https://github.com/adaptive-tests/ad
 
 ## Documentation
 
-See the [full documentation](https://github.com/adaptive-tests/adaptive-tests/blob/main/docs/GITHUB_ACTION.md) for all options and examples.
+See the [full documentation](https://github.com/anon57396/adaptive-tests/blob/main/docs/GITHUB_ACTION.md) for all options and examples.
 
 ## Examples
 

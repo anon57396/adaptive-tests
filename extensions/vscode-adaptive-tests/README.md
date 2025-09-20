@@ -13,7 +13,7 @@ The crown jewel of this extension - a beautiful, interactive webview that visual
 - **Interactive Results**: Click to open files or scaffold tests directly from results
 - **Preset Signatures**: Quick examples to get you started
 
-![Discovery Lens Demo](media/discovery-lens-demo.gif)
+> _Preview coming soon — the webview assets live in `media/` for local builds_
 
 ### 📝 Smart Scaffolding
 

@@ -623,4 +623,4 @@ Key changes:
 
 - [GitHub Issues](https://github.com/anon57396/adaptive-tests/issues)
 - [GitHub Discussions](https://github.com/anon57396/adaptive-tests/discussions)
-- [Stack Overflow](https://stackoverflow.com/questions/tagged/adaptive-tests)
+- [Stack Overflow Search](https://stackoverflow.com/search?q=adaptive+tests)

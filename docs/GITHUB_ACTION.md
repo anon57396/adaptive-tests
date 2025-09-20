@@ -1,7 +1,7 @@
 # GitHub Action for Adaptive Tests
 
 [![GitHub Marketplace](https://img.shields.io/badge/Marketplace-Coming%20Soon-yellow?logo=github)](https://github.com/anon57396/adaptive-tests)
-[![Action Status](https://github.com/adaptive-tests/adaptive-tests/workflows/CI/badge.svg)](https://github.com/adaptive-tests/adaptive-tests/actions)
+[![Action Status](https://github.com/anon57396/adaptive-tests/workflows/CI/badge.svg)](https://github.com/anon57396/adaptive-tests/actions)
 
 ## Quick Start
 
@@ -349,11 +349,11 @@ Ensure coverage is enabled:
 
 ## Contributing
 
-We welcome contributions! See our [Contributing Guide](CONTRIBUTING.md).
+We welcome contributions! See our [Contributing Guide](../CONTRIBUTING.md).
 
 ## License
 
-MIT - See [LICENSE](LICENSE) for details.
+MIT - See [LICENSE](../LICENSE) for details.
 
 ## Support
 

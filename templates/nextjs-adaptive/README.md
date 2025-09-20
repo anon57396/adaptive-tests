@@ -93,7 +93,7 @@ const Button = await discover({
 npm run scaffold src/components/NewComponent.tsx
 ```
 
-2. **Manually create a test**:
+1. **Manually create a test**:
 
 ```typescript
 import { discover } from 'adaptive-tests';
@@ -152,7 +152,7 @@ npm start
 
 - [Adaptive Tests Documentation](https://github.com/anon57396/adaptive-tests)
 - [Next.js Documentation](https://nextjs.org/docs)
-- [Jest Documentation](https://jestjs.io/docs)
+  - [Jest Documentation](https://jestjs.io/docs/getting-started)
 
 ## 🤝 Contributing
 

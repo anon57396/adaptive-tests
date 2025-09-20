@@ -2,7 +2,8 @@
   "ignorePatterns": [
     { "pattern": "^mailto:" },
     { "pattern": "^https://img.shields.io" },
-    { "pattern": "^https://badgen.net" }
+    { "pattern": "^https://badgen.net" },
+    { "pattern": "^https://marketplace.visualstudio.com/manage" }
   ],
   "replacementPatterns": [
     {
@@ -10,5 +11,18 @@
       "replacement": "docs/$1.md"
     }
   ],
-  "timeout": "10s"
+  "timeout": "10s",
+  "httpHeaders": [
+    {
+      "urls": [
+        "https://www.npmjs.com/package/adaptive-tests",
+        "https://www.npmjs.com/package/webpack-plugin-adaptive",
+        "https://www.npmjs.com/package/vite-plugin-adaptive",
+        "https://www.npmjs.com/package/jest-adaptive"
+      ],
+      "headers": {
+        "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36"
+      }
+    }
+  ]
 }
