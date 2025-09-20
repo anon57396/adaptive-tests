@@ -6,7 +6,7 @@ class AsyncService {
   constructor() {
     this.state = new Map();
     this.runTask = async (task) => {
-      const helperPath = path.join(__dirname, 'dynamic-helper.js');
+      const helperPath = path.join(__dirname, 'execute-helper.js');
       const helper = await Promise.resolve().then(() => require(helperPath));
       return helper.execute(task);
     };

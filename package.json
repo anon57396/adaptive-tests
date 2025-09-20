@@ -123,6 +123,9 @@
       "json",
       "node"
     ],
+    "modulePathIgnorePatterns": [
+      "<rootDir>/packages/jest-adaptive/packages"
+    ],
     "testPathIgnorePatterns": [
       "<rootDir>/examples/",
       "<rootDir>/extensions/"

@@ -1,12 +1,12 @@
 {
-  "{\"exports\":\"Calculator\",\"methods\":[\"add\",\"divide\",\"multiply\",\"subtract\"],\"name\":\"Calculator\",\"type\":\"class\"}": {
+  "{\"exports\":\"Calculator\",\"methods\":[\"add\",\"clearHistory\",\"divide\",\"multiply\",\"power\",\"sqrt\",\"subtract\"],\"name\":\"Calculator\",\"type\":\"class\"}": {
     "relativePath": "src/Calculator.ts",
     "access": {
       "type": "named",
       "name": "Calculator"
     },
-    "score": 136,
-    "timestamp": 1758331693998,
-    "mtimeMs": 1758331518996.711
+    "score": 137,
+    "timestamp": 1758332434718,
+    "mtimeMs": 1758332433115.2317
   }
 }

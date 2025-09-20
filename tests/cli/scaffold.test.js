@@ -80,7 +80,14 @@ describe('CLI scaffold command', () => {
   const createGradleWorkspace = () => createWorkspaceFrom(JAVA_GRADLE_FIXTURE_ROOT);
   const createPythonWorkspace = () => createWorkspaceFrom(PYTHON_FIXTURE_ROOT);
   const createGoWorkspace = () => createWorkspaceFrom(GO_FIXTURE_ROOT);
-  const createRubyWorkspace = () => createWorkspaceFrom(RUBY_FIXTURE_ROOT);
+  const createRubyWorkspace = () => {
+    const workspace = createWorkspaceFrom(RUBY_FIXTURE_ROOT);
+    const specPath = path.join(workspace, 'spec', 'account_service_spec.rb');
+    if (fs.existsSync(specPath)) {
+      fs.rmSync(specPath);
+    }
+    return workspace;
+  };
   const createRustWorkspace = () => createWorkspaceFrom(RUST_FIXTURE_ROOT);
 
   it('generates a JavaScript adaptive test skeleton from a source path', () => {

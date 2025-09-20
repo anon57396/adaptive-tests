@@ -576,6 +576,13 @@ class RubyDiscoveryIntegration extends BaseLanguageIntegration {
   generateTestContent(target, options = {}) {
     return this.collector.generateTestContent(target, options);
   }
+
+  generateRSpecTest(options) {
+    if (typeof this.collector.generateRSpecTest === 'function') {
+      return this.collector.generateRSpecTest(options);
+    }
+    throw new Error('Ruby collector does not implement generateRSpecTest');
+  }
 }
 
 module.exports = {
