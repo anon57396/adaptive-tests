@@ -1,8 +1,8 @@
 import path from 'path';
-import { TypeScriptDiscoveryEngine } from '../../../../src/discovery';
+import { getTypeScriptDiscoveryEngine } from '@adaptive-tests/typescript';
 
 describe('TypeScript Calculator - Adaptive Tests', () => {
-  const engine = new TypeScriptDiscoveryEngine(path.resolve(__dirname, '../..'));
+  const engine = getTypeScriptDiscoveryEngine(path.resolve(__dirname, '../..'));
   let Calculator: typeof import('../../src/Calculator').Calculator;
   let calc: import('../../src/Calculator').Calculator;
 
