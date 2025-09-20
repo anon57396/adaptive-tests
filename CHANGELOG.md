@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented here. Dates are omitted when historical records are unclear.
 
+## [0.2.5] - 2025-09-19
+
+- **PyPI Update**: Published adaptive-tests-py 0.2.5 to match npm package version
+- **Documentation**: Updated all README files for factual accuracy
+- **GitHub Action**: Now available in GitHub Marketplace
+- **Repository**: Comprehensive fact-check and correction of all documentation
+
 ## [0.2.4] - 2025-09-19
 
 - **NEW: Migration Tool** - Added `npx adaptive-tests migrate` command to automatically convert traditional tests to adaptive tests
@@ -39,7 +46,7 @@ All notable changes to this project are documented here. Dates are omitted when 
 
 ## [0.2.3]
 
-- Shipped adaptive-tests-py 0.2.0 with configurable scoring, persistent cache, Lens-style explanations, and bundled CLI tooling
+- Shipped adaptive-tests-py 0.2.0 with configurable scoring, persistent cache, Lens-style explanations, and bundled CLI tooling (updated to 0.2.5)
 - Updated PyPI packaging metadata and wheels for the new Python release
 - Fixed critical Windows path handling issues in Java scaffolding
 - Added package manager detection (yarn/pnpm/bun support) for cross-team compatibility
