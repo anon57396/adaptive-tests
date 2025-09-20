@@ -2,7 +2,9 @@
   "compilerOptions": {
     "target": "ES2020",
     "module": "commonjs",
-    "lib": ["ES2020"],
+    "lib": [
+      "ES2020"
+    ],
     "outDir": "./lib",
     "rootDir": "./",
     "strict": true,
@@ -12,7 +14,21 @@
     "declaration": true,
     "declarationDir": "./types",
     "resolveJsonModule": true,
-    "moduleResolution": "node"
+    "moduleResolution": "node",
+    "paths": {
+      "@adaptive-tests/typescript": [
+        "./types/index.d.ts"
+      ],
+      "@adaptive-tests/typescript/*": [
+        "./src/*"
+      ],
+      "@adaptive-tests/javascript": [
+        "../javascript/src/index.js"
+      ],
+      "@adaptive-tests/javascript/*": [
+        "../javascript/src/*"
+      ]
+    }
   },
   "include": [
     "src/**/*",

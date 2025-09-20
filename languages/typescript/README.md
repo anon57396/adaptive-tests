@@ -10,7 +10,13 @@ Extends adaptive-tests with full TypeScript support including type-aware discove
 
 ## Installation
 
+Before installing the TypeScript workspace, install the JavaScript workspace (it provides the core discovery engine):
+
 ```bash
+cd ../javascript
+npm install && npm test
+cd ../typescript
+
 # Install the core package and TypeScript extension
 npm install --save-dev adaptive-tests adaptive-tests-typescript
 

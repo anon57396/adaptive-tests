@@ -1,29 +1,14 @@
 {
-  "name": "adaptive-tests-monorepo",
+  "name": "adaptive-tests",
   "private": true,
   "version": "0.3.0",
-  "description": "Monorepo for adaptive-tests - AI-ready testing infrastructure",
-  "workspaces": [
-    "languages/javascript",
-    "languages/typescript",
-    "tools/*"
-  ],
+  "description": "AI-ready testing infrastructure - language-specific packages",
   "scripts": {
-    "test": "npm run test --workspaces --if-present",
-    "test:js": "npm run test --workspace=languages/javascript",
-    "test:ts": "npm run test --workspace=languages/typescript",
-    "test:python": "cd languages/python && python -m pytest tests/",
+    "test:js": "cd languages/javascript && npm test",
+    "test:ts": "cd languages/typescript && npm test",
+    "test:python": "cd languages/python && python3 -m pytest tests/",
     "test:java": "cd languages/java && mvn test",
-    "build": "npm run build --workspaces --if-present",
-    "build:js": "npm run build --workspace=languages/javascript",
-    "build:ts": "npm run build --workspace=languages/typescript",
-    "lint": "npm run lint --workspaces --if-present",
-    "clean": "npm run clean --workspaces --if-present",
     "validate": "node scripts/validate-refactor.js"
-  },
-  "devDependencies": {
-    "jest": "^29.7.0",
-    "typescript": "^5.4.5"
   },
   "engines": {
     "node": ">=16.0.0",

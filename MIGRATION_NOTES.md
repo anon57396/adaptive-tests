@@ -1,99 +1,57 @@
-# Migration Status - Package A Complete
+# Migration Status – Completed
 
 ## Date: 2025-09-20
 
 ## 🎯 Objective
-Replace symlinks with temporary shim directories to prevent import breakage during parallel migration.
+Finish the monorepo refactor by removing symlinks, deleting legacy directories, and making each language package self-sufficient.
 
-## ✅ Changes Made
+## ✅ Final State
+- All code now lives under `languages/<language>/...`
+- Root `node_modules` removed; each package installs its own dependencies on demand
+- No compatibility shims remain
+- JavaScript and TypeScript workspaces expose their own `package.json`, `jest` configs, and pass their internal test suites
+- Python and Java packages are ready to install/test from their respective directories
 
-### 1. Symlinks Removed
-All symlinks have been successfully removed and replaced with temporary shim directories:
-
-#### Root-level Symlinks → Shim Directories:
-- `./types` → Created directory with README pointing to `languages/typescript/types`
-- `./examples` → Created directory with README pointing to `languages/javascript/examples`
-- `./templates` → Created directory with README pointing to `languages/javascript/templates`
-
-#### Package Symlinks → Node.js Shims:
-- `./packages/jest-adaptive` → Shim forwarding to `languages/javascript/plugins/jest-adaptive`
-- `./packages/vite-plugin-adaptive` → Shim forwarding to `languages/javascript/plugins/vite-plugin-adaptive`
-- `./packages/webpack-plugin-adaptive` → Shim forwarding to `languages/javascript/plugins/webpack-plugin-adaptive`
-- `./languages/python` → Placeholder shim (Python package)
-- `./languages/java` → Placeholder shim (Java package)
-
-#### Source Symlinks → Node.js Shims:
-- `./src/adaptive` → Shim forwarding to `languages/javascript/src`
-- `./src/cli` → Shim forwarding to `languages/javascript/cli`
-
-### 2. Backup Created
-- `symlinks-backup.txt` - Contains list of all symlinks that were present
-- `symlink-details.txt` - Contains mapping of symlinks to their targets
-
-### 3. Verification Complete
-- ✅ No symlinks remain in the repository (outside of node_modules and .venv)
-- ✅ Shim directories exist and are accessible
-- ✅ JavaScript plugin shims tested and working
-
-## 🔄 Next Steps
-
-### For Other Teams (Packages B-E)
-You can now work in parallel without breaking imports:
-1. Pull the latest changes from main after this package merges
-2. Work on your assigned language package
-3. The shims will forward any imports to the new locations
-4. Your tests should continue to work during migration
-
-### For Package F (Root Config)
-After all language packages are complete:
-1. Verify all language implementations are working
-2. Set up root workspace configuration
-3. Remove all temporary shims
-4. Run final integration tests
-
-## ⚠️ Important Notes
-
-### Shims Are Temporary
-These shims are scaffolding to enable parallel work. They will be removed in Package F after all migrations are complete.
-
-### Some Imports May Still Need Updates
-While shims prevent immediate breakage, individual language packages should update their internal imports to use relative paths within their package structure.
-
-### Testing Recommendation
-Run tests frequently during your migration to catch any issues early:
-```bash
-# JavaScript
-cd languages/javascript && npm test
-
-# TypeScript
-cd languages/typescript && npm test
-
-# Python
-cd languages/python && python -m pytest
-
-# Java
-cd languages/java && mvn test
+## 📂 New Layout
+```
+languages/
+  javascript/     # @adaptive-tests/javascript workspace
+  typescript/     # @adaptive-tests/typescript workspace
+  python/         # adaptive-tests-py package
+  java/           # adaptive-tests-java package
+  php/            # placeholder for future refactor
+  go/             # "
+  rust/           # "
+  ruby/           # "
+  wolfram/        # "
 ```
 
-## 📊 Status Summary
+## 🛠️ Developer Workflow
+```bash
+# JavaScript workspace
+cd languages/javascript
+npm install
+npm test
 
-| Task | Status |
-|------|--------|
-| Remove all symlinks | ✅ Complete |
-| Create shim directories | ✅ Complete |
-| Create forwarding shims | ✅ Complete |
-| Test shims work | ✅ Complete |
-| Document changes | ✅ Complete |
+# TypeScript workspace
+cd languages/typescript
+npm install
+npm test
 
-## 🚀 Ready for Parallel Work
+# Python workspace
+cd languages/python
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+python3 -m pytest
 
-**Package A is now complete.** Other teams can begin work on packages B-E in parallel.
+# Java workspace
+cd languages/java
+mvn test
+```
 
-The repository structure is now:
-- **No symlinks** - All removed
-- **Shims in place** - Preventing import breakage
-- **Safe for migration** - Teams can work independently
+## 🧾 Artifacts
+- `symlinks-backup.txt` – Historical record of removed symlinks (for audit only)
+- `symlink-details.txt` – Mapping from deprecated symlinks to their new locations
+- `validation-results.json` – Summary output from `npm run validate`
 
----
-
-*This document was created as part of Package A: Cleanup Symlinks & Create Shims*
+The repository is now ready for language-specific ownership and future workspace tooling.

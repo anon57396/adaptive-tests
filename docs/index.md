@@ -87,7 +87,7 @@ const Calculator = await discover({ name: 'Calculator' });
 
 - [GitHub Discussions](https://github.com/anon57396/adaptive-tests/discussions) - Ask questions, share ideas
 - [Issue Tracker](https://github.com/anon57396/adaptive-tests/issues) - Report bugs, request features
-- [Examples](https://github.com/anon57396/adaptive-tests/tree/main/examples) - See it in action
+- [Examples](https://github.com/anon57396/adaptive-tests/tree/main/languages/javascript/examples) - See it in action
 
 ## 📊 Language Support
 

@@ -358,8 +358,8 @@ beforeAll(async () => {
 
 ## Example Projects
 
-- [Todo App with Adaptive Tests](../examples/todo-app)
-- [Component Library Walkthrough](../examples/react-component)
+- [Todo App with Adaptive Tests](../languages/javascript/examples/todo-app)
+- [Component Library Walkthrough](../languages/javascript/examples/react-component)
 - [Dashboard Template](../templates/cra-adaptive)
 
 Happy testing! 🎉

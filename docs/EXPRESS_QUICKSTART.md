@@ -555,7 +555,7 @@ jobs:
 ## Next Steps
 
 1. **Try the template**: `cp -r adaptive-tests/templates/express-adaptive my-api`
-2. **Explore examples**: [Express Examples](../examples/api-service)
+2. **Explore examples**: [Express Examples](../languages/javascript/examples/api-service)
 3. **Read best practices**: [API Testing Best Practices](./BEST_PRACTICES.md)
 4. **Join community**: [GitHub Discussions](https://github.com/anon57396/adaptive-tests/discussions)
 

@@ -13,7 +13,7 @@ npm run build:plugins
 ```
 
 The `build:plugins` script compiles the Vite and Webpack companion packages into
-`packages/*/dist` without requiring external bundlers.
+`languages/javascript/plugins/*/dist` without requiring external bundlers.
 
 ## 2. Sanitize local artifacts
 
@@ -51,7 +51,7 @@ npm publish
 For companion packages:
 
 ```bash
-cd packages/vite-plugin-adaptive
+cd languages/javascript/plugins/vite-plugin-adaptive
 npm publish
 
 cd ../webpack-plugin-adaptive

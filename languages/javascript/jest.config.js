@@ -1,23 +1,39 @@
 module.exports = {
-  testEnvironment: 'node',
-  roots: ['<rootDir>/examples', '<rootDir>/tests'],
-  testMatch: ['**/*.test.js'],
-  moduleFileExtensions: ['js', 'jsx', 'json'],
-  transform: {
-    '^.+\\.(js|jsx)$': 'babel-jest'
-  },
-  collectCoverageFrom: [
-    'src/**/*.js',
-    '!src/**/*.test.js',
-    '!src/**/index.js'
+  "testEnvironment": "node",
+  "roots": [
+    "<rootDir>/tests",
+    "<rootDir>/examples"
   ],
-  coverageDirectory: 'coverage',
-  clearMocks: true,
-  resetMocks: true,
-  restoreMocks: true,
-  // Disable Haste to avoid module collision issues
-  haste: {
-    enableSymlinks: false,
-    throwOnModuleCollision: false
-  }
+  "testMatch": [
+    "**/*.test.(js|ts)"
+  ],
+  "transform": {
+    "^.+\\.(ts|tsx)$": [
+      "ts-jest",
+      {
+        "tsconfig": "<rootDir>/tsconfig.json",
+        "diagnostics": false
+      }
+    ]
+  },
+  "moduleFileExtensions": [
+    "ts",
+    "tsx",
+    "js",
+    "jsx",
+    "json"
+  ],
+  "moduleNameMapper": {
+    "^adaptive-tests$": "<rootDir>/src/index.js",
+    "^adaptive-tests/(.*)$": "<rootDir>/src/$1",
+    "^@adaptive-tests/javascript$": "<rootDir>/src/index.js"
+  },
+  "collectCoverageFrom": [
+    "src/**/*.{js,ts}",
+    "!src/**/index.js"
+  ],
+  "coverageDirectory": "<rootDir>/coverage",
+  "clearMocks": true,
+  "resetMocks": true,
+  "restoreMocks": true
 };

@@ -83,7 +83,7 @@ experience sane for humans and bots alike:
 
 Supporting directories:
 
-- `examples/` – calculators, services, and TypeScript examples (traditional vs
+- `languages/javascript/examples/` – calculators, services, ESM modules, React/Todo samples
   adaptive)
 - `languages/python/` – Python companion package
 - `extensions/vscode-adaptive-tests/` – VS Code extension for Discovery Lens and scaffolding

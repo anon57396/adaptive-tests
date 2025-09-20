@@ -416,7 +416,7 @@ const Component = await discover({
 ## Getting Help
 
 - **GitHub Discussions**: [Join the discussion](https://github.com/anon57396/adaptive-tests/discussions)
-- **Examples**: See `examples/` directory for complete migrations
+- **Examples**: See `languages/javascript/examples/` for JavaScript migrations and `languages/typescript/examples/` for TypeScript samples
 - **Issues**: [GitHub Issues](https://github.com/anon57396/adaptive-tests/issues)
 - **Docs**: [Full documentation](https://anon57396.github.io/adaptive-tests/)
 

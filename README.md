@@ -170,6 +170,15 @@ The extension will be available on the VS Code Marketplace. For now, use the dev
 ---
 
 ## Quick Start
+## Monorepo Structure
+
+- JavaScript: `cd languages/javascript && npm install && npm test`
+- TypeScript: Install the JavaScript workspace first, then `cd languages/typescript && npm install && npm test`
+- Python: `cd languages/python && python3 -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt && python3 -m pytest`
+- Java: `cd languages/java && mvn test`
+
+---
+
 
 ### 🎭 Invisible Mode (Experimental, JS/TS only)
 
@@ -577,7 +586,7 @@ You don't need complex test selection for adaptive tests because:
 
 - [VS Code Extension](extensions/vscode-adaptive-tests/README.md)
 - [Proof & Demo Scripts](PROOF.md)
-- [Examples](examples/) (`calculator`, `api-service`, `todo-app`, `typescript`, `python`, `php`, `java`)
+- **Examples**: JavaScript (`languages/javascript/examples/`), TypeScript (`languages/typescript/examples/`), Python (`languages/python/examples/`), Java (`languages/java/examples/`)
 
 Every example exposes both **traditional** and **adaptive** suites so you can see
 the contrast immediately.

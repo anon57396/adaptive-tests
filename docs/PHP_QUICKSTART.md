@@ -261,7 +261,7 @@ npx adaptive-tests scaffold src/Calculator.php --output-dir=tests/Unit
 
 ## Examples
 
-The repository includes PHP examples in `examples/php/`:
+The repository includes PHP examples in `languages/php/examples/`:
 
 - `Calculator.php` - Simple calculator class
 - `UserService.php` - Complex service with interface and trait
@@ -270,7 +270,7 @@ To try them:
 
 ```bash
 # Generate tests for the examples
-npx adaptive-tests scaffold --batch examples/php/src
+npx adaptive-tests scaffold --batch languages/php/examples/src
 
 # View the generated tests
 ls tests/
@@ -312,6 +312,6 @@ The discovery engine uses the `php-parser` npm package which supports:
 
 ## Next Steps
 
-- Explore the [examples/php](../examples/php) directory
+- Explore the [examples/php](../languages/php/examples) directory
 - Read about [discovery signatures](./HOW_IT_WORKS.md) for advanced usage
 - Learn about [CI/CD integration](./CI_STRATEGY.md) for PHP projects

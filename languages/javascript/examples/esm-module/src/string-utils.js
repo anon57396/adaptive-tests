@@ -32,6 +32,16 @@ export const kebabCase = (str) => {
     .toLowerCase();
 };
 
+export class StringUtils {
+  capitalize(value) {
+    return capitalize(value);
+  }
+
+  reverse(value) {
+    return reverse(value);
+  }
+}
+
 export class StringBuilder {
   constructor(initial = '') {
     this.value = initial;
@@ -67,5 +77,6 @@ export default {
   isPalindrome,
   camelCase,
   kebabCase,
-  StringBuilder
+  StringBuilder,
+  StringUtils
 };

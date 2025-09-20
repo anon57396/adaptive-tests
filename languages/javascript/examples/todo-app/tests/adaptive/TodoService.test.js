@@ -1,4 +1,4 @@
-const { discover } = require('@adaptive-tests/javascript');
+const { discover } = require('adaptive-tests');
 
 describe('TodoService - Adaptive Tests', () => {
   let TodoService;

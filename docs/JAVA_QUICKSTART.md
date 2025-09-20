@@ -14,7 +14,7 @@ The Java bridge is integrated into the primary CLI. Given a `.java` source file,
 
 ```bash
 # From the repository root
-npx adaptive-tests scaffold examples/java/src/main/java/com/example/calculator/Calculator.java
+npx adaptive-tests scaffold languages/java/examples/spring-boot/src/main/java/com/example/calculator/Calculator.java
 ```
 
 By default the generated test lands in `src/test/java` and mirrors the package of the production class. Methods discovered in the source file produce individual `@Test` blocks, seeded with sensible assertion placeholders.

@@ -3,19 +3,19 @@ import { AdaptiveTest, adaptiveTest } from 'adaptive-tests';
 class ExampleServiceAdaptiveTest extends AdaptiveTest {
   getTargetSignature() {
     return {
-      name: 'StringUtils',
+      name: 'Calculator',
       type: 'class',
-      methods: ['capitalize', 'reverse']
+      methods: ['add', 'multiply']
     };
   }
 
   async runTests(Target: any) {
     const instance = new Target();
-    if (typeof instance.capitalize !== 'function') {
-      throw new Error('Expected StringUtils.capitalize to be a function');
+    if (typeof instance.add !== 'function') {
+      throw new Error('Expected Calculator.add to be a function');
     }
-    const value = instance.capitalize('adaptive');
-    expect(value).toBe('Adaptive');
+    const value = instance.add(2, 3);
+    expect(value).toBe(5);
   }
 }
 
