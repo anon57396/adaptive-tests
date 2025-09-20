@@ -554,6 +554,7 @@ function printUsage() {
   console.log(`Commands:`);
   console.log(`  init            Interactive setup wizard (default)`);
   console.log(`  migrate [dir]   Convert traditional tests to adaptive tests`);
+  console.log(`  convert [dir]   Convert tests to adaptive with invisible mode`);
   console.log(`  why <signature> Inspect candidate scoring for a signature`);
   console.log(`  scaffold <src>  Generate an adaptive test skeleton from source`);
   console.log(`  help            Show this message\n`);
@@ -561,6 +562,8 @@ function printUsage() {
   console.log(`  npx adaptive-tests`);
   console.log(`  npx adaptive-tests init`);
   console.log(`  npx adaptive-tests migrate tests`);
+  console.log(`  npx adaptive-tests convert tests --invisible`);
+  console.log(`  npx adaptive-tests convert tests --hybrid --dry-run`);
   console.log(`  npx adaptive-tests why '{"name":"UserService"}'`);
   console.log(`  npx adaptive-tests why '{"name":"UserService"}' --json\n`);
   console.log(`  npx adaptive-tests scaffold src/services/UserService.js`);
@@ -581,11 +584,31 @@ async function runMigrate(args = []) {
   await runMigrate(args);
 }
 
+async function runConvert(args = []) {
+  const { convertTests } = require('./convert');
+  const testDir = args[0] || 'tests';
+
+  const options = {
+    dryRun: args.includes('--dry-run'),
+    backup: !args.includes('--no-backup'),
+    strategy: args.includes('--explicit') ? 'explicit' :
+              args.includes('--hybrid') ? 'hybrid' : 'invisible'
+  };
+
+  console.log('🔄 Converting tests to adaptive...');
+  const result = await convertTests(testDir, options);
+
+  if (result.success) {
+    console.log(`✅ Conversion complete: ${result.conversions} files converted`);
+  }
+}
+
 async function main(argv = process.argv) {
   const [, , maybeCommand, ...rest] = argv;
   const handlers = {
     init: () => runInit(),
     migrate: (args) => runMigrate(args),
+    convert: (args) => runConvert(args),
     why: (args) => runWhy(args),
     scaffold: (args) => runScaffold(args),
     help: () => printUsage(),
