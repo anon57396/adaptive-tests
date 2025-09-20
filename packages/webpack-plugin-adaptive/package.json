@@ -9,8 +9,8 @@
     "README.md"
   ],
   "scripts": {
-    "build": "tsc",
-    "dev": "tsc --watch",
+    "build": "node ../../scripts/build-packages.js --scope=webpack-plugin-adaptive",
+    "dev": "node ../../scripts/build-packages.js --scope=webpack-plugin-adaptive",
     "test": "jest",
     "prepublishOnly": "npm run build"
   },

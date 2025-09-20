@@ -28,7 +28,7 @@ export interface ViteAdaptiveOptions {
 
   /**
    * File patterns to include
-   * @default ['**/*.adaptive.{test,spec}.{js,jsx,ts,tsx}']
+   * @default Glob pattern covering .adaptive test files in any subdirectory (e.g. double-star/App.adaptive.test.ts)
    */
   include?: string[];
 

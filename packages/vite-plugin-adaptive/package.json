@@ -17,8 +17,8 @@
     "README.md"
   ],
   "scripts": {
-    "build": "tsup",
-    "dev": "tsup --watch",
+    "build": "node ../../scripts/build-packages.js --scope=vite-plugin-adaptive",
+    "dev": "node ../../scripts/build-packages.js --scope=vite-plugin-adaptive",
     "test": "vitest",
     "prepublishOnly": "npm run build"
   },

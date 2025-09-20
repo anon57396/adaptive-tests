@@ -1,6 +1,6 @@
 {
   "name": "adaptive-tests",
-  "version": "0.2.2",
+  "version": "0.2.4",
   "description": "AI-ready testing infrastructure that survives refactors without breaking. Built for autonomous development workflows.",
   "main": "src/adaptive/index.js",
   "bin": {
@@ -31,10 +31,12 @@
     "demo:full": "npm run validate",
     "compare": "node scripts/demo/compare.js",
     "benchmark": "node scripts/demo/benchmark.js",
+    "build:plugins": "node scripts/build-packages.js",
+    "clean:artifacts": "node scripts/clean-artifacts.js",
     "docs:api": "typedoc",
     "build:types": "tsc",
     "check:binaries": "node scripts/check-binaries.js",
-    "prepublishOnly": "npm run build:types && npm run test && npm run validate && npm run lint:markdown && npm run lint:links && npm run check:binaries",
+    "prepublishOnly": "npm run build:types && npm run build:plugins && npm run test && npm run validate && npm run lint:markdown && npm run lint:links && npm run check:binaries",
     "posttest": "npm run check:binaries",
     "release": "./scripts/release.sh",
     "release:patch": "./scripts/release.sh patch",

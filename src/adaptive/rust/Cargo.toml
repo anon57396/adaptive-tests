@@ -1,0 +1,21 @@
+[package]
+name = "rust-ast-bridge"
+version = "1.0.0"
+edition = "2021"
+
+[dependencies]
+syn = { version = "2.0", features = ["full", "extra-traits"] }
+quote = "1.0"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# For using rust-analyzer as an alternative
+rust-analyzer = { version = "*", optional = true }
+
+[[bin]]
+name = "rust-ast-bridge"
+path = "rust-ast-bridge.rs"
+
+[features]
+default = ["syn"]
+analyzer = ["rust-analyzer"]

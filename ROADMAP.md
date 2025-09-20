@@ -11,8 +11,10 @@ Adaptive Tests aims to be a widely adopted way to write resilient test suites. W
 - Test maintenance time is significantly reduced
 - Popular frameworks offer integrations and recipes
 
-## ✅ Recently Shipped (0.2.2)
+## ✅ Recently Shipped (0.2.4)
 
+- Offline-friendly build script (`npm run build:plugins`) for companion packages + release checklist
+- Repo hygiene helper (`npm run clean:artifacts`) to strip caches before packaging
 - Discovery Lens CLI (`npx adaptive-tests why`) with detailed scoring breakdowns and suggested signatures
 - Docs site + new guides: How It Works and Best Practices
 - Generated API reference (docs/api) with automatic rebuild in CI

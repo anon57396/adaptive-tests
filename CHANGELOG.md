@@ -2,7 +2,7 @@
 
 All notable changes to this project are documented here. Dates are omitted when historical records are unclear.
 
-## [0.2.4] - Unreleased
+## [0.2.4] - 2025-09-19
 
 - **NEW: Migration Tool** - Added `npx adaptive-tests migrate` command to automatically convert traditional tests to adaptive tests
   - Analyzes existing test files using AST parsing to extract imports, test structure, and methods
@@ -34,6 +34,8 @@ All notable changes to this project are documented here. Dates are omitted when 
   - Bundle size impact analysis
   - Chunk optimization for test files
   - Discovery manifest generation
+- **Build pipeline** - Added `scripts/build-packages.js` and `npm run build:plugins` for offline-friendly builds of companion packages.
+- **Repo hygiene** - Introduced `npm run clean:artifacts` and a release checklist to keep shared snapshots lightweight.
 
 ## [0.2.3]
 
