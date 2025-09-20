@@ -1053,17 +1053,18 @@ const processSingleFile = async (engine, filePath, options, results) => {
     selectedExports = [pickBestExport(exports, path.basename(filePath, path.extname(filePath)))];
   }
 
-  selectedExports.forEach((exportEntry, index) => {
+  for (let index = 0; index < selectedExports.length; index += 1) {
+    const exportEntry = selectedExports[index];
     const signature = buildSignature(exportEntry) || {};
     if (!signature.name) {
       signature.name = exportEntry.exportedName || `Export${index + 1}`;
     }
     const methods = signature.methods || [];
 
-    let outputPath, content;
+    let outputPath;
+    let content;
 
     if (isPHP) {
-      // For PHP files, generate PHPUnit test files
       const baseDir = options.outputDir || path.join(options.root, 'tests');
       ensureDirSync(baseDir);
       const baseName = signature.name || path.basename(filePath, path.extname(filePath));
@@ -1155,14 +1156,14 @@ const processSingleFile = async (engine, filePath, options, results) => {
     if (fs.existsSync(outputPath) && !options.force) {
       results.skippedExisting.push(outputPath);
       log(`⏭️  Skipping existing file ${path.relative(options.root, outputPath)} (use --force to overwrite)`, COLORS.yellow, options);
-      return;
+      continue;
     }
 
     ensureDirSync(path.dirname(outputPath));
     fs.writeFileSync(outputPath, content, 'utf8');
     results.created.push(outputPath);
     log(`✅ Created ${path.relative(options.root, outputPath)}`, COLORS.green, options);
-  });
+  }
 };
 
 const runBatch = async (engine, entryPath, options, results) => {

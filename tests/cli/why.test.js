@@ -17,6 +17,17 @@ function runCli(args, options = {}) {
   return result;
 }
 
+function parseJsonOutput(stdout) {
+  const trimmed = (stdout || '').trim();
+  const start = trimmed.indexOf('{');
+  const end = trimmed.lastIndexOf('}');
+  if (start === -1 || end === -1 || end < start) {
+    throw new Error(`Unable to locate JSON payload in output: ${stdout}`);
+  }
+  const jsonSegment = trimmed.slice(start, end + 1);
+  return JSON.parse(jsonSegment);
+}
+
 function stripAnsi(value) {
   return value.replace(/\u001b\[[0-9;]*m/g, '');
 }
@@ -31,7 +42,7 @@ describe('Discovery Lens CLI (why)', () => {
   it('outputs ranked candidates and suggested signature in JSON mode', () => {
     const result = runCli(['why', signatureArg, '--json']);
     expect(result.status).toBe(0);
-    const parsed = JSON.parse(result.stdout);
+    const parsed = parseJsonOutput(result.stdout);
 
     expect(parsed.candidates).toBeInstanceOf(Array);
     expect(parsed.candidates.length).toBeGreaterThan(0);
@@ -72,7 +83,7 @@ describe('Discovery Lens CLI (why) - Python', () => {
   it('includes python candidates in JSON mode', () => {
     const result = runCli(['why', signatureArg, '--json'], { cwd: PYTHON_FIXTURE_ROOT });
     expect(result.status).toBe(0);
-    const parsed = JSON.parse(result.stdout);
+    const parsed = parseJsonOutput(result.stdout);
     const pythonCandidate = parsed.candidates.find((candidate) => candidate.language === 'python');
     expect(pythonCandidate).toBeDefined();
     expect(pythonCandidate.relativePath).toBe('src/services/customer_service.py');

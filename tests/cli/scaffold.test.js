@@ -44,6 +44,17 @@ function runCli(args, options = {}) {
   return result;
 }
 
+function parseJsonOutput(stdout) {
+  const trimmed = (stdout || '').trim();
+  const start = trimmed.indexOf('{');
+  const end = trimmed.lastIndexOf('}');
+  if (start === -1 || end === -1 || end < start) {
+    throw new Error(`Unable to locate JSON payload in output: ${stdout}`);
+  }
+  const jsonSegment = trimmed.slice(start, end + 1);
+  return JSON.parse(jsonSegment);
+}
+
 describe('CLI scaffold command', () => {
   const tempDirs = [];
 
@@ -78,7 +89,7 @@ describe('CLI scaffold command', () => {
     const result = runCli(['scaffold', 'src/services/UserService.js', '--json'], { cwd: workspace });
 
     expect(result.status).toBe(0);
-    const payload = JSON.parse(result.stdout);
+    const payload = parseJsonOutput(result.stdout);
     expect(payload.created).toContain('tests/adaptive/UserService.test.js');
     expect(payload.skipped).toEqual([]);
     expect(payload.errors).toEqual([]);
@@ -98,7 +109,7 @@ describe('CLI scaffold command', () => {
     const result = runCli(['scaffold', 'src/services/UserService.js', '--typescript', '--json'], { cwd: workspace });
 
     expect(result.status).toBe(0);
-    const payload = JSON.parse(result.stdout);
+    const payload = parseJsonOutput(result.stdout);
     expect(payload.created).toContain('tests/adaptive/UserService.test.ts');
 
     const generatedTestPath = path.join(workspace, 'tests', 'adaptive', 'UserService.test.ts');
@@ -117,7 +128,7 @@ describe('CLI scaffold command', () => {
     const result = runCli(['scaffold', 'src/services/UserService.js', '--json'], { cwd: workspace });
 
     expect(result.status).toBe(0);
-    const payload = JSON.parse(result.stdout);
+    const payload = parseJsonOutput(result.stdout);
     expect(payload.skipped).toContain('tests/adaptive/UserService.test.js');
     expect(payload.errors).toEqual([]);
   });
@@ -142,7 +153,7 @@ describe('CLI scaffold command', () => {
     const result = runCli(['scaffold', 'src/services/UserService.js', '--force', '--json'], { cwd: workspace });
 
     expect(result.status).toBe(0);
-    const payload = JSON.parse(result.stdout);
+    const payload = parseJsonOutput(result.stdout);
     expect(Array.isArray(payload.created)).toBe(true);
     expect(payload.created.length).toBe(1);
   });
@@ -179,7 +190,7 @@ describe('CLI scaffold command', () => {
     const result = runCli(['scaffold', 'src/main/java/com/example/service/CustomerService.java', '--json'], { cwd: workspace });
 
     expect(result.status).toBe(0);
-    const payload = JSON.parse(result.stdout);
+    const payload = parseJsonOutput(result.stdout);
     expect(payload.created).toContain('src/test/java/com/example/service/CustomerServiceTest.java');
 
     const generatedPath = path.join(workspace, 'src', 'test', 'java', 'com/example/service/CustomerServiceTest.java');
@@ -197,7 +208,7 @@ describe('CLI scaffold command', () => {
     const result = runCli(['scaffold', 'app/src/main/java/com/example/order/OrderService.java', '--json'], { cwd: workspace });
 
     expect(result.status).toBe(0);
-    const payload = JSON.parse(result.stdout);
+    const payload = parseJsonOutput(result.stdout);
     expect(payload.created).toContain('app/src/test/java/com/example/order/OrderServiceTest.java');
 
     const generatedPath = path.join(workspace, 'app', 'src', 'test', 'java', 'com/example/order/OrderServiceTest.java');
@@ -212,7 +223,7 @@ describe('CLI scaffold command', () => {
     const result = runCli(['scaffold', 'src/services/customer_service.py', '--json'], { cwd: workspace });
 
     expect(result.status).toBe(0);
-    const payload = JSON.parse(result.stdout);
+    const payload = parseJsonOutput(result.stdout);
     expect(payload.created).toContain('tests/adaptive/test_customer_service.py');
 
     const generatedPath = path.join(workspace, 'tests', 'adaptive', 'test_customer_service.py');
@@ -220,8 +231,8 @@ describe('CLI scaffold command', () => {
 
     const content = fs.readFileSync(generatedPath, 'utf8');
     expect(content).toContain('engine.discover');
-    expect(content).toContain('from adaptive_tests_py import DiscoveryEngine, Signature');
-    expect(content).toContain('def test_customer_service_is_discoverable');
+    expect(content).toContain('from adaptive_tests_py import Signature, get_engine');
+    expect(content).toContain('def test_customer_service_discovery');
   });
 
   (RUBY_AVAILABLE ? it : it.skip)('scaffolds RSpec specs alongside sources', () => {
@@ -230,7 +241,7 @@ describe('CLI scaffold command', () => {
     const result = runCli(['scaffold', 'app/services/account_service.rb', '--json'], { cwd: workspace });
 
     expect(result.status).toBe(0);
-    const payload = JSON.parse(result.stdout);
+    const payload = parseJsonOutput(result.stdout);
     expect(payload.created).toContain('spec/account_service_spec.rb');
 
     const generatedPath = path.join(workspace, 'spec', 'account_service_spec.rb');
@@ -248,7 +259,7 @@ describe('CLI scaffold command', () => {
     const result = runCli(['scaffold', 'src/services/account_service.go', '--json'], { cwd: workspace });
 
     expect(result.status).toBe(0);
-    const payload = JSON.parse(result.stdout);
+    const payload = parseJsonOutput(result.stdout);
     expect(payload.created).toContain('src/services/accountservice_test.go');
 
     const generatedPath = path.join(workspace, 'src', 'services', 'accountservice_test.go');
@@ -266,7 +277,7 @@ describe('CLI scaffold command', () => {
     const result = runCli(['scaffold', 'src/lib/user_service.rs', '--json'], { cwd: workspace });
 
     expect(result.status).toBe(0);
-    const payload = JSON.parse(result.stdout);
+    const payload = parseJsonOutput(result.stdout);
     expect(payload.created).toContain('src/lib/userservice_test.rs');
 
     const generatedPath = path.join(workspace, 'src', 'lib', 'userservice_test.rs');

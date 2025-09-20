@@ -1,244 +1,243 @@
 /**
  * PHP Discovery Integration
  *
- * Integrates PHP discovery into the main adaptive-tests discovery engine.
- * This module acts as a bridge between the PHP parser and the existing infrastructure.
+ * Integrates PHP discovery into the adaptive-tests discovery engine using the
+ * shared BaseLanguageIntegration contract. Provides scoring utilities and
+ * PHPUnit test template generation for the CLI scaffolder.
  */
 
 const path = require('path');
+const { BaseLanguageIntegration } = require('../base-language-integration');
 const { PHPDiscoveryCollector } = require('./php-discovery-collector');
 
-class PHPDiscoveryIntegration {
+class PhpDiscoveryIntegration extends BaseLanguageIntegration {
   constructor(discoveryEngine) {
-    this.engine = discoveryEngine;
-    this.phpCollector = new PHPDiscoveryCollector();
-
-    // Add PHP extensions to config if not present
-    if (this.engine && this.engine.config &&
-        !this.engine.config.discovery.extensions.includes('.php')) {
-      this.engine.config.discovery.extensions.push('.php');
-    }
+    super(discoveryEngine, 'php');
+    this.collector = new PHPDiscoveryCollector();
   }
 
-  /**
-   * Evaluate a PHP file as a candidate
-   */
-  async evaluatePHPCandidate(filePath, signature) {
-    // Parse PHP file
-    const metadata = await this.phpCollector.parseFile(filePath);
+  getFileExtension() {
+    return '.php';
+  }
+
+  async parseFile(filePath) {
+    if (!this.collector.shouldScanFile(filePath)) {
+      return null;
+    }
+
+    const metadata = await this.collector.parseFile(filePath);
     if (!metadata) {
       return null;
     }
 
-    // Score the candidate
-    const score = this.calculatePHPScore(metadata, signature, filePath);
-    if (score <= 0) {
-      return null;
-    }
-
-    // Create candidate object
-    const candidate = {
-      path: filePath,
-      score,
-      metadata,
-      language: 'php'
-    };
-
-    // Add namespace information if available
-    if (metadata.namespace) {
-      candidate.namespace = metadata.namespace;
-    }
-
-    return candidate;
+    metadata.namespace = metadata.namespace || null;
+    metadata.exports = this.buildExports(metadata);
+    return metadata;
   }
 
-  /**
-   * Calculate score for PHP candidate
-   */
-  calculatePHPScore(metadata, signature, filePath) {
+  extractCandidates(metadata) {
+    const namespace = metadata.namespace || null;
+    const candidates = [];
+
+    metadata.classes.forEach(cls => {
+      candidates.push({
+        name: cls.name,
+        type: 'class',
+        namespace,
+        fullName: this.getFullyQualifiedName(namespace, cls.name),
+        methods: cls.methods.map(method => ({ name: method.name, visibility: method.visibility })),
+        properties: cls.properties,
+        constants: cls.constants,
+        extends: cls.extends,
+        implements: cls.implements,
+        traits: cls.traits,
+        metadata: cls,
+        visibility: 'public',
+        exported: true
+      });
+    });
+
+    metadata.interfaces.forEach(intf => {
+      candidates.push({
+        name: intf.name,
+        type: 'interface',
+        namespace,
+        fullName: this.getFullyQualifiedName(namespace, intf.name),
+        methods: intf.methods.map(method => ({ name: method.name })),
+        extends: intf.extends,
+        metadata: intf,
+        visibility: 'public',
+        exported: true
+      });
+    });
+
+    metadata.traits.forEach(trait => {
+      candidates.push({
+        name: trait.name,
+        type: 'trait',
+        namespace,
+        fullName: this.getFullyQualifiedName(namespace, trait.name),
+        methods: trait.methods.map(method => ({ name: method.name, visibility: method.visibility })),
+        metadata: trait,
+        visibility: 'public',
+        exported: true
+      });
+    });
+
+    metadata.functions.forEach(fn => {
+      candidates.push({
+        name: fn.name,
+        type: 'function',
+        namespace,
+        fullName: this.getFullyQualifiedName(namespace, fn.name),
+        methods: [],
+        metadata: fn,
+        visibility: fn.name?.startsWith('_') ? 'private' : 'public',
+        exported: !fn.name?.startsWith('_')
+      });
+    });
+
+    return candidates;
+  }
+
+  scorePackageMatching(candidate, signature, metadata) {
+    if (!signature?.namespace) {
+      return 0;
+    }
+
+    const candidateNamespace = candidate.namespace || metadata?.namespace || null;
+    if (!candidateNamespace) {
+      return -3;
+    }
+
+    const normalizedCandidate = this.normalizeNamespace(candidateNamespace);
+    const normalizedSignature = this.normalizeNamespace(signature.namespace);
+
+    if (normalizedCandidate === normalizedSignature) {
+      return 18;
+    }
+
+    if (normalizedCandidate.endsWith(`\\${normalizedSignature}`)) {
+      return 8;
+    }
+
+    if (normalizedSignature.endsWith(`\\${normalizedCandidate}`)) {
+      return 5;
+    }
+
+    return -6;
+  }
+
+  scoreLanguageSpecific(candidate, signature) {
     let score = 0;
-    const fileName = path.basename(filePath, '.php');
 
-    // Name matching
-    const targetName = signature.name;
-
-    // Check classes
-    const matchingClass = metadata.classes.find(c =>
-      c.name.toLowerCase() === targetName.toLowerCase()
-    );
-    if (matchingClass) {
-      score += 50; // Strong match for class name
-
-      // Type matching
-      if (signature.type === 'class') {
-        score += 20;
-      }
-
-      // Method matching
-      if (signature.methods && Array.isArray(signature.methods)) {
-        const classMethods = matchingClass.methods.map(m => m.name);
-        const matchedMethods = signature.methods.filter(m =>
-          classMethods.includes(m)
-        );
-        score += matchedMethods.length * 10;
-      }
-
-      // Property matching
-      if (signature.properties && Array.isArray(signature.properties)) {
-        const classProperties = matchingClass.properties.map(p => p.name);
-        const matchedProperties = signature.properties.filter(p =>
-          classProperties.includes(p)
-        );
-        score += matchedProperties.length * 5;
-      }
-
-      // Inheritance matching
-      if (signature.extends && matchingClass.extends === signature.extends) {
-        score += 15;
-      }
-
-      // Interface matching
-      if (signature.implements && matchingClass.implements) {
-        const matchedInterfaces = signature.implements.filter(i =>
-          matchingClass.implements.includes(i)
-        );
-        score += matchedInterfaces.length * 10;
-      }
-    }
-
-    // Check interfaces
-    const matchingInterface = metadata.interfaces.find(i =>
-      i.name.toLowerCase() === targetName.toLowerCase()
-    );
-    if (matchingInterface) {
-      score += 50;
-      if (signature.type === 'interface') {
-        score += 20;
-      }
-    }
-
-    // Check traits
-    const matchingTrait = metadata.traits.find(t =>
-      t.name.toLowerCase() === targetName.toLowerCase()
-    );
-    if (matchingTrait) {
-      score += 50;
-      if (signature.type === 'trait') {
-        score += 20;
-      }
-    }
-
-    // Check functions
-    const matchingFunction = metadata.functions.find(f =>
-      f.name.toLowerCase() === targetName.toLowerCase()
-    );
-    if (matchingFunction) {
-      score += 50;
-      if (signature.type === 'function') {
-        score += 20;
-      }
-    }
-
-    // File name matching
-    if (fileName.toLowerCase() === targetName.toLowerCase()) {
-      score += 25;
-    } else if (fileName.toLowerCase().includes(targetName.toLowerCase())) {
-      score += 10;
-    }
-
-    // Path scoring
-    const normalizedPath = filePath.replace(/\\/g, '/');
-
-    // Prefer src/ directory
-    if (normalizedPath.includes('/src/')) {
-      score += 15;
-    }
-
-    // Prefer app/ directory (common in Laravel)
-    if (normalizedPath.includes('/app/')) {
-      score += 15;
-    }
-
-    // Penalize vendor directory (cross-platform)
-    const pathSegments = normalizedPath.split(path.sep);
-    if (pathSegments.includes('vendor')) {
-      score -= 50;
-    }
-
-    // Penalize test files (case-insensitive for cross-platform)
-    const hasTestDir = pathSegments.some(seg =>
-      seg.toLowerCase() === 'tests' || seg.toLowerCase() === 'test'
-    );
-    if (hasTestDir || fileName.endsWith('Test')) {
-      score -= 30;
+    if (candidate.type === 'class') {
+      score += this.scoreClassSpecific(candidate, signature);
+    } else if (candidate.type === 'interface') {
+      score += this.scoreInterfaceSpecific(candidate, signature);
+    } else if (candidate.type === 'trait') {
+      score += this.scoreTraitSpecific(candidate, signature);
     }
 
     return score;
   }
 
-  /**
-   * Resolve a PHP target from a candidate
-   */
-  async resolvePHPTarget(candidate, signature) {
-    // For PHP, we don't actually load the module (since we're in Node.js)
-    // Instead, we return metadata that can be used for test generation
+  scoreClassSpecific(candidate, signature) {
+    let score = 0;
 
-    const metadata = candidate.metadata;
-    let targetInfo = null;
-
-    // Find the target in the metadata
-    if (signature.type === 'class' || !signature.type) {
-      targetInfo = metadata.classes.find(c =>
-        c.name.toLowerCase() === signature.name.toLowerCase()
-      );
+    if (signature.extends) {
+      const extendsMatch = candidate.extends === signature.extends;
+      score += extendsMatch ? 15 : -6;
     }
 
-    if (!targetInfo && (signature.type === 'interface' || !signature.type)) {
-      targetInfo = metadata.interfaces.find(i =>
-        i.name.toLowerCase() === signature.name.toLowerCase()
-      );
+    if (Array.isArray(signature.implements) && signature.implements.length > 0) {
+      const candidateImplements = new Set(candidate.implements || []);
+      let hits = 0;
+      signature.implements.forEach(iface => {
+        if (candidateImplements.has(iface)) {
+          hits += 1;
+        }
+      });
+      score += hits * 10;
+      if (hits === 0) {
+        score -= 8;
+      }
     }
 
-    if (!targetInfo && (signature.type === 'trait' || !signature.type)) {
-      targetInfo = metadata.traits.find(t =>
-        t.name.toLowerCase() === signature.name.toLowerCase()
-      );
+    if (Array.isArray(signature.traits) && signature.traits.length > 0) {
+      const candidateTraits = new Set(candidate.traits || []);
+      let hits = 0;
+      signature.traits.forEach(trait => {
+        if (candidateTraits.has(trait)) {
+          hits += 1;
+        }
+      });
+      score += hits * 6;
     }
 
-    if (!targetInfo && (signature.type === 'function' || !signature.type)) {
-      targetInfo = metadata.functions.find(f =>
-        f.name.toLowerCase() === signature.name.toLowerCase()
-      );
+    if (Array.isArray(signature.properties) && signature.properties.length > 0) {
+      const propertyNames = new Set((candidate.properties || []).map(prop => prop.name));
+      let hits = 0;
+      signature.properties.forEach(prop => {
+        if (propertyNames.has(prop)) {
+          hits += 1;
+        }
+      });
+      if (hits > 0) {
+        score += hits * 5;
+      } else {
+        score -= 5;
+      }
     }
 
-    if (!targetInfo) {
-      return null;
-    }
-
-    // Return a PHP target descriptor
-    return {
-      language: 'php',
-      path: candidate.path,
-      namespace: metadata.namespace,
-      name: targetInfo.name,
-      type: targetInfo.type,
-      metadata: targetInfo,
-      fullName: this.getFullyQualifiedName(metadata.namespace, targetInfo.name)
-    };
+    return score;
   }
 
-  /**
-   * Get fully qualified name
-   */
-  getFullyQualifiedName(namespace, name) {
-    if (!namespace) return name;
-    return `${namespace}\\${name}`;
+  scoreInterfaceSpecific(candidate, signature) {
+    let score = 0;
+
+    if (Array.isArray(signature.extends) && signature.extends.length > 0) {
+      const candidateExtends = new Set(candidate.extends || []);
+      let hits = 0;
+      signature.extends.forEach(name => {
+        if (candidateExtends.has(name)) {
+          hits += 1;
+        }
+      });
+      score += hits * 6;
+      if (hits === 0) {
+        score -= 4;
+      }
+    }
+
+    return score;
   }
 
-  /**
-   * Generate PHPUnit test from discovered target
-   */
-  generatePHPTest(target, options = {}) {
+  scoreTraitSpecific(candidate, signature) {
+    if (!Array.isArray(signature.methods) || signature.methods.length === 0) {
+      return 0;
+    }
+
+    const methodNames = new Set(candidate.methods.map(method => method.name));
+    let hits = 0;
+    signature.methods.forEach(method => {
+      if (methodNames.has(method)) {
+        hits += 1;
+      }
+    });
+
+    if (hits === 0) {
+      return -5;
+    }
+
+    return hits * 4;
+  }
+
+  generateTestContent(target, options = {}) {
+    return this.generatePHPTest(target, options);
+  }
+
+  generatePHPTest(target) {
     const testClassName = `${target.name}Test`;
     const namespace = target.namespace ?
       `Tests\\${target.namespace}` :
@@ -275,10 +274,9 @@ class ${testClassName} extends TestCase
 
 `;
 
-    // Add test methods for each public method
     if (target.metadata && target.metadata.methods) {
       target.metadata.methods
-        .filter(m => m.visibility === 'public' && m.name !== '__construct')
+        .filter(method => method.visibility === 'public' && method.name !== '__construct')
         .forEach(method => {
           template += `    /**
      * Test ${method.name} method
@@ -292,7 +290,7 @@ class ${testClassName} extends TestCase
     }
 
 `;
-      });
+        });
     }
 
     template += `    /**
@@ -313,13 +311,111 @@ class ${testClassName} extends TestCase
     return template;
   }
 
-  /**
-   * Capitalize first letter
-   */
-  capitalize(str) {
-    if (!str) return '';
-    return str.charAt(0).toUpperCase() + str.slice(1);
+  getFullyQualifiedName(namespace, name) {
+    if (!namespace) return name;
+    return `${namespace}\\${name}`;
+  }
+
+  normalizeNamespace(namespace) {
+    return (namespace || '').replace(/\\+/g, '\\');
+  }
+
+  capitalize(value) {
+    if (!value || value.length === 0) {
+      return '';
+    }
+    return value.charAt(0).toUpperCase() + value.slice(1);
+  }
+
+  buildExports(metadata) {
+    const exports = [];
+    const namespace = metadata.namespace || null;
+
+    metadata.classes.forEach(cls => {
+      const publicMethods = cls.methods.filter(method => method.visibility === 'public').map(method => method.name);
+      exports.push({
+        exportedName: cls.name,
+        access: { type: 'default' },
+        info: {
+          name: cls.name,
+          kind: 'class',
+          methods: publicMethods,
+          properties: cls.properties.filter(prop => prop.visibility === 'public').map(prop => prop.name),
+          extends: cls.extends,
+          implements: cls.implements,
+          namespace,
+          php: {
+            type: 'class',
+            name: cls.name,
+            namespace,
+            methods: cls.methods,
+            properties: cls.properties,
+            traits: cls.traits
+          }
+        }
+      });
+    });
+
+    metadata.interfaces.forEach(intf => {
+      exports.push({
+        exportedName: intf.name,
+        access: { type: 'default' },
+        info: {
+          name: intf.name,
+          kind: 'interface',
+          methods: intf.methods.map(method => method.name),
+          namespace,
+          php: {
+            type: 'interface',
+            name: intf.name,
+            namespace,
+            methods: intf.methods
+          }
+        }
+      });
+    });
+
+    metadata.traits.forEach(trait => {
+      exports.push({
+        exportedName: trait.name,
+        access: { type: 'default' },
+        info: {
+          name: trait.name,
+          kind: 'trait',
+          methods: trait.methods.map(method => method.name),
+          namespace,
+          php: {
+            type: 'trait',
+            name: trait.name,
+            namespace,
+            methods: trait.methods
+          }
+        }
+      });
+    });
+
+    metadata.functions.forEach(fn => {
+      exports.push({
+        exportedName: fn.name,
+        access: { type: 'default' },
+        info: {
+          name: fn.name,
+          kind: 'function',
+          methods: [],
+          namespace,
+          php: {
+            type: 'function',
+            name: fn.name,
+            namespace,
+            parameters: fn.parameters,
+            returnType: fn.returnType
+          }
+        }
+      });
+    });
+
+    return exports;
   }
 }
 
-module.exports = { PHPDiscoveryIntegration };
+module.exports = { PhpDiscoveryIntegration };

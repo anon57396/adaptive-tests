@@ -63,6 +63,10 @@ function stripComments(line) {
 }
 
 class RubyDiscoveryIntegration {
+  getFileExtension() {
+    return '.rb';
+  }
+
   parseFile(filePath) {
     if (!filePath || typeof filePath !== 'string') {
       return null;
@@ -193,6 +197,49 @@ class RubyDiscoveryIntegration {
     return result;
   }
 
+  extractCandidates(metadata) {
+    if (!metadata) {
+      return [];
+    }
+
+    const candidates = [];
+
+    (metadata.classes || []).forEach((cls) => {
+      candidates.push({
+        name: cls.name,
+        type: 'class',
+        fullName: cls.fullName,
+        methods: (cls.instanceMethods || []).map((name) => ({ name })),
+        classMethods: cls.classMethods || [],
+        metadata: cls,
+        exported: true
+      });
+    });
+
+    (metadata.modules || []).forEach((mod) => {
+      candidates.push({
+        name: mod.name,
+        type: 'module',
+        fullName: mod.fullName,
+        methods: (mod.instanceMethods || []).map((name) => ({ name })),
+        metadata: mod,
+        exported: true
+      });
+    });
+
+    (metadata.methods || []).forEach((methodName) => {
+      candidates.push({
+        name: methodName,
+        type: 'method',
+        methods: [],
+        metadata: { name: methodName },
+        exported: true
+      });
+    });
+
+    return candidates;
+  }
+
   buildExports(metadata) {
     if (!metadata) {
       return [];
@@ -249,6 +296,14 @@ class RubyDiscoveryIntegration {
     });
 
     return exports;
+  }
+
+  generateTestContent(target, options = {}) {
+    return this.generateRSpecTest({
+      target,
+      signature: options.signature || {},
+      requirePath: options.requirePath
+    });
   }
 
   generateRSpecTest({ target, signature, requirePath }) {
