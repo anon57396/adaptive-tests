@@ -280,10 +280,38 @@ class DiscoveryEngine {
       return b.score - a.score || a.path.localeCompare(b.path);
     });
 
-    // Try to resolve candidates in order
+    // Group candidates by score for parallel processing within score groups
+    const candidatesByScore = new Map();
     for (const candidate of candidates) {
-      const resolved = await this.tryResolveCandidate(candidate, normalizedSig);
-      if (resolved) {
+      if (!candidatesByScore.has(candidate.score)) {
+        candidatesByScore.set(candidate.score, []);
+      }
+      candidatesByScore.get(candidate.score).push(candidate);
+    }
+
+    // Sort scores in descending order
+    const scores = Array.from(candidatesByScore.keys()).sort((a, b) => b - a);
+
+    // Process each score group in order, but candidates within a group in parallel
+    for (const score of scores) {
+      const candidatesAtScore = candidatesByScore.get(score);
+
+      // Process candidates at this score level in parallel (max 5 concurrent)
+      const batchSize = Math.min(5, candidatesAtScore.length);
+      const resolvePromises = candidatesAtScore.slice(0, batchSize).map(candidate =>
+        this.tryResolveCandidate(candidate, normalizedSig)
+          .then(resolved => resolved ? { candidate, resolved } : null)
+          .catch(() => null) // Don't let one failure stop others
+      );
+
+      const results = await Promise.all(resolvePromises);
+
+      // Find first successful resolution
+      const successfulResult = results.find(result => result !== null);
+
+      if (successfulResult) {
+        const { candidate, resolved } = successfulResult;
+
         // Cache the metadata only (not the actual module/target)
         const cacheEntry = {
           path: candidate.path,
@@ -728,8 +756,10 @@ class DiscoveryEngine {
 
       if (ext === '.ts' || ext === '.tsx') {
         this.ensureTypeScriptSupport();
-        // Always delete from cache to get fresh module
-        delete require.cache[resolvedPath];
+        // Only delete from cache if file has changed
+        if (hasChanged) {
+          delete require.cache[resolvedPath];
+        }
         const moduleExports = require(candidate.path);
         if (mtimeMs !== null) {
           this.moduleVersions.set(resolvedPath, mtimeMs);
@@ -749,8 +779,10 @@ class DiscoveryEngine {
         return this.resolveTargetFromModule(moduleExports, signature, candidate);
       }
 
-      // Always delete from cache to get fresh module
-      delete require.cache[resolvedPath];
+      // Only delete from cache if file has changed
+      if (hasChanged) {
+        delete require.cache[resolvedPath];
+      }
 
       if (process.env.DEBUG_DISCOVERY) {
         console.log('Loading module from candidate:', candidate.path);
@@ -1199,9 +1231,18 @@ class DiscoveryEngine {
   loadModule(cacheEntry, signature) {
     const resolvedPath = require.resolve(cacheEntry.path);
 
-    // Never cache the actual module object - always load fresh
-    // Always clear require.cache to ensure fresh module load
-    delete require.cache[resolvedPath];
+    // Check if module has changed since last load
+    const mtimeMs = this.getFileMtime(resolvedPath);
+    const lastVersion = this.moduleVersions.get(resolvedPath);
+    const hasChanged = mtimeMs === null || lastVersion === undefined || lastVersion !== mtimeMs;
+
+    // Only clear require.cache if file has actually changed
+    if (hasChanged) {
+      delete require.cache[resolvedPath];
+      if (mtimeMs !== null) {
+        this.moduleVersions.set(resolvedPath, mtimeMs);
+      }
+    }
 
     const ext = path.extname(cacheEntry.path);
 

@@ -1,4 +1,9 @@
 const parser = require('@babel/parser');
+const crypto = require('crypto');
+
+// AST cache to avoid re-parsing the same content
+const AST_CACHE = new Map();
+const MAX_CACHE_SIZE = 100;
 
 const PARSER_PLUGINS = [
   'jsx',
@@ -190,6 +195,15 @@ function isExportsMember(node) {
 }
 
 function analyzeModuleExports(content, fileName) {
+  // Generate content hash for cache key
+  const contentHash = crypto.createHash('md5').update(content).digest('hex');
+  const cacheKey = `${contentHash}_${fileName || 'unknown'}`;
+
+  // Check AST cache first
+  if (AST_CACHE.has(cacheKey)) {
+    return AST_CACHE.get(cacheKey);
+  }
+
   let ast;
   try {
     ast = parser.parse(content, {
@@ -197,6 +211,12 @@ function analyzeModuleExports(content, fileName) {
       plugins: PARSER_PLUGINS
     });
   } catch (error) {
+    // Cache null result too to avoid re-parsing invalid files
+    if (AST_CACHE.size >= MAX_CACHE_SIZE) {
+      const firstKey = AST_CACHE.keys().next().value;
+      AST_CACHE.delete(firstKey);
+    }
+    AST_CACHE.set(cacheKey, null);
     return null;
   }
 
@@ -340,9 +360,25 @@ function analyzeModuleExports(content, fileName) {
     }
   }
 
-  return { exports };
+  // Cache the result before returning
+  const result = { exports };
+  if (AST_CACHE.size >= MAX_CACHE_SIZE) {
+    const firstKey = AST_CACHE.keys().next().value;
+    AST_CACHE.delete(firstKey);
+  }
+  AST_CACHE.set(cacheKey, result);
+
+  return result;
+}
+
+/**
+ * Clear the AST cache (useful for testing)
+ */
+function clearASTCache() {
+  AST_CACHE.clear();
 }
 
 module.exports = {
-  analyzeModuleExports
+  analyzeModuleExports,
+  clearASTCache
 };

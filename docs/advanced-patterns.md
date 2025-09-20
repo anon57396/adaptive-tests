@@ -36,6 +36,7 @@ new UserServiceAdaptiveTest();
 ```
 
 **Benefits for tooling:**
+
 - **Introspectable signatures** - Tools can read `getTargetSignature()` to understand test intent
 - **Consistent structure** - All generated tests follow the same pattern
 - **Easy modification** - Tools can update signatures and tests programmatically
@@ -45,6 +46,7 @@ new UserServiceAdaptiveTest();
 Teams using multiple adaptive-tests packages benefit from consistent patterns:
 
 **JavaScript:**
+
 ```javascript
 class PaymentServiceAdaptiveTest extends AdaptiveTest {
   getTargetSignature() {
@@ -55,6 +57,7 @@ class PaymentServiceAdaptiveTest extends AdaptiveTest {
 ```
 
 **Python:**
+
 ```python
 class PaymentServiceAdaptiveTest(AdaptiveTest):
     def get_target_signature(self):
@@ -65,6 +68,7 @@ class PaymentServiceAdaptiveTest(AdaptiveTest):
 ```
 
 **Java:**
+
 ```java
 @AdaptiveTest(name = "PaymentService", type = "class")
 public class PaymentServiceAdaptiveTest {
@@ -208,6 +212,7 @@ class FlexibleAdaptiveTest extends AdaptiveTest {
 If you start with the simple API and need advanced features:
 
 **Before (Simple):**
+
 ```javascript
 const UserService = await discover('UserService');
 describe('UserService', () => {
@@ -219,6 +224,7 @@ describe('UserService', () => {
 ```
 
 **After (Advanced):**
+
 ```javascript
 class UserServiceAdaptiveTest extends AdaptiveTest {
   getTargetSignature() {
@@ -241,11 +247,13 @@ new UserServiceAdaptiveTest();
 ## Best Practices
 
 ### 1. Use Inheritance Wisely
+
 - Create base classes for common patterns
 - Don't over-engineer simple tests
 - Prefer composition when inheritance gets complex
 
 ### 2. Keep Signatures Specific
+
 ```javascript
 // Good - Specific and actionable
 getTargetSignature() {
@@ -264,6 +272,7 @@ getTargetSignature() {
 ```
 
 ### 3. Document Your Patterns
+
 ```javascript
 /**
  * Base class for API endpoint tests
@@ -277,7 +286,7 @@ class ApiTestBase extends AdaptiveTest {
 
 ## When NOT to Use AdaptiveTest Class
 
-### Stick with Simple API When:
+### Stick with Simple API When
 
 - **Quick tests** - Single test file with straightforward requirements
 - **Learning** - New to adaptive-tests, prefer simple patterns first
@@ -307,6 +316,7 @@ npx adaptive-tests convert tests/ --explicit
 ### IDE Support
 
 VS Code extension recognizes `AdaptiveTest` classes and provides:
+
 - Signature validation
 - Quick navigation to discovered targets
 - Test generation assistance
@@ -323,6 +333,7 @@ The `AdaptiveTest` class is powerful but not always necessary. Use it when you n
 For everything else, the simple `discover()` function is usually the better choice.
 
 **Progressive Learning Path:**
+
 1. **Start with invisible mode** - Zero learning curve
 2. **Graduate to `discover()`** - Simple, direct control
 3. **Adopt `AdaptiveTest` class** - When you need advanced features

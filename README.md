@@ -230,20 +230,25 @@ const engine = getDiscoveryEngine(process.cwd());
 Adaptive Tests provides three layers of functionality to match your needs:
 
 ### 🎭 Layer 1: Invisible Mode (Zero Learning)
+
 **Perfect for:** Getting started, existing codebases, vibe coders
+
 ```bash
 npx adaptive-tests enable-invisible
 # Your tests now auto-adapt when imports break
 ```
 
 ### 📚 Layer 2: Standard API (Simple & Direct)
+
 **Perfect for:** 90% of use cases, new tests, direct control
+
 ```javascript
 const UserService = await discover('UserService');
 // Clean, simple, no ceremony
 ```
 
 ### 🔧 Layer 3: Advanced API (Structured & Powerful)
+
 **Perfect for:** Tooling, complex scenarios, cross-language teams
 
 For advanced patterns like automated scaffolding, complex lifecycle hooks, and cross-language consistency, see:

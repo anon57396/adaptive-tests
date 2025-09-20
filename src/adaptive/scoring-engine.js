@@ -12,6 +12,11 @@ class ScoringEngine {
     this.config = config.discovery?.scoring || {};
     this.pathScorers = [];
     this.customScorers = [];
+
+    // Cache for compiled regex patterns
+    this.regexCache = new Map();
+    this.methodRegexCache = new Map();
+
     this.compileScorers();
   }
 
@@ -304,7 +309,7 @@ class ScoringEngine {
 
     let mentionCount = 0;
     for (const method of methods) {
-      const methodRegex = new RegExp(`\\b${this.escapeRegExp(method)}\\b`, 'g');
+      const methodRegex = this.getMethodRegex(method);
       const matches = content.match(methodRegex);
       if (matches) {
         mentionCount += Math.min(matches.length, 1); // Count each method only once
@@ -336,7 +341,7 @@ class ScoringEngine {
     ];
 
     for (const pattern of patterns) {
-      if (new RegExp(pattern).test(content)) {
+      if (this.getCachedRegex(pattern).test(content)) {
         return exportScore;
       }
     }
@@ -355,7 +360,7 @@ class ScoringEngine {
     const perMention = this.config.names.perMention || 2;
     const maxMentions = this.config.names.maxMentions || 5;
 
-    const nameRegex = new RegExp(`\\b${this.escapeRegExp(signature.name)}\\b`, 'g');
+    const nameRegex = this.getMethodRegex(signature.name); // Can reuse method regex since it's the same pattern
     const matches = content.match(nameRegex);
     const mentionCount = matches ? matches.length : 0;
 
@@ -438,6 +443,29 @@ class ScoringEngine {
    */
   escapeRegExp(str) {
     return String(str).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+
+  /**
+   * Get a cached regex for method matching
+   */
+  getMethodRegex(method) {
+    if (!this.methodRegexCache.has(method)) {
+      const pattern = new RegExp(`\\b${this.escapeRegExp(method)}\\b`, 'g');
+      this.methodRegexCache.set(method, pattern);
+    }
+    return this.methodRegexCache.get(method);
+  }
+
+  /**
+   * Get a cached regex for any pattern
+   */
+  getCachedRegex(pattern, flags = '') {
+    const cacheKey = `${pattern}:${flags}`;
+    if (!this.regexCache.has(cacheKey)) {
+      const regex = new RegExp(pattern, flags);
+      this.regexCache.set(cacheKey, regex);
+    }
+    return this.regexCache.get(cacheKey);
   }
 
   /**
