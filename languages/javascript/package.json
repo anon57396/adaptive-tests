@@ -11,6 +11,7 @@
     "lint": "eslint src/"
   },
   "dependencies": {
+    "@babel/parser": "^7.25.0",
     "glob": "^11.0.3",
     "minimist": "^1.2.8"
   },

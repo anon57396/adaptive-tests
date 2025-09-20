@@ -1,189 +1,38 @@
 {
-  "name": "adaptive-tests",
-  "version": "0.2.5",
-  "description": "AI-ready testing infrastructure that survives refactors without breaking. Built for autonomous development workflows.",
-  "main": "languages/javascript/src/index.js",
-  "bin": {
-    "adaptive-tests": "languages/javascript/cli/init.js",
-    "create-adaptive-app": "bin/create-adaptive-app"
-  },
-  "scripts": {
-    "dev:setup": "node scripts/dev-setup.js",
-    "dev": "jest --watch",
-    "test": "jest",
-    "test:coverage": "jest --coverage",
-    "performance": "node scripts/performance-demo.js",
-    "test:traditional": "jest --config jest.examples.config.cjs languages/javascript/languages/javascript/examples/calculator/tests/traditional",
-    "test:adaptive": "jest --config jest.examples.config.cjs languages/javascript/languages/javascript/examples/calculator/tests/adaptive",
-    "test:both": "npm run test:traditional && npm run test:adaptive",
-    "lint:markdown": "markdownlint --config .markdownlint.json .",
-    "test:traditional:ts": "jest --config jest.examples.config.cjs languages/typescript/languages/typescript/examples/typescript/tests/traditional",
-    "test:adaptive:ts": "jest --config jest.examples.config.cjs languages/typescript/languages/typescript/examples/typescript/tests/adaptive",
-    "test:typescript": "npm run test:traditional:ts && npm run test:adaptive:ts",
-    "refactor": "node scripts/demo/refactor.js",
-    "restore": "node scripts/demo/restore.js",
-    "demo:broken": "node scripts/demo/demo-broken.js",
-    "restore:broken": "node scripts/demo/restore-broken.js",
-    "refactor:ts": "node scripts/demo/refactor-ts.js",
-    "restore:ts": "node scripts/demo/restore-ts.js",
-    "demo:broken:ts": "node scripts/demo/demo-broken-ts.js",
-    "restore:broken:ts": "node scripts/demo/restore-broken-ts.js",
-    "validate": "node scripts/demo/validate.js",
-    "demo": "npm run restore && npm run test:both && echo '\n🔧 REFACTORING...\n' && npm run refactor && echo '\n📝 TRADITIONAL TESTS:\n' && npm run test:traditional || true && echo '\n✅ ADAPTIVE TESTS:\n' && npm run test:adaptive",
-    "demo:full": "npm run validate",
-    "compare": "node scripts/demo/compare.js",
-    "benchmark": "node scripts/demo/benchmark.js",
-    "build:plugins": "node scripts/build-packages.js",
-    "clean:artifacts": "node scripts/clean-artifacts.js",
-    "docs:api": "typedoc",
-    "build:types": "tsc",
-    "check:binaries": "node scripts/check-binaries.js",
-    "verify:invisible": "node scripts/verify-invisible.js",
-    "invisible:enable": "npx adaptive-tests enable-invisible",
-    "invisible:disable": "npx adaptive-tests enable-invisible --undo",
-    "invisible:test": "npm run invisible:enable && npm test",
-    "prepublishOnly": "npm run build:types && npm run build:plugins && npm run test && npm run validate && npm run lint:markdown && npm run check:binaries",
-    "posttest": "npm run check:binaries",
-    "release": "./scripts/release.sh",
-    "release:patch": "./scripts/release.sh patch",
-    "release:minor": "./scripts/release.sh minor",
-    "release:major": "./scripts/release.sh major",
-    "release:dry": "./scripts/release.sh patch --dry-run"
-  },
-  "keywords": [
-    "testing",
-    "adaptive",
-    "ai-ready",
-    "autonomous-development",
-    "refactoring",
-    "ast-discovery",
-    "jest",
-    "mocha",
-    "test-automation",
-    "dynamic-discovery",
-    "ai-agents",
-    "copilot-ready"
+  "name": "adaptive-tests-monorepo",
+  "private": true,
+  "version": "0.3.0",
+  "description": "Monorepo for adaptive-tests - AI-ready testing infrastructure",
+  "workspaces": [
+    "languages/javascript",
+    "languages/typescript",
+    "tools/*"
   ],
-  "author": "Jason Kempf <jasonkempf@gmail.com>",
-  "license": "MIT",
+  "scripts": {
+    "test": "npm run test --workspaces --if-present",
+    "test:js": "npm run test --workspace=languages/javascript",
+    "test:ts": "npm run test --workspace=languages/typescript",
+    "test:python": "cd languages/python && python -m pytest tests/",
+    "test:java": "cd languages/java && mvn test",
+    "build": "npm run build --workspaces --if-present",
+    "build:js": "npm run build --workspace=languages/javascript",
+    "build:ts": "npm run build --workspace=languages/typescript",
+    "lint": "npm run lint --workspaces --if-present",
+    "clean": "npm run clean --workspaces --if-present",
+    "validate": "node scripts/validate-refactor.js"
+  },
   "devDependencies": {
-    "@types/jest": "^29.5.12",
-    "@types/node": "^20.12.7",
-    "adaptive-tests": "^0.2.2",
-    "glob": "^11.0.3",
     "jest": "^29.7.0",
-    "jest-adaptive": "file:packages/jest-adaptive",
-    "markdown-link-check": "^3.13.7",
-    "markdownlint-cli": "^0.45.0",
-    "ts-jest": "^29.4.4",
-    "ts-node": "^10.9.2",
-    "typedoc": "^0.28.13",
-    "typedoc-plugin-markdown": "^4.9.0",
     "typescript": "^5.4.5"
   },
-  "jest": {
-    "preset": "jest-adaptive",
-    "testEnvironment": "node",
-    "testMatch": [
-      "**/tests/**/*.test.(js|ts)"
-    ],
-    "collectCoverageFrom": [
-    "languages/javascript/src/**/*.{js,ts}",
-    "!languages/javascript/src/**/*.d.ts",
-    "!languages/javascript/src/**/index.js",
-    "!languages/javascript/cli/**",
-    "!languages/javascript/src/test-base.js"
-    ],
-    "coverageDirectory": "coverage",
-    "coverageReporters": [
-      "text",
-      "lcov",
-      "html"
-    ],
-    "coverageThreshold": {
-      "global": {
-        "branches": 80,
-        "functions": 80,
-        "lines": 80,
-        "statements": 80
-      }
-    },
-    "clearMocks": true,
-    "resetMocks": true,
-    "restoreMocks": true,
-    "verbose": false,
-    "transform": {
-      "^.+\\.tsx?$": [
-        "ts-jest",
-        {
-          "diagnostics": false,
-          "tsconfig": "tsconfig.json"
-        }
-      ]
-    },
-    "moduleFileExtensions": [
-      "ts",
-      "tsx",
-      "js",
-      "jsx",
-      "json",
-      "node"
-    ],
-    "modulePathIgnorePatterns": [
-      "<rootDir>/packages/jest-adaptive/packages"
-    ],
-    "testPathIgnorePatterns": [
-      "<rootDir>/examples/",
-      "<rootDir>/extensions/"
-    ]
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=7.0.0"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/anon57396/adaptive-tests.git"
   },
-  "bugs": {
-    "url": "https://github.com/anon57396/adaptive-tests/issues"
-  },
-  "homepage": "https://anon57396.github.io/adaptive-tests/",
-  "types": "languages/typescript/types/src/adaptive/index.d.ts",
-  "sideEffects": false,
-  "files": [
-    "src",
-    "types",
-    "LICENSE",
-    "README.md",
-    "CHANGELOG.md",
-    "ROADMAP.md",
-    "SECURITY.md",
-    "demo.gif"
-  ],
-  "engines": {
-    "node": ">=16.0.0"
-  },
-  "peerDependencies": {
-    "ts-node": ">=10.0.0"
-  },
-  "peerDependenciesMeta": {
-    "ts-node": {
-      "optional": true
-    }
-  },
-  "exports": {
-    ".": {
-      "require": "./languages/javascript/src/index.js",
-      "import": "./languages/javascript/src/index.mjs",
-      "types": "./languages/typescript/types/src/adaptive/index.d.ts"
-    },
-    "./package.json": "./package.json"
-  },
-  "dependencies": {
-    "@babel/parser": "^7.25.0",
-    "@lezer/common": "^1.2.3",
-    "@lezer/rust": "^1.0.2",
-    "java-parser": "^3.0.1",
-    "php-parser": "^3.2.5",
-    "tree-sitter": "^0.25.0",
-    "tree-sitter-go": "^0.25.0",
-    "tsconfig-paths": "^4.2.0"
-  }
+  "author": "Jason Kempf <jasonkempf@gmail.com>",
+  "license": "MIT"
 }
