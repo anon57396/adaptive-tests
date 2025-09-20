@@ -6,24 +6,36 @@ const { DiscoveryEngine } = require('../../src/adaptive/discovery-engine');
 
 jest.setTimeout(30000);
 
-const maybeTest = process.env.RUN_PERF_TESTS ? test : test.skip;
+const runStressPerf = Boolean(process.env.RUN_PERF_TESTS);
+const directories = Number(process.env.PERF_TREE_DIRECTORIES || (runStressPerf ? 200 : 60));
+const filesPerDirectory = Number(process.env.PERF_TREE_FILES || (runStressPerf ? 50 : 20));
+const expectedThreshold = Number(process.env.PERF_TREE_MAX_MS || (runStressPerf ? 5000 : 2000));
 
-maybeTest('discovers targets in a large synthetic repository quickly', async () => {
+function ensurePositiveInt(name, value) {
+  if (!Number.isInteger(value) || value <= 0) {
+    throw new Error(`${name} must be a positive integer`);
+  }
+  return value;
+}
+
+const dirCount = ensurePositiveInt('PERF_TREE_DIRECTORIES', directories);
+const filesCount = ensurePositiveInt('PERF_TREE_FILES', filesPerDirectory);
+const maxDuration = Math.max(expectedThreshold, 100);
+
+test('discovers targets in a synthetic repository within time budget', async () => {
   const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'adaptive-large-tree-'));
-  const directories = 200;
-  const filesPerDirectory = 50;
 
   const fillerContent = "module.exports = function noop() { return 'noop'; };\n";
   const targetContent = "class TargetService { work() { return 'done'; } }\nmodule.exports = { TargetService };\n";
 
   try {
-    for (let dirIndex = 0; dirIndex < directories; dirIndex += 1) {
+    for (let dirIndex = 0; dirIndex < dirCount; dirIndex += 1) {
       const dirPath = path.join(tempRoot, `dir-${dirIndex}`);
       fs.mkdirSync(dirPath, { recursive: true });
 
-      for (let fileIndex = 0; fileIndex < filesPerDirectory; fileIndex += 1) {
+      for (let fileIndex = 0; fileIndex < filesCount; fileIndex += 1) {
         const filePath = path.join(dirPath, `file-${fileIndex}.js`);
-        if (dirIndex === directories - 1 && fileIndex === 0) {
+        if (dirIndex === dirCount - 1 && fileIndex === 0) {
           fs.writeFileSync(filePath, targetContent, 'utf8');
         } else {
           fs.writeFileSync(filePath, fillerContent, 'utf8');
@@ -31,7 +43,16 @@ maybeTest('discovers targets in a large synthetic repository quickly', async () 
       }
     }
 
-    const engine = new DiscoveryEngine(tempRoot);
+    const engine = new DiscoveryEngine(tempRoot, {
+      discovery: {
+        languages: {
+          javascript: {
+            enabled: true,
+            extensions: ['.js']
+          }
+        }
+      }
+    });
     await engine.clearCache();
 
     const start = Date.now();
@@ -46,8 +67,14 @@ maybeTest('discovers targets in a large synthetic repository quickly', async () 
     expect(TargetService).toBeTruthy();
     const instance = new TargetService();
     expect(instance.work()).toBe('done');
-    expect(duration).toBeLessThanOrEqual(5000);
+    expect(duration).toBeLessThanOrEqual(maxDuration);
   } finally {
     fs.rmSync(tempRoot, { recursive: true, force: true });
+  }
+
+  if (!runStressPerf) {
+    // Provide guidance for running the heavier profile in CI or stress runs
+    // eslint-disable-next-line no-console
+    console.info(`Perf tree size: ${dirCount} directories x ${filesCount} files (max ${maxDuration}ms). Set RUN_PERF_TESTS=1 for expanded coverage.`);
   }
 });

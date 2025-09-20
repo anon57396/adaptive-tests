@@ -118,6 +118,13 @@ class DiscoveryEngine {
 
     // Initialize scoring engine with config
     this.scoringEngine = new ScoringEngine(this.config);
+    const scoringConfig = this.config.discovery?.scoring || {};
+    this.allowLooseNameMatch = scoringConfig.allowLooseNameMatch !== false;
+    const defaultPenalty = -25;
+    const rawPenalty = typeof scoringConfig.looseNamePenalty === 'number'
+      ? scoringConfig.looseNamePenalty
+      : defaultPenalty;
+    this.looseNamePenalty = rawPenalty > 0 ? -Math.abs(rawPenalty) : rawPenalty;
 
     // Optional TypeScript path resolver
     this.tsconfigResolver = createTsconfigResolver(this.rootPath);
@@ -408,7 +415,8 @@ class DiscoveryEngine {
   async evaluateCandidate(filePath, signature) {
     const fileName = path.basename(filePath, path.extname(filePath));
 
-    if (!this.quickNameCheck(fileName, signature)) {
+    const nameMatches = this.quickNameCheck(fileName, signature);
+    if (!nameMatches && !this.allowLooseNameMatch) {
       return null;
     }
 
@@ -430,7 +438,8 @@ class DiscoveryEngine {
       path: filePath,
       fileName,
       content,
-      mtimeMs: stats ? stats.mtimeMs : null
+      mtimeMs: stats ? stats.mtimeMs : null,
+      quickNameMatched: nameMatches
     };
 
     const relativePath = path.relative(this.rootPath, filePath).split(path.sep).join('/') || path.basename(filePath);
@@ -468,6 +477,12 @@ class DiscoveryEngine {
       candidate.scoreBreakdown = candidate.scoreBreakdown || {};
       candidate.scoreBreakdown.recency = Math.round(recencyBonus);
       score += recencyBonus;
+    }
+
+    if (!nameMatches && this.allowLooseNameMatch && this.looseNamePenalty) {
+      candidate.scoreBreakdown = candidate.scoreBreakdown || {};
+      candidate.scoreBreakdown.quickName = (candidate.scoreBreakdown.quickName || 0) + this.looseNamePenalty;
+      score += this.looseNamePenalty;
     }
 
     const minScore = this.config.discovery.scoring.minCandidateScore ?? 0;

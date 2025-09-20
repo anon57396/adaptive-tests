@@ -74,6 +74,8 @@ const ENHANCED_CONFIG_SCHEMA = {
     },
     scoring: {
       minCandidateScore: -100,
+      allowLooseNameMatch: true,
+      looseNamePenalty: -25,
       recency: {
         maxBonus: 0,
         halfLifeHours: 6

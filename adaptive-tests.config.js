@@ -29,6 +29,8 @@ module.exports = {
     // Scoring configuration
     scoring: {
       minCandidateScore: -100,
+      allowLooseNameMatch: true,
+      looseNamePenalty: -20,
       recency: {
         maxBonus: 0,
         halfLifeHours: 2

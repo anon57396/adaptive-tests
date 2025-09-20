@@ -55,6 +55,7 @@ const ROOT_DIR = path.join(__dirname, '..', '..');
 const PYTHON_EXAMPLE_DIR = path.join(ROOT_DIR, 'examples', 'python');
 const PYTHON_VENV_NAME = '.adaptive-validate-venv';
 const JAVA_PACKAGE_DIR = path.join(ROOT_DIR, 'packages', 'adaptive-tests-java');
+const JAVA_RUNTIME_CACHE = path.join(ROOT_DIR, '.adaptive-validate-jdk');
 
 function quote(value) {
   if (!value) {
@@ -195,6 +196,75 @@ function resolveMavenWrapper(javaDir) {
   return fs.existsSync(scriptPath) ? scriptName : null;
 }
 
+function downloadJavaRuntime() {
+  const supportedPlatforms = ['darwin', 'linux'];
+  if (!supportedPlatforms.includes(process.platform)) {
+    return null;
+  }
+
+  const archMap = {
+    arm64: 'aarch64',
+    x64: 'x64'
+  };
+  const osMap = {
+    darwin: 'mac',
+    linux: 'linux'
+  };
+
+  const mappedArch = archMap[process.arch];
+  const mappedOs = osMap[process.platform];
+  if (!mappedArch || !mappedOs) {
+    return null;
+  }
+
+  if (!fs.existsSync(JAVA_RUNTIME_CACHE)) {
+    fs.mkdirSync(JAVA_RUNTIME_CACHE, { recursive: true });
+  }
+
+  const tarball = path.join(JAVA_RUNTIME_CACHE, `temurin-${mappedOs}-${mappedArch}.tar.gz`);
+  const url = `https://api.adoptium.net/v3/binary/latest/21/ga/${mappedOs}/${mappedArch}/jdk/hotspot/normal/eclipse`;
+  console.log(`  ↻ Downloading Temurin JDK (21) from ${url}`);
+  runCommand(`curl -fsSL --retry 3 --output ${quote(tarball)} ${quote(url)}`, false);
+  runCommand(`tar -xzf ${quote(tarball)} -C ${quote(JAVA_RUNTIME_CACHE)}`, false);
+  fs.rmSync(tarball, { force: true });
+
+  const entries = fs.readdirSync(JAVA_RUNTIME_CACHE, { withFileTypes: true });
+  const jdkDir = entries.find((entry) => entry.isDirectory() && entry.name.toLowerCase().startsWith('jdk'));
+  if (!jdkDir) {
+    return null;
+  }
+  return path.join(JAVA_RUNTIME_CACHE, jdkDir.name);
+}
+
+function ensureJavaRuntime() {
+  try {
+    execSync('java -version', { stdio: 'pipe' });
+    return { javaHome: null, usingBundled: false };
+  } catch (error) {
+    const cachedDirs = fs.existsSync(JAVA_RUNTIME_CACHE)
+      ? fs.readdirSync(JAVA_RUNTIME_CACHE, { withFileTypes: true })
+      : [];
+    const existingDir = cachedDirs.find((dirent) => dirent.isDirectory() && dirent.name.toLowerCase().startsWith('jdk'));
+    let javaHome = existingDir ? path.join(JAVA_RUNTIME_CACHE, existingDir.name) : null;
+
+    if (!javaHome) {
+      javaHome = downloadJavaRuntime();
+    }
+
+    if (!javaHome) {
+      return null;
+    }
+
+    const javaBinary = path.join(javaHome, 'bin', 'java');
+    if (!fs.existsSync(javaBinary)) {
+      return null;
+    }
+
+    console.log(`  ↺ Using bundled Java runtime at ${javaHome}`);
+    return { javaHome, usingBundled: true };
+  }
+}
+
 function extractMavenSummary(output) {
   const lines = output.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
   const testLine = lines.find((line) => line.startsWith('Tests run:'));
@@ -218,8 +288,20 @@ function runJavaScenario() {
     return { status: 'skipped', reason: 'Maven wrapper not found' };
   }
 
+  const javaRuntime = ensureJavaRuntime();
+  if (!javaRuntime) {
+    console.warn('  ⚠️  Skipping Java scenario: unable to provision Java runtime.');
+    return { status: 'skipped', reason: 'Java runtime unavailable or offline' };
+  }
+
+  const env = { ...process.env };
+  if (javaRuntime.javaHome) {
+    env.JAVA_HOME = javaRuntime.javaHome;
+    env.PATH = `${path.join(javaRuntime.javaHome, 'bin')}${path.delimiter}${env.PATH}`;
+  }
+
   try {
-    const result = runCommand(`${wrapper} -q test`, false, { cwd: JAVA_PACKAGE_DIR });
+    const result = runCommand(`${wrapper} -q test`, false, { cwd: JAVA_PACKAGE_DIR, env });
     const summary = extractMavenSummary(result.output);
     console.log(`  ✓ Maven tests: ${summary}`);
     return { status: 'passed', summary };
