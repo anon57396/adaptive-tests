@@ -70,7 +70,7 @@
     "jest-adaptive": "file:packages/jest-adaptive",
     "markdown-link-check": "^3.13.7",
     "markdownlint-cli": "^0.39.0",
-    "ts-jest": "^29.1.1",
+    "ts-jest": "^29.4.4",
     "ts-node": "^10.9.2",
     "typedoc": "^0.28.13",
     "typedoc-plugin-markdown": "^4.8.1",
