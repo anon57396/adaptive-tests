@@ -14,14 +14,20 @@
 
 const fs = require('fs');
 const path = require('path');
-const { spawnSync } = require('child_process');
 const { ErrorHandler } = require('../error-handler');
+const { runProcessSync } = require('../process-runner');
 
 class WolframDiscoveryCollector {
   constructor() {
     this.errorHandler = new ErrorHandler('wolfram-collector');
     this.astBridgeScript = path.join(__dirname, 'wolfram-ast-bridge.wl');
     this.fallbackBridgeScript = path.join(__dirname, 'wolfram-bridge.wl');
+    this.kernelExecutables = [
+      { name: 'wolframscript', priority: 1 },
+      { name: 'wolfram', priority: 2 },
+      { name: 'MathKernel', priority: 3 },
+      { name: 'WolframKernel', priority: 4 }
+    ];
     this.kernelInfo = this.detectWolframKernel();
     this.useKernel = this.kernelInfo.available;
     this.supportedExtensions = ['.wl', '.m', '.wls', '.nb', '.wlt'];
@@ -33,21 +39,22 @@ class WolframDiscoveryCollector {
    * Detect Wolfram kernel availability and version
    */
   detectWolframKernel() {
-    const executables = [
-      { name: 'wolframscript', priority: 1 },
-      { name: 'wolfram', priority: 2 },
-      { name: 'MathKernel', priority: 3 },
-      { name: 'WolframKernel', priority: 4 }
-    ];
-
-    for (const { name: exe, priority } of executables) {
+    for (const { name: exe, priority } of this.kernelExecutables) {
       const result = this.errorHandler.safeSync(
         () => {
-          const output = spawnSync(exe, ['--version'], {
-            encoding: 'utf8',
-            timeout: 2000
-          });
-          return output;
+          const execution = runProcessSync(
+            exe,
+            ['--version'],
+            {
+              timeout: 2000,
+              allowlist: this.kernelExecutables.map(item => item.name),
+              errorHandler: this.errorHandler,
+              context: {
+                integration: 'wolfram-detect'
+              }
+            }
+          );
+          return execution.result;
         },
         { executable: exe, operation: 'detectKernel' }
       );
@@ -166,15 +173,21 @@ class WolframDiscoveryCollector {
   async parseWithASTBridge(filePath) {
     return this.errorHandler.safeAsync(
       async () => {
-        const result = spawnSync(
+        const execution = runProcessSync(
           this.kernelInfo.executable,
           [this.astBridgeScript, filePath],
           {
-            encoding: 'utf8',
             timeout: 15000,
-            maxBuffer: 20 * 1024 * 1024
+            maxBuffer: 20 * 1024 * 1024,
+            allowlist: this.kernelExecutables.map(item => item.name),
+            errorHandler: this.errorHandler,
+            context: {
+              integration: 'wolfram-ast-bridge',
+              filePath
+            }
           }
         );
+        const result = execution.result;
 
         if (result.error || result.status !== 0) {
           const errorDetail = result.stderr || result.error?.message || 'Unknown error';
@@ -204,15 +217,21 @@ class WolframDiscoveryCollector {
   async parseWithFallbackBridge(filePath) {
     return this.errorHandler.safeAsync(
       async () => {
-        const result = spawnSync(
+        const execution = runProcessSync(
           this.kernelInfo.executable,
           [this.fallbackBridgeScript, filePath],
           {
-            encoding: 'utf8',
             timeout: 10000,
-            maxBuffer: 10 * 1024 * 1024
+            maxBuffer: 10 * 1024 * 1024,
+            allowlist: this.kernelExecutables.map(item => item.name),
+            errorHandler: this.errorHandler,
+            context: {
+              integration: 'wolfram-fallback-bridge',
+              filePath
+            }
           }
         );
+        const result = execution.result;
 
         if (result.error || result.status !== 0) {
           this.errorHandler.logDebug('Fallback bridge failed', {

@@ -8,8 +8,8 @@
 
 const fs = require('fs');
 const path = require('path');
-const { spawnSync } = require('child_process');
 const { ErrorHandler } = require('../error-handler');
+const { runProcessSync } = require('../process-runner');
 
 // Try to load php-parser.js as fallback
 let PhpParser = null;
@@ -35,6 +35,7 @@ class PHPDiscoveryCollector {
   constructor(config = {}) {
     this.errorHandler = new ErrorHandler('php-collector');
     this.astBridgeScript = path.join(__dirname, 'php-ast-bridge.php');
+    this.phpExecutables = ['php', 'php8', 'php7', 'php8.2', 'php8.1', 'php8.0', 'php7.4'];
     this.phpInfo = this.detectPhpExecutable();
     this.useNativePHP = this.phpInfo.available;
     this.parseCache = new Map();
@@ -61,15 +62,22 @@ class PHPDiscoveryCollector {
    * Detect PHP executable
    */
   detectPhpExecutable() {
-    const executables = ['php', 'php8', 'php7', 'php8.2', 'php8.1', 'php8.0', 'php7.4'];
-
-    for (const exe of executables) {
+    for (const exe of this.phpExecutables) {
       try {
-        const result = spawnSync(exe, ['--version'], {
-          encoding: 'utf8',
-          timeout: 2000
-        });
+        const execution = runProcessSync(
+          exe,
+          ['--version'],
+          {
+            timeout: 2000,
+            allowlist: this.phpExecutables,
+            errorHandler: this.errorHandler,
+            context: {
+              integration: 'php-detect'
+            }
+          }
+        );
 
+        const { result } = execution;
         if (result.status === 0) {
           const version = this.extractVersion(result.stdout);
           this.errorHandler.logInfo(`PHP executable found: ${exe} ${version}`);

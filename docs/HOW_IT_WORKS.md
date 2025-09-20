@@ -2,6 +2,7 @@
 
 ## Table of Contents
 
+- [Language Integrations At A Glance](#language-integrations-at-a-glance)
 - [Scoring Categories](#scoring-categories)
 - [Lifecycle](#lifecycle)
 - [Using Discovery Lens to Debug](#using-discovery-lens-to-debug)
@@ -9,6 +10,20 @@
 
 This guide explains exactly how the discovery engine ranks candidates and how to
 use the Discovery Lens CLI to verify the reasoning in your own repo.
+
+## Language Integrations At A Glance
+
+| Language    | Discovery Strategy                                                                 | CLI Hooks                                     | Scaffold Output               | Notes |
+|-------------|-------------------------------------------------------------------------------------|-----------------------------------------------|--------------------------------|-------|
+| JavaScript  | In-process heuristics over Babel AST (`src/adaptive/discovery-engine.js`)           | `discover`, `why`, `scaffold`, `enable-invisible` | Jest suites (JavaScript)       | Baseline experience with telemetry + invisible mode |
+| TypeScript  | DiscoveryEngine with TS extensions (`src/adaptive/typescript/discovery.js`)         | `discover`, `why`, `scaffold`                  | Jest suites (ts-jest)          | Resolves path aliases through `tsconfig-resolver.js` |
+| Python      | `spawnSync` bridge running `ast.parse` (`src/adaptive/python/python-discovery-integration.js`) | `discover`, `scaffold`, `why` (signature hints) | Pytest skeletons               | Requires local `python3`; 5 s timeout + 1 MB buffer |
+| Java        | `java-parser` AST collector (`src/adaptive/java/java-discovery-collector.js`)       | `discover`, `scaffold`                        | JUnit tests                    | Auto-detects Maven/Gradle layouts |
+| Go          | Tree-sitter (`tree-sitter-go`) collector (`src/adaptive/go/go-discovery-collector.js`) | `discover`, `scaffold`                        | Go test skeletons              | Optional dependency; graceful fallback when parser missing |
+| PHP         | Native PHP bridge with `php-parser` fallback (`src/adaptive/php/php-discovery-collector.js`) | `discover`, `scaffold`                        | PHPUnit cases                  | Captures namespaces, traits, and functions |
+| Ruby        | Ripper AST fallbacks with caching (`src/adaptive/ruby/ruby-discovery-integration.js`) | `discover`, `scaffold`                        | RSpec skeletons                | 2 s interpreter checks + bounded cache |
+| Rust        | Lezer-based parser (`src/adaptive/rust/rust-discovery-collector.js`)                | `discover`, `scaffold`                        | Rust test modules (`#[cfg(test)]`) | Infers crate/module names for output paths |
+| Wolfram     | Wolfram CLI bridge (`src/adaptive/wolfram/wolfram-discovery-collector.js`)          | `discover`                                   | _Not yet available_            | Scaffolding tracked on roadmap |
 
 Run Discovery Lens:
 

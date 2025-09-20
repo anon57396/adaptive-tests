@@ -14,8 +14,8 @@
 
 const fs = require('fs');
 const path = require('path');
-const { spawnSync } = require('child_process');
 const { ErrorHandler } = require('../error-handler');
+const { runProcessSync } = require('../process-runner');
 
 class WolframDiscoveryCollector {
   constructor() {
@@ -29,14 +29,23 @@ class WolframDiscoveryCollector {
    * Check if Wolfram kernel is available for enhanced parsing
    */
   checkWolframKernel() {
-    const executables = ['wolframscript', 'wolfram', 'MathKernel'];
+    this.kernelExecutables = ['wolframscript', 'wolfram', 'MathKernel'];
 
-    for (const exe of executables) {
+    for (const exe of this.kernelExecutables) {
       try {
-        const result = spawnSync(exe, ['--version'], {
-          encoding: 'utf8',
-          timeout: 2000
-        });
+        const execution = runProcessSync(
+          exe,
+          ['--version'],
+          {
+            timeout: 2000,
+            allowlist: this.kernelExecutables,
+            errorHandler: this.errorHandler,
+            context: {
+              integration: 'wolfram-detect'
+            }
+          }
+        );
+        const result = execution.result;
         if (result.status === 0) {
           this.kernelExecutable = exe;
           this.errorHandler.logDebug(`Wolfram kernel found: ${exe}`);
@@ -103,15 +112,21 @@ class WolframDiscoveryCollector {
   async parseWithKernel(filePath) {
     return this.errorHandler.safeAsync(
       async () => {
-        const result = spawnSync(
+        const execution = runProcessSync(
           this.kernelExecutable,
           [this.bridgeScript, filePath],
           {
-            encoding: 'utf8',
             timeout: 10000,
-            maxBuffer: 10 * 1024 * 1024
+            maxBuffer: 10 * 1024 * 1024,
+            allowlist: this.kernelExecutables,
+            errorHandler: this.errorHandler,
+            context: {
+              integration: 'wolfram-bridge',
+              filePath
+            }
           }
         );
+        const result = execution.result;
 
         if (result.error || result.status !== 0) {
           this.errorHandler.logWarning('Kernel parsing failed, using fallback', {

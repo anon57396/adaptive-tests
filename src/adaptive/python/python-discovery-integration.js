@@ -6,11 +6,11 @@
  * bridge script for AST extraction and provides pytest scaffolding helpers.
  */
 
-const childProcess = require('child_process');
 const path = require('path');
 const fs = require('fs');
 const { BaseLanguageIntegration } = require('../base-language-integration');
 const { ErrorHandler } = require('../error-handler');
+const { runProcessSync } = require('../process-runner');
 
 const PYTHON_BRIDGE_SCRIPT = `import ast, json, sys
 from pathlib import Path
@@ -99,6 +99,7 @@ class PythonDiscoveryCollector {
   constructor() {
     this.pythonEnv = buildPythonEnv();
     this.errorHandler = new ErrorHandler('python-integration');
+    this.allowedExecutables = ['python3', 'python'];
   }
 
   shouldScanFile(filePath) {
@@ -115,13 +116,27 @@ class PythonDiscoveryCollector {
 
     let lastError = null;
 
-    for (const executable of ['python3', 'python']) {
-      const result = childProcess.spawnSync(executable, ['-c', PYTHON_BRIDGE_SCRIPT, filePath], options);
+    for (const executable of this.allowedExecutables) {
+      const execution = runProcessSync(
+        executable,
+        ['-c', PYTHON_BRIDGE_SCRIPT, filePath],
+        {
+          ...options,
+          allowlist: this.allowedExecutables,
+          errorHandler: this.errorHandler,
+          context: {
+            filePath,
+            integration: 'python-bridge'
+          }
+        }
+      );
+
+      const { result } = execution;
       if (result.error && result.error.code === 'ENOENT') {
         lastError = result.error;
         continue;
       }
-      return { executable, result };
+      return { executable: execution.executable, result };
     }
 
     const error = lastError || new Error('Python interpreter not found');

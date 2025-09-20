@@ -7,9 +7,9 @@
 
 const fs = require('fs');
 const path = require('path');
-const { spawnSync } = require('child_process');
 const { ErrorHandler } = require('../error-handler');
 const { BaseLanguageIntegration } = require('../base-language-integration');
+const { runProcessSync } = require('../process-runner');
 
 function buildFullName(scopeStack, rawName) {
   if (!rawName) {
@@ -81,6 +81,7 @@ class RubyDiscoveryCollector {
   constructor() {
     this.errorHandler = new ErrorHandler('ruby-integration');
     this.astBridgeScript = path.join(__dirname, 'ruby-ast-bridge.rb');
+    this.rubyExecutables = ['ruby', 'ruby3', 'ruby2.7', 'ruby3.0', 'ruby3.1', 'ruby3.2'];
     this.rubyInfo = this.detectRubyExecutable();
     this.useNativeRuby = this.rubyInfo.available;
     this.parseCache = new Map();
@@ -91,14 +92,21 @@ class RubyDiscoveryCollector {
    * Detect Ruby executable
    */
   detectRubyExecutable() {
-    const executables = ['ruby', 'ruby3', 'ruby2.7', 'ruby3.0', 'ruby3.1', 'ruby3.2'];
-
-    for (const exe of executables) {
+    for (const exe of this.rubyExecutables) {
       try {
-        const result = spawnSync(exe, ['--version'], {
-          encoding: 'utf8',
-          timeout: 2000
-        });
+        const execution = runProcessSync(
+          exe,
+          ['--version'],
+          {
+            timeout: 2000,
+            allowlist: this.rubyExecutables,
+            errorHandler: this.errorHandler,
+            context: {
+              integration: 'ruby-detect'
+            }
+          }
+        );
+        const { result } = execution;
 
         if (result.status === 0) {
           const version = this.extractVersion(result.stdout);
@@ -132,10 +140,19 @@ class RubyDiscoveryCollector {
    */
   checkRipperSupport(exe) {
     try {
-      const result = spawnSync(exe, ['-e', 'require "ripper"; puts "ok"'], {
-        encoding: 'utf8',
-        timeout: 2000
-      });
+      const execution = runProcessSync(
+        exe,
+        ['-e', 'require "ripper"; puts "ok"'],
+        {
+          timeout: 2000,
+          allowlist: this.rubyExecutables,
+          errorHandler: this.errorHandler,
+          context: {
+            integration: 'ruby-ripper-check'
+          }
+        }
+      );
+      const { result } = execution;
       return result.status === 0 && result.stdout.includes('ok');
     } catch (error) {
       return false;
@@ -178,15 +195,22 @@ class RubyDiscoveryCollector {
   async parseWithNativeRuby(filePath) {
     return this.errorHandler.safeAsync(
       async () => {
-        const result = spawnSync(
+        const execution = runProcessSync(
           this.rubyInfo.executable,
           [this.astBridgeScript, filePath],
           {
-            encoding: 'utf8',
             timeout: 10000,
-            maxBuffer: 10 * 1024 * 1024
+            maxBuffer: 10 * 1024 * 1024,
+            allowlist: this.rubyExecutables,
+            errorHandler: this.errorHandler,
+            context: {
+              integration: 'ruby-bridge',
+              filePath
+            }
           }
         );
+
+        const { result } = execution;
 
         if (result.error || result.status !== 0) {
           this.errorHandler.logDebug('Native Ruby bridge failed', {

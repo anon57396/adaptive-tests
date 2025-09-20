@@ -1,5 +1,5 @@
-const { spawnSync } = require('child_process');
 const path = require('path');
+const { runProcessSync } = require('../process-runner');
 
 function buildPythonEnv() {
   const current = process.env.PYTHONPATH || '';
@@ -25,10 +25,18 @@ function explainPythonSignature(signatureInput, { root, limit = 5 }) {
     '--json'
   ];
 
-  const result = spawnSync('python3', args, {
-    encoding: 'utf8',
-    env
-  });
+  const execution = runProcessSync(
+    'python3',
+    args,
+    {
+      env,
+      allowlist: ['python3', 'python'],
+      context: {
+        integration: 'python-why'
+      }
+    }
+  );
+  const result = execution.result;
 
   if (result.status !== 0 || result.error) {
     if (process.env.DEBUG_DISCOVERY) {
