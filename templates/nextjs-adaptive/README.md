@@ -9,7 +9,8 @@ A pre-configured Next.js application with adaptive-tests integrated for resilien
 npx create-adaptive-app my-app --template nextjs
 
 # Or clone and install manually
-git clone <template-url> my-app
+git clone https://github.com/anon57396/adaptive-tests.git
+cp -r adaptive-tests/templates/nextjs-adaptive my-app
 cd my-app
 npm install
 npm run dev

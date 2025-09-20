@@ -276,7 +276,7 @@ function createPythonTemplate(projectPath) {
   const requirements = `flask==2.3.0
 pytest==7.4.0
 pytest-cov==4.1.0
-adaptive-tests-python==0.1.0`;
+adaptive-tests-py==0.2.0`;
 
   fs.writeFileSync(path.join(projectPath, 'requirements.txt'), requirements);
 

@@ -176,7 +176,7 @@ npm run validate
 npm install --save-dev adaptive-tests
 
 # Python
-pip install adaptive-tests-python
+pip install adaptive-tests-py
 
 # Java
 # Add to pom.xml or build.gradle

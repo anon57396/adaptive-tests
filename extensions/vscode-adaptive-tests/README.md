@@ -66,7 +66,7 @@ Quick access to Discovery Lens from the status bar - always just one click away.
 
 ## 🚀 Getting Started
 
-1. **Install the Extension**: Search for "Adaptive Tests" in the VS Code marketplace
+1. **Install the Extension**: Currently in development alpha - use the development setup below
 2. **Open a Project**: Open a folder containing JavaScript/TypeScript code
 3. **Click Discovery Lens**: Click the search icon in the status bar
 4. **Enter a Signature**: Try `{"name": "Calculator", "type": "class"}`

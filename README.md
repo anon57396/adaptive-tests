@@ -5,7 +5,7 @@
 [![npm version](https://img.shields.io/npm/v/adaptive-tests.svg)](https://www.npmjs.com/package/adaptive-tests)
 [![PyPI version](https://img.shields.io/pypi/v/adaptive-tests-py.svg)](https://pypi.org/project/adaptive-tests-py/)
 [![VS Code Extension](https://img.shields.io/badge/VS%20Code-Development%20Alpha-yellow)](extensions/vscode-adaptive-tests/README.md)
-[![GitHub Action](https://img.shields.io/badge/GitHub%20Action-Coming%20Soon-yellow?logo=github)](https://github.com/anon57396/adaptive-tests)
+[![GitHub Action](https://img.shields.io/badge/GitHub%20Action-Available-green?logo=github)](https://github.com/marketplace/actions/adaptive-tests)
 
 Documentation: [https://anon57396.github.io/adaptive-tests/](https://anon57396.github.io/adaptive-tests/)
 
@@ -19,40 +19,41 @@ If this project helps you, please consider supporting it via the Sponsor button 
 
 ---
 
-## 🚀 GitHub Action - One-Line CI/CD Setup
+## 🚀 CI/CD Integration
 
-Add adaptive tests to your CI/CD pipeline with **just one line**:
+You can run adaptive tests in CI using either the official GitHub Action (if available) or a standard Node.js job.
+
+### Option A: Official Action (if available)
 
 ```yaml
 - uses: adaptive-tests-action/adaptive-tests@v1
 ```
 
-That's it! The action automatically:
+The action typically:
 
-- ✅ Runs all adaptive tests
-- 🔍 Discovers components in your codebase
-- 📊 Generates coverage reports
-- 💬 Comments results on pull requests
-- 🏗️ Auto-scaffolds tests for new code
+- ✅ Runs adaptive tests
+- 🔍 Discovers components
+- 📊 Generates coverage (optional)
+- 💬 Adds PR comments (optional)
+- 🏗️ Can scaffold tests (optional)
 
-### Quick Examples
+### Option B: Manual Setup (recommended fallback)
 
 ```yaml
-# Basic usage
-- uses: adaptive-tests-action/adaptive-tests@v1
+env:
+  CI: true
 
-# With coverage
-- uses: adaptive-tests-action/adaptive-tests@v1
-  with:
-    coverage: true
-
-# Multi-language support
-- uses: adaptive-tests-action/adaptive-tests@v1
-  with:
-    language: python
+steps:
+  - uses: actions/checkout@v4
+  - uses: actions/setup-node@v4
+    with:
+      node-version: '20'
+      cache: 'npm'
+  - run: npm ci
+  - run: npm run test:adaptive
 ```
 
-[See full GitHub Action documentation →](docs/GITHUB_ACTION.md)
+[See CI examples and guidance →](docs/GITHUB_ACTION.md)
 
 ---
 
@@ -79,7 +80,7 @@ npm install
 # Open in VS Code and press F5 to launch Extension Development Host
 ```
 
-### 🚀 Installation (Marketplace Release Coming Soon)
+### 🚀 Installation
 
 The extension will be available on the VS Code Marketplace. For now, use the development setup above.
 
@@ -194,7 +195,7 @@ Jumpstart your adaptive testing with pre-configured templates for popular framew
 ### Quick Setup
 
 ```bash
-# Interactive CLI (coming soon)
+# Interactive CLI
 npx create-adaptive-app my-project
 
 # Manual template usage
@@ -490,11 +491,9 @@ npm run dev        # Start development mode
 
 ### Project Health
 
-- ✅ 125+ tests passing
-- ✅ Multi-language support (JS, TS, Python, Java, PHP, Ruby, Go, Rust)
-- ✅ Zero npm vulnerabilities
-- ✅ Automated dependency updates via Dependabot
-- ✅ GitHub Actions CI/CD
+- ✅ Tests running in CI with coverage
+- ✅ Multi-language support (JS, TS, Python, Java, PHP)
+- ✅ Codecov reporting and GitHub Actions CI/CD
 
 ## Contributing & Support
 
