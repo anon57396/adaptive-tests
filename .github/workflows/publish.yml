@@ -59,18 +59,31 @@ jobs:
       packages: write
       
     strategy:
+      fail-fast: false
       matrix:
         package:
           - '.'
           - 'packages/jest-adaptive'
           - 'packages/vite-plugin-adaptive'
           - 'packages/webpack-plugin-adaptive'
-    
+
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
+      - name: Check Package Exists
+        id: check_package
+        working-directory: ${{ matrix.package }}
+        run: |
+          if [ -f "package.json" ]; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+            echo "Package.json not found in ${{ matrix.package }}, skipping"
+          fi
+
       - name: Setup Node.js
+        if: steps.check_package.outputs.exists == 'true'
         uses: actions/setup-node@v5
         with:
           node-version: '20'
@@ -78,6 +91,7 @@ jobs:
           cache: 'npm'
 
       - name: Get Version
+        if: steps.check_package.outputs.exists == 'true'
         id: version
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ github.event.inputs.version }}" ]; then
@@ -90,10 +104,20 @@ jobs:
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Install Dependencies
+        if: steps.check_package.outputs.exists == 'true'
         working-directory: ${{ matrix.package }}
-        run: npm ci
+        run: |
+          if [ -f "package-lock.json" ]; then
+            npm ci
+          elif [ -f "package.json" ]; then
+            npm install
+          else
+            echo "No package.json found, skipping npm install"
+            exit 0
+          fi
 
       - name: Build Package
+        if: steps.check_package.outputs.exists == 'true'
         working-directory: ${{ matrix.package }}
         run: |
           if [ -f "tsconfig.json" ]; then
@@ -101,16 +125,19 @@ jobs:
           fi
 
       - name: Run Tests
+        if: steps.check_package.outputs.exists == 'true'
         working-directory: ${{ matrix.package }}
         run: npm test
         continue-on-error: true  # Don't fail if tests fail in subdirectories
 
       - name: Update Package Version
+        if: steps.check_package.outputs.exists == 'true'
         working-directory: ${{ matrix.package }}
         run: |
           npm version "${{ steps.version.outputs.version }}" --no-git-tag-version --allow-same-version
 
       - name: Publish to NPM
+        if: steps.check_package.outputs.exists == 'true'
         working-directory: ${{ matrix.package }}
         run: |
           if [ "${{ github.event.inputs.prerelease }}" = "true" ]; then
@@ -122,12 +149,19 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Publish to GitHub Packages
+        if: steps.check_package.outputs.exists == 'true'
         working-directory: ${{ matrix.package }}
         run: |
-          # Update registry to GitHub
-          npm config set @${{ github.repository_owner }}:registry https://npm.pkg.github.com
-          # Publish
-          npm publish --access public
+          # Update .npmrc for GitHub Packages
+          echo "@${{ github.repository_owner }}:registry=https://npm.pkg.github.com" >> .npmrc
+          echo "//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}" >> .npmrc
+          # Update package.json name for GitHub Packages
+          if [ "${{ matrix.package }}" = "." ]; then
+            npm publish --access public
+          else
+            # For sub-packages, ensure proper scoping
+            npm publish --access public
+          fi
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         continue-on-error: true  # GitHub Packages might fail if package name doesn't match
@@ -258,17 +292,31 @@ jobs:
       - name: Update Maven Version
         if: steps.check_maven.outputs.has_maven == 'true'
         run: |
-          find . -name "pom.xml" -exec mvn versions:set -DnewVersion="${{ steps.version.outputs.version }}" -f {} \;
+          # Update versions in all pom.xml files
+          for pom in $(find . -name "pom.xml"); do
+            dir=$(dirname "$pom")
+            (cd "$dir" && mvn versions:set -DnewVersion="${{ steps.version.outputs.version }}" -DgenerateBackupPoms=false)
+          done
 
       - name: Build with Maven
         if: steps.check_maven.outputs.has_maven == 'true'
         run: |
-          find . -name "pom.xml" -execdir mvn clean package -DskipTests \;
+          # Build each Maven project
+          for pom in $(find . -name "pom.xml"); do
+            dir=$(dirname "$pom")
+            echo "Building Maven project in $dir"
+            (cd "$dir" && mvn clean package -DskipTests)
+          done
 
       - name: Publish to Maven Central
         if: steps.check_maven.outputs.has_maven == 'true'
         run: |
-          find . -name "pom.xml" -execdir mvn deploy -DskipTests \;
+          # Deploy each Maven project
+          for pom in $(find . -name "pom.xml"); do
+            dir=$(dirname "$pom")
+            echo "Deploying Maven project in $dir"
+            (cd "$dir" && mvn deploy -DskipTests)
+          done
         env:
           MAVEN_USERNAME: ${{ secrets.OSSRH_USERNAME }}
           MAVEN_PASSWORD: ${{ secrets.OSSRH_TOKEN }}
@@ -281,7 +329,11 @@ jobs:
           mkdir -p ~/.m2
           printf '%s\n' '<settings><servers><server><id>github</id><username>'"${GITHUB_ACTOR}"'</username><password>'"${GITHUB_TOKEN}"'</password></server></servers></settings>' > ~/.m2/settings.xml
           # Deploy to GitHub Packages
-          find . -name "pom.xml" -execdir mvn deploy -DskipTests -DaltDeploymentRepository="github::default::https://maven.pkg.github.com/${{ github.repository }}" \;
+          for pom in $(find . -name "pom.xml"); do
+            dir=$(dirname "$pom")
+            echo "Deploying Maven project to GitHub Packages in $dir"
+            (cd "$dir" && mvn deploy -DskipTests -DaltDeploymentRepository="github::default::https://maven.pkg.github.com/${{ github.repository }}")
+          done
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         continue-on-error: true
@@ -292,8 +344,8 @@ jobs:
   create-release:
     name: Create GitHub Release
     runs-on: ubuntu-latest
-    if: github.event_name == 'workflow_dispatch' || github.event_name == 'push'
     needs: [publish-npm, publish-pypi, publish-maven]
+    if: always() && (github.event_name == 'workflow_dispatch' || github.event_name == 'push') && (needs.publish-npm.result == 'success' || needs.publish-pypi.result == 'success' || needs.publish-maven.result == 'success')
     
     permissions:
       contents: write
@@ -315,34 +367,27 @@ jobs:
       - name: Generate Release Notes
         id: notes
         run: |
-          VERSION="${{ steps.version.outputs.version }}" python - <<'PY_NOTES'
-            if True:
-                import os, textwrap
+          VERSION="${{ steps.version.outputs.version }}"
+          cat > release_notes.md << EOF
+          # Release v${VERSION}
 
-                version = os.environ["VERSION"]
-                content = textwrap.dedent(f"""# Release v{version}
+          ## Packages Published
 
-                ## Packages Published
+          ### NPM
+          - [adaptive-tests](https://www.npmjs.com/package/adaptive-tests)
+          - [jest-adaptive](https://www.npmjs.com/package/jest-adaptive)
+          - [vite-plugin-adaptive](https://www.npmjs.com/package/vite-plugin-adaptive)
+          - [webpack-plugin-adaptive](https://www.npmjs.com/package/webpack-plugin-adaptive)
 
-                ### NPM
-                - [adaptive-tests](https://www.npmjs.com/package/adaptive-tests)
-                - [jest-adaptive](https://www.npmjs.com/package/jest-adaptive)
-                - [vite-plugin-adaptive](https://www.npmjs.com/package/vite-plugin-adaptive)
-                - [webpack-plugin-adaptive](https://www.npmjs.com/package/webpack-plugin-adaptive)
+          ### PyPI
+          - [adaptive-tests-py](https://pypi.org/project/adaptive-tests-py/)
 
-                ### PyPI
-                - [adaptive-tests-py](https://pypi.org/project/adaptive-tests-py/)
-
-                ## Installation
-                ```bash
-                npm install adaptive-tests@{version}
-                pip install adaptive-tests-py=={version}
-                ```
-                """)
-
-                with open("release_notes.md", "w", encoding="utf-8") as fh:
-                    fh.write(content)
-          PY_NOTES
+          ## Installation
+          \`\`\`bash
+          npm install adaptive-tests@${VERSION}
+          pip install adaptive-tests-py==${VERSION}
+          \`\`\`
+          EOF
 
       - name: Create Release
         uses: softprops/action-gh-release@v2

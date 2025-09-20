@@ -218,6 +218,7 @@ async function gatherSetupOptions(context) {
   let overwriteConfig = !context.configExists;
   let generateExamples = true;
   let sampleName = 'ExampleService';
+  let enableInvisibleMode = true; // Default to enabled for better DX
 
   if (interactive) {
     const prompter = createPrompter();
@@ -241,6 +242,12 @@ async function gatherSetupOptions(context) {
 
     sampleName = toClassName(await prompter.ask('Name for the sample target (class/function)?', sampleName));
 
+    // Ask about invisible mode
+    enableInvisibleMode = await prompter.askYesNo(
+      'Enable invisible mode? (Makes existing tests refactor-safe automatically)',
+      true
+    );
+
     if (context.configExists) {
       overwriteConfig = await prompter.askYesNo('Update existing adaptive-tests.config.js with recommended defaults?', false);
       generateConfig = overwriteConfig;
@@ -263,6 +270,7 @@ async function gatherSetupOptions(context) {
     overwriteConfig,
     generateExamples,
     sampleName,
+    enableInvisibleMode,
   };
 }
 
@@ -455,6 +463,7 @@ async function runInit() {
   log(`   Source Directory: ${sourceDir}`, COLORS.dim);
   log(`   Adaptive Tests Directory: ${testDir}/adaptive`, COLORS.dim);
   log(`   Sample Target: ${toClassName(setupOptions.sampleName)}`, COLORS.dim);
+  log(`   Invisible Mode: ${setupOptions.enableInvisibleMode ? 'Yes (recommended)' : 'No'}`, COLORS.dim);
   console.log();
 
   // Check if adaptive-tests is already installed
@@ -530,6 +539,25 @@ async function runInit() {
 
   const configCreated = writeConfigFile(setupOptions);
 
+  // Enable invisible mode if requested
+  if (setupOptions.enableInvisibleMode) {
+    console.log();
+    log('🎭 Enabling invisible mode...', COLORS.cyan);
+
+    try {
+      const { enableInvisibleMode } = require('./enable-invisible');
+      const result = await enableInvisibleMode({ force: true });
+
+      if (result.success) {
+        log('✅ Invisible mode enabled! Your tests are now refactor-safe.', COLORS.green);
+      } else {
+        log('⚠️  Could not enable invisible mode automatically. Run: npx adaptive-tests enable-invisible', COLORS.yellow);
+      }
+    } catch (error) {
+      log('⚠️  Could not enable invisible mode automatically. Run: npx adaptive-tests enable-invisible', COLORS.yellow);
+    }
+  }
+
   console.log();
   log('🎉 Setup Complete!', COLORS.bright + COLORS.green);
   console.log();
@@ -542,9 +570,15 @@ async function runInit() {
   if (configCreated) {
     log(`  • Tweak ${CONFIG_FILENAME} scoring to match your codebase.`, COLORS.dim);
   }
+  if (setupOptions.enableInvisibleMode) {
+    log('  • Your existing tests are now automatically refactor-safe!', COLORS.dim);
+  }
   log('  • Run your existing test command to confirm everything passes.', COLORS.dim);
   console.log();
   log('📚 Documentation: https://github.com/anon57396/adaptive-tests', COLORS.cyan);
+  if (setupOptions.enableInvisibleMode) {
+    log('🎭 Invisible mode docs: docs/getting-started-invisible.md', COLORS.cyan);
+  }
   log('⭐ Star us on GitHub if this helps!', COLORS.magenta);
   console.log();
 }
@@ -552,15 +586,18 @@ async function runInit() {
 function printUsage() {
   console.log(`\nUsage: npx adaptive-tests <command> [options]\n`);
   console.log(`Commands:`);
-  console.log(`  init            Interactive setup wizard (default)`);
-  console.log(`  migrate [dir]   Convert traditional tests to adaptive tests`);
-  console.log(`  convert [dir]   Convert tests to adaptive with invisible mode`);
-  console.log(`  why <signature> Inspect candidate scoring for a signature`);
-  console.log(`  scaffold <src>  Generate an adaptive test skeleton from source`);
-  console.log(`  help            Show this message\n`);
+  console.log(`  init               Interactive setup wizard (default)`);
+  console.log(`  migrate [dir]      Convert traditional tests to adaptive tests`);
+  console.log(`  convert [dir]      Convert tests to adaptive with invisible mode`);
+  console.log(`  enable-invisible   One-click invisible mode setup (auto-detects framework)`);
+  console.log(`  why <signature>    Inspect candidate scoring for a signature`);
+  console.log(`  scaffold <src>     Generate an adaptive test skeleton from source`);
+  console.log(`  help               Show this message\n`);
   console.log(`Examples:`);
   console.log(`  npx adaptive-tests`);
   console.log(`  npx adaptive-tests init`);
+  console.log(`  npx adaptive-tests enable-invisible`);
+  console.log(`  npx adaptive-tests enable-invisible --dry-run`);
   console.log(`  npx adaptive-tests migrate tests`);
   console.log(`  npx adaptive-tests convert tests --invisible`);
   console.log(`  npx adaptive-tests convert tests --hybrid --dry-run`);
@@ -603,12 +640,22 @@ async function runConvert(args = []) {
   }
 }
 
+async function runEnableInvisible(args = []) {
+  const { enableInvisibleMode } = require('./enable-invisible');
+  await enableInvisibleMode({
+    dryRun: args.includes('--dry-run'),
+    undo: args.includes('--undo') || args.includes('--disable'),
+    force: args.includes('--force')
+  });
+}
+
 async function main(argv = process.argv) {
   const [, , maybeCommand, ...rest] = argv;
   const handlers = {
     init: () => runInit(),
     migrate: (args) => runMigrate(args),
     convert: (args) => runConvert(args),
+    'enable-invisible': (args) => runEnableInvisible(args),
     why: (args) => runWhy(args),
     scaffold: (args) => runScaffold(args),
     help: () => printUsage(),

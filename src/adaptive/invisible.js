@@ -6,12 +6,139 @@
  * ESCAPE HATCH: Can be disabled per-test or globally
  */
 
+const fs = require('fs');
 const path = require('path');
 const debug = require('debug')('adaptive-tests:invisible');
+
+const PROJECT_ROOT = process.cwd();
+const ADAPTIVE_DIR = path.join(PROJECT_ROOT, '.adaptive-tests');
+const HISTORY_FILE = path.join(ADAPTIVE_DIR, 'invisible-history.json');
+const TELEMETRY_FILE = path.join(ADAPTIVE_DIR, 'invisible-telemetry.log');
+const TELEMETRY_ENABLED = Boolean(process.env.ADAPTIVE_TESTS_TELEMETRY);
+const RECOVERED_SIGNATURES = new Set();
 
 // Feature flag - must be explicitly enabled
 let INVISIBLE_MODE_ENABLED = false;
 let ESCAPE_HATCH_PATTERNS = [];
+
+function ensureAdaptiveDir() {
+  try {
+    if (!fs.existsSync(ADAPTIVE_DIR)) {
+      fs.mkdirSync(ADAPTIVE_DIR, { recursive: true });
+    }
+  } catch (error) {
+    debug('⚠️ Unable to ensure adaptive dir: %s', error.message);
+  }
+}
+
+function recordTelemetry(event, payload = {}) {
+  if (!TELEMETRY_ENABLED) {
+    return;
+  }
+
+  try {
+    ensureAdaptiveDir();
+    const entry = {
+      event,
+      timestamp: new Date().toISOString(),
+      ...payload
+    };
+    fs.appendFileSync(TELEMETRY_FILE, `${JSON.stringify(entry)}\n`, 'utf8');
+  } catch (error) {
+    debug('⚠️ Failed to write telemetry: %s', error.message);
+  }
+}
+
+function updateHistory(entry) {
+  try {
+    ensureAdaptiveDir();
+    const history = fs.existsSync(HISTORY_FILE)
+      ? JSON.parse(fs.readFileSync(HISTORY_FILE, 'utf8'))
+      : [];
+
+    if (Array.isArray(history)) {
+      history.unshift(entry);
+      if (history.length > 50) {
+        history.length = 50;
+      }
+      fs.writeFileSync(HISTORY_FILE, JSON.stringify(history, null, 2));
+    }
+  } catch (error) {
+    debug('⚠️ Failed to update invisible history: %s', error.message);
+  }
+}
+
+function logInvisibleSuccess(originalPath, suggestion, mode) {
+  const key = `${mode}:${suggestion}`;
+  if (!RECOVERED_SIGNATURES.has(key)) {
+    RECOVERED_SIGNATURES.add(key);
+    console.info(
+      `⚡ Adaptive Tests invisible mode recovered "${suggestion}" from ${originalPath}. Try "npx adaptive-tests why '{"name":"${suggestion}"}'" to inspect.`
+    );
+  }
+
+  updateHistory({
+    modulePath: originalPath,
+    suggestion,
+    mode,
+    timestamp: new Date().toISOString()
+  });
+  recordTelemetry('fallback_success', { modulePath: originalPath, suggestion, mode });
+}
+
+function writeFallbackScaffold(modulePath, suggestion) {
+  try {
+    ensureAdaptiveDir();
+    const scaffoldDir = path.join(ADAPTIVE_DIR, 'scaffolds');
+    if (!fs.existsSync(scaffoldDir)) {
+      fs.mkdirSync(scaffoldDir, { recursive: true });
+    }
+
+    const scaffoldPath = path.join(scaffoldDir, `${suggestion}.js`);
+    if (!fs.existsSync(scaffoldPath)) {
+      const contents = `// Adaptive Tests fallback scaffold
+// Invisible mode could not resolve "${modulePath}" automatically.
+// Replace your import with the require statement below or run:
+//    npx adaptive-tests convert ${modulePath}
+
+const { discoverSync } = require('adaptive-tests/invisible');
+
+module.exports = () => discoverSync({
+  name: '${suggestion}',
+  type: '${inferType(modulePath)}'
+});
+`;
+      fs.writeFileSync(scaffoldPath, contents, 'utf8');
+    }
+
+    return scaffoldPath;
+  } catch (error) {
+    debug('⚠️ Failed to write fallback scaffold: %s', error.message);
+    return null;
+  }
+}
+
+function handleDiscoveryFailure(originalPath, suggestion, error) {
+  recordTelemetry('fallback_failure', {
+    modulePath: originalPath,
+    suggestion,
+    message: error.message
+  });
+
+  const scaffoldPath = writeFallbackScaffold(originalPath, suggestion);
+  if (scaffoldPath) {
+    const relative = path.relative(PROJECT_ROOT, scaffoldPath);
+    console.warn(
+      `⚠️ Adaptive Tests invisible mode could not resolve "${originalPath}". A helper scaffold was created at ${relative}. ` +
+        `You can import it with "require('./${relative.replace(/\\\\/g, '/')}')()" or run "npx adaptive-tests convert" for a full migration. See docs/getting-started-invisible.md.`
+    );
+  } else {
+    console.warn(
+      `⚠️ Adaptive Tests invisible mode could not resolve "${originalPath}" using inferred signature "${suggestion}". ` +
+        'Run "npx adaptive-tests convert" or see docs/getting-started-invisible.md for guidance.'
+    );
+  }
+}
 
 /**
  * Smart require with transparent adaptive fallback
@@ -37,16 +164,24 @@ async function adaptiveRequire(modulePath, options = {}) {
 
       debug(`📍 Module moved: ${modulePath} → trying ${suggestion}`);
 
-      // Log suggestion transparently
-      console.warn(`⚡ Adaptive: ${modulePath} not found, trying signature discovery for "${suggestion}"`);
+      console.warn(
+        `⚡ Adaptive Tests invisible mode: ${modulePath} not found, attempting discovery for "${suggestion}"`
+      );
 
-      // Use existing discovery (no new APIs)
       const { discover } = require('./index');
-      return await discover({
-        name: suggestion,
-        type: options.type || inferType(modulePath),
-        ...options
-      });
+      try {
+        const result = await discover({
+          name: suggestion,
+          type: options.type || inferType(modulePath),
+          ...options
+        });
+
+        logInvisibleSuccess(modulePath, suggestion, 'async');
+        return result;
+      } catch (discoveryError) {
+        handleDiscoveryFailure(modulePath, suggestion, discoveryError);
+        throw error;
+      }
     }
     throw error;
   }
@@ -150,12 +285,16 @@ function patchRequireWithIsolation() {
         // Use sync wrapper for require compatibility
         try {
           const { discoverSync } = require('./sync-wrapper');
-          return discoverSync({
+          const result = discoverSync({
             name: suggestion,
             type: inferType(id)
           });
+
+          logInvisibleSuccess(id, suggestion, 'sync');
+          return result;
         } catch (discoveryError) {
           debug(`❌ Discovery failed for ${suggestion}:`, discoveryError.message);
+          handleDiscoveryFailure(id, suggestion, discoveryError);
           throw error; // Re-throw original error
         }
       }
