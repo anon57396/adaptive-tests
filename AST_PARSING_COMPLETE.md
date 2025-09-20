@@ -20,7 +20,7 @@ All language integrations in adaptive-tests now use **proper AST parsing** as th
 
 ### Three-Tier Architecture
 
-```
+```text
 ┌─────────────────────────────────────┐
 │      Native AST (Primary)           │
 │   Uses language's built-in parser   │
@@ -156,7 +156,7 @@ const collector = new PHPDiscoveryCollector();
 
 ### Clear Feedback
 
-```
+```json
 Ruby Info: {
   available: true,
   executable: 'ruby',
