@@ -18,7 +18,7 @@ Otherwise, use this manual setup:
 ```yaml
 steps:
   - uses: actions/checkout@v4
-  - uses: actions/setup-node@v4
+  - uses: actions/setup-node@v5
     with:
       node-version: '20'
       cache: 'npm'
