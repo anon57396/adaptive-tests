@@ -8,7 +8,7 @@ const fs = require('fs');
 
 describe('Migration Tool', () => {
   const fixtureDir = path.join(__dirname, '..', 'fixtures', 'migration');
-  const traditionalTestPath = path.join(__dirname, '../../examples/calculator/tests/traditional/Calculator.test.js');
+  const traditionalTestPath = path.join(__dirname, '../../languages/javascript/examples/calculator/tests/traditional/Calculator.test.js');
 
   describe('analyzeTestFile', () => {
     test('should analyze a traditional Jest test file', () => {

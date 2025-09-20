@@ -4,7 +4,7 @@
   "description": "AI-ready testing infrastructure that survives refactors without breaking. Built for autonomous development workflows.",
   "main": "languages/javascript/src/index.js",
   "bin": {
-    "adaptive-tests": "src/cli/init.js",
+    "adaptive-tests": "languages/javascript/cli/init.js",
     "create-adaptive-app": "bin/create-adaptive-app"
   },
   "scripts": {
@@ -13,12 +13,12 @@
     "test": "jest",
     "test:coverage": "jest --coverage",
     "performance": "node scripts/performance-demo.js",
-    "test:traditional": "jest --config jest.examples.config.cjs examples/calculator/tests/traditional",
-    "test:adaptive": "jest --config jest.examples.config.cjs examples/calculator/tests/adaptive",
+    "test:traditional": "jest --config jest.examples.config.cjs languages/javascript/languages/javascript/examples/calculator/tests/traditional",
+    "test:adaptive": "jest --config jest.examples.config.cjs languages/javascript/languages/javascript/examples/calculator/tests/adaptive",
     "test:both": "npm run test:traditional && npm run test:adaptive",
     "lint:markdown": "markdownlint --config .markdownlint.json .",
-    "test:traditional:ts": "jest --config jest.examples.config.cjs examples/typescript/tests/traditional",
-    "test:adaptive:ts": "jest --config jest.examples.config.cjs examples/typescript/tests/adaptive",
+    "test:traditional:ts": "jest --config jest.examples.config.cjs languages/typescript/languages/typescript/examples/typescript/tests/traditional",
+    "test:adaptive:ts": "jest --config jest.examples.config.cjs languages/typescript/languages/typescript/examples/typescript/tests/adaptive",
     "test:typescript": "npm run test:traditional:ts && npm run test:adaptive:ts",
     "refactor": "node scripts/demo/refactor.js",
     "restore": "node scripts/demo/restore.js",
@@ -88,11 +88,11 @@
       "**/tests/**/*.test.(js|ts)"
     ],
     "collectCoverageFrom": [
-      "src/**/*.{js,ts}",
-      "!src/**/*.d.ts",
-      "!src/**/index.js",
-      "!src/cli/**",
-      "!src/adaptive/test-base.js"
+    "languages/javascript/src/**/*.{js,ts}",
+    "!languages/javascript/src/**/*.d.ts",
+    "!languages/javascript/src/**/index.js",
+    "!languages/javascript/cli/**",
+    "!languages/javascript/src/test-base.js"
     ],
     "coverageDirectory": "coverage",
     "coverageReporters": [

@@ -85,7 +85,7 @@ Supporting directories:
 
 - `examples/` – calculators, services, and TypeScript examples (traditional vs
   adaptive)
-- `packages/adaptive-tests-py/` – Python companion package
+- `languages/python/` – Python companion package
 - `extensions/vscode-adaptive-tests/` – VS Code extension for Discovery Lens and scaffolding
 - `templates/` – Framework templates (Next.js, Vite, CRA, Express) with pre-configured adaptive tests
 - `scripts/demo/` – automation used by the validation script

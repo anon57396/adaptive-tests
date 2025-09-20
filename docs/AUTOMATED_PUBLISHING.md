@@ -59,7 +59,7 @@ Ensure each `package.json` has:
 ```
 
 #### Python Package
-In `packages/adaptive-tests-py/setup.py` or `pyproject.toml`:
+In `languages/python/setup.py` or `pyproject.toml`:
 ```python
 # setup.py
 setup(

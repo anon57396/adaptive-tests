@@ -88,10 +88,10 @@ for pkg in packages/*; do
 done
 
 # Update Python package
-if [ -f "packages/adaptive-tests-py/setup.py" ]; then
+if [ -f "languages/python/setup.py" ]; then
     print_step "Updating Python package version"
-    sed -i.bak "s/version=.*,/version='$NEW_VERSION',/" packages/adaptive-tests-py/setup.py
-    rm packages/adaptive-tests-py/setup.py.bak
+    sed -i.bak "s/version=.*,/version='$NEW_VERSION',/" languages/python/setup.py
+    rm languages/python/setup.py.bak
     print_success "Updated setup.py"
 fi
 

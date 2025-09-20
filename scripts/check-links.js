@@ -20,8 +20,8 @@ const files = glob.sync('**/*.md', {
     'node_modules/**',
     'docs/api/**',
     'coverage/**',
-    'packages/adaptive-tests-py/dist/**',
-    'packages/adaptive-tests-py/src/adaptive_tests_py.egg-info/**'
+    'languages/python/dist/**',
+    'languages/python/src/adaptive_tests_py.egg-info/**'
   ]
 });
 

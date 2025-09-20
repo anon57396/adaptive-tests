@@ -9,8 +9,8 @@ const path = require('path');
 
 console.log('🔄 Restoring: Moving Calculator.js back to original location...\n');
 
-const oldPath = 'examples/calculator/lib/core/math/services/Calculator.js';
-const newPath = 'examples/calculator/src/Calculator.js';
+const oldPath = 'languages/javascript/examples/calculator/lib/core/math/services/Calculator.js';
+const newPath = 'languages/javascript/examples/calculator/src/Calculator.js';
 
 // Create original directory structure
 const newDir = path.dirname(newPath);
@@ -28,7 +28,7 @@ if (fs.existsSync(oldPath)) {
   // Clean up refactored directories
   const dirs = ['lib/core/math/services', 'lib/core/math', 'lib/core', 'lib'];
   dirs.forEach(dir => {
-    const fullDir = path.join('examples/calculator', dir);
+    const fullDir = path.join('languages/javascript/examples/calculator', dir);
     try {
       fs.rmdirSync(fullDir);
     } catch (e) {

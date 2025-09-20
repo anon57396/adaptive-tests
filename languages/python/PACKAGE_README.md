@@ -36,7 +36,7 @@ Use `engine.discover_all(signature)` to inspect every ranked match when tuning s
 The package ships with a lightweight CLI so you can run discovery diagnostics and scaffold pytest stubs without writing code:
 
 ```bash
-adaptive-tests-py why '{"name": "TodoService"}' --root examples/python/src --limit 3
+adaptive-tests-py why '{"name": "TodoService"}' --root languages/python/examples/python/src --limit 3
 adaptive-tests-py why signature.json --json
 adaptive-tests-py discover '{"name": "TodoService"}' --root .
 adaptive-tests-py scaffold src/services/user_service.py --tests-dir tests/adaptive
@@ -48,4 +48,4 @@ Configuration can also be placed in `pyproject.toml` under the `[tool.adaptive_t
 
 ### Python Example Project
 
-See `examples/python/` for a full pytest demo, custom configuration, and advanced signatures.
+See `languages/python/examples/python/` for a full pytest demo, custom configuration, and advanced signatures.

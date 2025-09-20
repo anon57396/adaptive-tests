@@ -102,9 +102,9 @@ async function main() {
   log('\n🔧 Moving Calculator.js to nested folder...', c.cyan);
   await sleep(1000);
 
-  log('\nFROM: examples/calculator/src/Calculator.js', c.dim);
+  log('\nFROM: languages/javascript/examples/calculator/src/Calculator.js', c.dim);
   log('  ↓', c.yellow);
-  log('TO:   examples/calculator/src/core/math/utils/Calculator.js', c.green);
+  log('TO:   languages/javascript/examples/calculator/src/core/math/utils/Calculator.js', c.green);
   await sleep(1500);
 
   run('node refactor.js 2>&1', false);

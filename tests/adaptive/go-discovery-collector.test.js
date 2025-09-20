@@ -1,5 +1,5 @@
 const path = require('path');
-const { GoDiscoveryCollector } = require('../../src/adaptive/go/go-discovery-collector');
+const { GoDiscoveryCollector } = require('../../languages/javascript/src/go/go-discovery-collector');
 
 describe('GoDiscoveryCollector', () => {
   test('parses Go metadata with tree-sitter', async () => {

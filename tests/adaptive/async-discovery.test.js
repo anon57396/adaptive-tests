@@ -1,7 +1,7 @@
 const path = require('path');
 
-const { DiscoveryEngine } = require('../../src/adaptive/discovery-engine');
-const { getTypeScriptDiscoveryEngine } = require('../../src/adaptive/typescript/discovery');
+const { DiscoveryEngine } = require('../../languages/javascript/src/discovery-engine');
+const { getTypeScriptDiscoveryEngine } = require('../../languages/javascript/src/typescript/discovery');
 
 const JS_FIXTURE_ROOT = path.resolve(__dirname, '../fixtures/async-await/javascript');
 const TS_FIXTURE_ROOT = path.resolve(__dirname, '../fixtures/async-await/typescript');

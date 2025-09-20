@@ -9,7 +9,7 @@ const path = require('path');
 
 console.log('🔧 Restoring good Calculator implementation...\n');
 
-const goodPath = 'examples/calculator/src/Calculator.js';
+const goodPath = 'languages/javascript/examples/calculator/src/Calculator.js';
 const backupPath = goodPath + '.backup';
 
 if (fs.existsSync(backupPath)) {

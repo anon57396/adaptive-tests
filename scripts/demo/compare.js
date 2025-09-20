@@ -88,8 +88,8 @@ async function main() {
   // Step 3: Refactor
   console.log('═'.repeat(60));
   console.log('\n🔧 SCENARIO 2: After moving Calculator.js...\n');
-  console.log('Moving: examples/calculator/src/Calculator.js');
-  console.log('    To: examples/calculator/lib/core/math/services/Calculator.js\n');
+  console.log('Moving: languages/javascript/examples/calculator/src/Calculator.js');
+  console.log('    To: languages/javascript/examples/calculator/lib/core/math/services/Calculator.js\n');
   run('node refactor.js', true);
 
   await pause();

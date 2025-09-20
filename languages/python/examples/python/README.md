@@ -3,7 +3,7 @@
 This mirrors the JavaScript calculator demo but uses pytest. The adaptive test searches for `TodoService` anywhere under the example directory.
 
 ```bash
-cd examples/python
+cd languages/python/examples/python
 python -m venv .venv
 source .venv/bin/activate  # Windows: .venv\\Scripts\\activate
 pip install -r requirements.txt

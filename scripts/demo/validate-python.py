@@ -109,7 +109,7 @@ def validate_python_example():
     log("\n🐍 Python Adaptive Tests Validation\n", Colors.BOLD)
 
     # Check if Python example exists
-    example_path = Path("examples/python")
+    example_path = Path("languages/python/examples/python")
     if not example_path.exists():
         log("❌ Python examples not found", Colors.RED)
         return False
@@ -191,7 +191,7 @@ def validate_python_multi_file():
     """Validate Python adaptive tests with multi-file refactoring"""
     log("\n📁 Python Multi-File Validation\n", Colors.BOLD)
 
-    example_path = Path("examples/python")
+    example_path = Path("languages/python/examples/python")
 
     # Test moving code between files
     src_dir = example_path / "src"

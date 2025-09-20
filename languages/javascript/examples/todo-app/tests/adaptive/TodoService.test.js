@@ -1,6 +1,6 @@
 const path = require('path');
-const { AdaptiveTest } = require('../../../../src/adaptive/test-base');
-const { getDiscoveryEngine } = require('../../../../src/adaptive/discovery-engine');
+const { AdaptiveTest } = require('../../../../src/test-base');
+const { getDiscoveryEngine } = require('../../../../src/discovery-engine');
 
 class TodoServiceAdaptiveTest extends AdaptiveTest {
   getTargetSignature() {

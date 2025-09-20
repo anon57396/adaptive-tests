@@ -1,5 +1,5 @@
 # Aggregated Python tooling required for validation demos
 # The python scenario in `npm run validate` installs these before executing pytest.
--r examples/python/requirements.txt
+-r languages/python/examples/python/requirements.txt
 pytest-asyncio>=0.20
 pytest-cov>=4.0

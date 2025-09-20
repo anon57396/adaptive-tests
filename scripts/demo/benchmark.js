@@ -185,7 +185,7 @@ function runBenchmark() {
   const fixTime = measureTime(() => {
     // Count files that need import updates
     const testFiles = [
-      'examples/calculator/tests/traditional/Calculator.test.js',
+      'languages/javascript/examples/calculator/tests/traditional/Calculator.test.js',
       // In real scenario, there would be many more test files
     ];
 

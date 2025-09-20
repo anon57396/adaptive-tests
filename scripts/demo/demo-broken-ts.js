@@ -7,8 +7,8 @@
 const fs = require('fs');
 const path = require('path');
 
-const workingPath = path.resolve('examples/typescript/src/Calculator.ts');
-const brokenPath = path.resolve('examples/typescript/src/BrokenCalculator.ts');
+const workingPath = path.resolve('languages/typescript/examples/typescript/src/Calculator.ts');
+const brokenPath = path.resolve('languages/typescript/examples/typescript/src/BrokenCalculator.ts');
 const backupPath = `${workingPath}.backup`;
 
 console.log('🐛 Breaking TypeScript Calculator implementation...\n');

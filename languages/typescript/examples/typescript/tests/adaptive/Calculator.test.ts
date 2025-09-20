@@ -1,5 +1,5 @@
 import path from 'path';
-import { TypeScriptDiscoveryEngine } from '../../../../src/adaptive/typescript/discovery';
+import { TypeScriptDiscoveryEngine } from '../../../../src/discovery';
 
 describe('TypeScript Calculator - Adaptive Tests', () => {
   const engine = new TypeScriptDiscoveryEngine(path.resolve(__dirname, '../..'));

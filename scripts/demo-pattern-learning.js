@@ -6,7 +6,7 @@
  * Shows how the tiny AI model learns from your discovery patterns
  */
 
-const { getDiscoveryEngine } = require('../src/adaptive');
+const { getDiscoveryEngine } = require('../languages/javascript/src');
 const path = require('path');
 const fs = require('fs');
 

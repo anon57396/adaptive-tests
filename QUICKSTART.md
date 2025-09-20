@@ -19,13 +19,13 @@ npm install --save-dev ts-node
 
 # Optional: Python / Java companions
 pip install adaptive-tests-py
-./packages/adaptive-tests-java/mvnw -pl core test
+./languages/java/mvnw -pl core test
 ```
 
 Want language parity?
 
 - Python: `pip install adaptive-tests-py`
-- Java (experimental): `./packages/adaptive-tests-java/mvnw -pl cli -am package`
+- Java (experimental): `./languages/java/mvnw -pl cli -am package`
 
 ## 2. Write Your First Adaptive Test
 

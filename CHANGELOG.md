@@ -75,7 +75,7 @@ All notable changes to this project are documented here. Dates are omitted when 
 
 ## [0.2.0]
 
-- Added Python example (`examples/python/`) and companion `adaptive-tests-py` package scaffold for PyPI
+- Added Python example (`languages/python/examples/python/`) and companion `adaptive-tests-py` package scaffold for PyPI
 - Documented cross-language recipes (React components, Node microservices, Prisma/TypeORM repositories)
 - Added troubleshooting tips for signature debugging and cache management
 - Added GitHub Actions workflow to publish npm and PyPI packages when a release is published

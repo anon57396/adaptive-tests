@@ -254,7 +254,7 @@ npm install --save-dev ts-node @types/node
 ls pom.xml
 
 # Install Java CLI
-cd packages/adaptive-tests-java
+cd languages/java
 mvn clean install
 ```
 

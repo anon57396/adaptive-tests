@@ -5,7 +5,7 @@
  */
 
 const { DiscoveryEngine, getDiscoveryEngine } = require('./discovery-engine');
-const { TypeScriptDiscoveryEngine, getTypeScriptDiscoveryEngine } = require('./typescript/discovery');
+const { TypeScriptDiscoveryEngine, getTypeScriptDiscoveryEngine } = require('../typescript/src/discovery');
 const { AdaptiveTest, adaptiveTest } = require('./test-base');
 const { ConfigLoader, DEFAULT_CONFIG } = require('./config-loader');
 const { ScoringEngine } = require('./scoring-engine');

@@ -103,10 +103,10 @@ DiscoverySignature.builder()
 
 ## Native Java CLI
 
-A Maven multi-module project lives under `packages/adaptive-tests-java/` and provides a pure-Java command line for teams that prefer JVM tooling.
+A Maven multi-module project lives under `languages/java/` and provides a pure-Java command line for teams that prefer JVM tooling.
 
 ```bash
-cd packages/adaptive-tests-java
+cd languages/java
 ./mvnw -pl core test
 ./mvnw -pl cli -am package
 

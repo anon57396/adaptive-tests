@@ -8,10 +8,10 @@
 
 const { performance } = require('perf_hooks');
 const path = require('path');
-const { getDiscoveryEngine } = require('../src/adaptive');
+const { getDiscoveryEngine } = require('../languages/javascript/src');
 
 async function measureDiscovery(name, options = {}) {
-  const { discover } = require('../src/adaptive');
+  const { discover } = require('../languages/javascript/src');
 
   const start = performance.now();
   const result = await discover({ name, type: 'class' });

@@ -3,8 +3,8 @@
 46461077        0 lrwxr-xr-x    1 jasonkempf       staff                  58 Sep 19 21:05 ./.venv/bin/python3 -> /Applications/Xcode.app/Contents/Developer/usr/bin/python3
 46461078        0 lrwxr-xr-x    1 jasonkempf       staff                   7 Sep 19 21:05 ./.venv/bin/python -> python3
 46461079        0 lrwxr-xr-x    1 jasonkempf       staff                   7 Sep 19 21:05 ./.venv/bin/python3.9 -> python3
-46988725        0 lrwxr-xr-x    1 jasonkempf       staff                  19 Sep 20 09:18 ./packages/adaptive-tests-py -> ../languages/python
-46988660        0 lrwxr-xr-x    1 jasonkempf       staff                  17 Sep 20 09:17 ./packages/adaptive-tests-java -> ../languages/java
+46988725        0 lrwxr-xr-x    1 jasonkempf       staff                  19 Sep 20 09:18 ./languages/python -> ../languages/python
+46988660        0 lrwxr-xr-x    1 jasonkempf       staff                  17 Sep 20 09:17 ./languages/java -> ../languages/java
 46986413        0 lrwxr-xr-x    1 jasonkempf       staff                  55 Sep 20 09:12 ./packages/webpack-plugin-adaptive -> ../languages/javascript/plugins/webpack-plugin-adaptive
 46986411        0 lrwxr-xr-x    1 jasonkempf       staff                  45 Sep 20 09:12 ./packages/jest-adaptive -> ../languages/javascript/plugins/jest-adaptive
 46986412        0 lrwxr-xr-x    1 jasonkempf       staff                  52 Sep 20 09:12 ./packages/vite-plugin-adaptive -> ../languages/javascript/plugins/vite-plugin-adaptive

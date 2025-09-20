@@ -5,7 +5,7 @@
 
 const path = require('path');
 const fs = require('fs');
-const { getDiscoveryEngine } = require('../../src/adaptive/discovery-engine');
+const { getDiscoveryEngine } = require('../../languages/javascript/src/discovery-engine');
 
 jest.setTimeout(15000);
 

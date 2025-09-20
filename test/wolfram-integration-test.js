@@ -5,8 +5,8 @@
 
 const path = require('path');
 const fs = require('fs');
-const { WolframDiscoveryCollector } = require('../src/adaptive/wolfram/wolfram-discovery-collector');
-const { WolframDiscoveryIntegration } = require('../src/adaptive/wolfram/wolfram-discovery-integration');
+const { WolframDiscoveryCollector } = require('../languages/javascript/src/wolfram/wolfram-discovery-collector');
+const { WolframDiscoveryIntegration } = require('../languages/javascript/src/wolfram/wolfram-discovery-integration');
 
 // Colors for output
 const colors = {

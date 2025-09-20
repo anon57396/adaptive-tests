@@ -52,9 +52,9 @@ function extractTestResults(output) {
 }
 
 const ROOT_DIR = path.join(__dirname, '..', '..');
-const PYTHON_EXAMPLE_DIR = path.join(ROOT_DIR, 'examples', 'python');
+const PYTHON_EXAMPLE_DIR = path.join(ROOT_DIR, 'languages', 'python', 'examples', 'python');
 const PYTHON_VENV_NAME = '.adaptive-validate-venv';
-const JAVA_PACKAGE_DIR = path.join(ROOT_DIR, 'packages', 'adaptive-tests-java');
+const JAVA_PACKAGE_DIR = path.join(ROOT_DIR, 'languages', 'java');
 const JAVA_RUNTIME_CACHE = path.join(ROOT_DIR, '.adaptive-validate-jdk');
 
 function quote(value) {
@@ -379,7 +379,7 @@ const tradResults3 = extractTestResults(trad3.output);
 console.log('Running adaptive tests...');
 // Clear cache first, then run with --no-cache
 runCommand('npx jest --clearCache', false);
-const adapt3 = runCommand('npx jest --config jest.examples.config.cjs examples/calculator/tests/adaptive --no-cache 2>&1', true);
+const adapt3 = runCommand('npx jest --config jest.examples.config.cjs languages/javascript/examples/calculator/tests/adaptive --no-cache 2>&1', true);
 const adaptResults3 = extractTestResults(adapt3.output);
 
 console.log(`\n  Traditional: ${trad3.success ? '✅' : '❌'} ${tradResults3.failed} test failures${tradResults3.hasTestFailure ? ' (Actual bugs!)' : ''}`);

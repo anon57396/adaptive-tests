@@ -1,5 +1,5 @@
 const path = require('path');
-const { PhpDiscoveryIntegration } = require('../../src/adaptive/php/php-discovery-integration');
+const { PhpDiscoveryIntegration } = require('../../languages/javascript/src/php/php-discovery-integration');
 
 describe('PhpDiscoveryIntegration', () => {
   test('parses PHP metadata and extracts candidates', async () => {

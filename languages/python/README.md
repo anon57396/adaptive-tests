@@ -451,7 +451,7 @@ This package includes complete examples:
 
 ### Calculator Example
 ```bash
-cd examples/calculator
+cd languages/javascript/examples/calculator
 pytest tests/
 ```
 

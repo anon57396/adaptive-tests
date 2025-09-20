@@ -6,9 +6,9 @@
 const { describe, it, expect, beforeAll, afterAll, beforeEach } = require('@jest/globals');
 const path = require('path');
 const fs = require('fs');
-const { WolframDiscoveryCollector } = require('../../../src/adaptive/wolfram/wolfram-discovery-collector');
-const { WolframDiscoveryIntegration } = require('../../../src/adaptive/wolfram/wolfram-discovery-integration');
-const { DiscoveryEngine } = require('../../../src/adaptive/discovery-engine');
+const { WolframDiscoveryCollector } = require('../../../languages/javascript/src/wolfram/wolfram-discovery-collector');
+const { WolframDiscoveryIntegration } = require('../../../languages/javascript/src/wolfram/wolfram-discovery-integration');
+const { DiscoveryEngine } = require('../../../languages/javascript/src/discovery-engine');
 
 describe('Wolfram Discovery Integration', () => {
   let collector;

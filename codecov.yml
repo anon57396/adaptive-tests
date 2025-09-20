@@ -42,4 +42,4 @@ ignore:
   - "**/benchmark.js"
   - "src/cli/**"
   - "src/**/discovery.js"
-  - "src/adaptive/test-base.js"
+  - "languages/javascript/src/test-base.js"

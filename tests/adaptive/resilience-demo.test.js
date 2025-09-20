@@ -6,7 +6,7 @@
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
-const { getDiscoveryEngine } = require('../../src/adaptive/discovery-engine');
+const { getDiscoveryEngine } = require('../../languages/javascript/src/discovery-engine');
 
 function copyDirectorySync(source, destination) {
   const stat = fs.statSync(source);

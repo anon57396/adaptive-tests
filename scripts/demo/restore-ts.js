@@ -7,8 +7,8 @@
 const fs = require('fs');
 const path = require('path');
 
-const relativeOldPath = 'examples/typescript/lib/core/math/services/Calculator.ts';
-const relativeNewPath = 'examples/typescript/src/Calculator.ts';
+const relativeOldPath = 'languages/typescript/examples/typescript/lib/core/math/services/Calculator.ts';
+const relativeNewPath = 'languages/typescript/examples/typescript/src/Calculator.ts';
 
 const oldPath = path.resolve(relativeOldPath);
 const newPath = path.resolve(relativeNewPath);
@@ -30,7 +30,7 @@ fs.unlinkSync(oldPath);
 
 const segments = ['lib/core/math/services', 'lib/core/math', 'lib/core', 'lib'];
 segments.forEach(segment => {
-  const dirPath = path.resolve('examples/typescript', segment);
+  const dirPath = path.resolve('languages/typescript/examples/typescript', segment);
   try {
     fs.rmdirSync(dirPath);
   } catch (error) {
@@ -38,4 +38,4 @@ segments.forEach(segment => {
   }
 });
 
-console.log('✅ TypeScript calculator restored to examples/typescript/src/Calculator.ts\n');
+console.log('✅ TypeScript calculator restored to languages/typescript/examples/typescript/src/Calculator.ts\n');

@@ -1,7 +1,7 @@
 const path = require('path');
 const childProcess = require('child_process');
-const processRunner = require('../../src/adaptive/process-runner');
-const { PythonDiscoveryIntegration } = require('../../src/adaptive/python/python-discovery-integration');
+const processRunner = require('../../languages/javascript/src/process-runner');
+const { PythonDiscoveryIntegration } = require('../../languages/javascript/src/python/python-discovery-integration');
 
 describe('PythonDiscoveryIntegration', () => {
   test('parses Python metadata when python3 is available', async () => {

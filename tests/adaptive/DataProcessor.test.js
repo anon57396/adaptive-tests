@@ -4,7 +4,7 @@
  */
 
 const path = require('path');
-const { getDiscoveryEngine } = require('../../src/adaptive/discovery-engine');
+const { getDiscoveryEngine } = require('../../languages/javascript/src/discovery-engine');
 
 const engine = getDiscoveryEngine(path.resolve(__dirname, '../..'));
 

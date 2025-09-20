@@ -1,0 +1,13 @@
+{
+  "name": "@adaptive-tests/javascript",
+  "private": true,
+  "version": "0.3.0",
+  "main": "src/index.js",
+  "bin": {
+    "adaptive-tests": "cli/init.js"
+  },
+  "scripts": {
+    "test": "../../node_modules/.bin/jest --config ../../package.json",
+    "lint": "../../node_modules/.bin/eslint src/**/*.js"
+  }
+}

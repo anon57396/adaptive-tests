@@ -19,7 +19,7 @@ npm test            # runs JS + TS suites through ts-jest
 Want to focus on the TypeScript suite? Use Jest’s path filtering:
 
 ```bash
-npx jest examples/typescript/tests --runInBand
+npx jest languages/typescript/examples/typescript/tests --runInBand
 ```
 
 ## Use it in your own project

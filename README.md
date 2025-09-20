@@ -598,7 +598,7 @@ When you are ready to publish a new release:
 3. Optionally run `npm run clean:artifacts` before zipping or sharing the repo snapshot.
 4. Update [`CHANGELOG.md`](CHANGELOG.md) with release notes.
 5. `npm version <patch|minor|major>` followed by `npm publish`.
-6. `cd packages/adaptive-tests-py && python -m build && python -m twine upload dist/*`.
+6. `cd languages/python && python -m build && python -m twine upload dist/*`.
 
 ---
 

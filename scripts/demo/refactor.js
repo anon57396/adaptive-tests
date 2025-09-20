@@ -10,8 +10,8 @@ const path = require('path');
 
 console.log('🔧 Refactoring: Moving Calculator.js to a completely different location...\n');
 
-const oldPath = 'examples/calculator/src/Calculator.js';
-const newPath = 'examples/calculator/lib/core/math/services/Calculator.js';
+const oldPath = 'languages/javascript/examples/calculator/src/Calculator.js';
+const newPath = 'languages/javascript/examples/calculator/lib/core/math/services/Calculator.js';
 
 // Create new directory structure
 const newDir = path.dirname(newPath);

@@ -4,7 +4,7 @@ const { discover } = require('adaptive-tests');
  * Adaptive Tests for Calculator
  *
  * These tests will automatically find Calculator even if it moves.
- * Generated from: examples/calculator/src/Calculator.js
+ * Generated from: languages/javascript/examples/calculator/src/Calculator.js
  */
 
 describe('Calculator', () => {
@@ -25,7 +25,7 @@ describe('Calculator', () => {
         'getHistory',
         'clearHistory'
       ]
-    }, './examples/calculator');
+    }, './languages/javascript/examples/calculator');
   });
 
   test('should discover Calculator', () => {

@@ -15,10 +15,10 @@ const targets = [
   { relativePath: '.venv', description: 'Project virtualenv' },
   { relativePath: '.test-discovery-cache.json', description: 'Discovery cache' },
   { relativePath: 'node_modules/.cache', description: 'Node build caches' },
-  { relativePath: 'examples/python/.adaptive-validate-venv', description: 'Validation virtualenv' },
-  { relativePath: 'packages/vite-plugin-adaptive/.venv', description: 'Local virtualenv (vite plugin)' },
-  { relativePath: 'packages/webpack-plugin-adaptive/.venv', description: 'Local virtualenv (webpack plugin)' },
-  { relativePath: 'packages/jest-adaptive/.turbo', description: 'Build cache (jest plugin)' },
+  { relativePath: 'languages/python/examples/python/.adaptive-validate-venv', description: 'Validation virtualenv' },
+  { relativePath: 'languages/javascript/plugins/vite-plugin-adaptive/.venv', description: 'Local virtualenv (vite plugin)' },
+  { relativePath: 'languages/javascript/plugins/webpack-plugin-adaptive/.venv', description: 'Local virtualenv (webpack plugin)' },
+  { relativePath: 'languages/javascript/plugins/jest-adaptive/.turbo', description: 'Build cache (jest plugin)' },
 ];
 
 let removed = 0;

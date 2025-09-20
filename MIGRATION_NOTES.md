@@ -19,8 +19,8 @@ All symlinks have been successfully removed and replaced with temporary shim dir
 - `./packages/jest-adaptive` → Shim forwarding to `languages/javascript/plugins/jest-adaptive`
 - `./packages/vite-plugin-adaptive` → Shim forwarding to `languages/javascript/plugins/vite-plugin-adaptive`
 - `./packages/webpack-plugin-adaptive` → Shim forwarding to `languages/javascript/plugins/webpack-plugin-adaptive`
-- `./packages/adaptive-tests-py` → Placeholder shim (Python package)
-- `./packages/adaptive-tests-java` → Placeholder shim (Java package)
+- `./languages/python` → Placeholder shim (Python package)
+- `./languages/java` → Placeholder shim (Java package)
 
 #### Source Symlinks → Node.js Shims:
 - `./src/adaptive` → Shim forwarding to `languages/javascript/src`

@@ -248,7 +248,7 @@ npx adaptive-tests enable-invisible --undo  # Disable
 This package includes complete examples:
 
 ### Calculator Example
-- Location: `./examples/calculator/`
+- Location: `./languages/javascript/examples/calculator/`
 - Demonstrates: Basic class discovery, method testing
 - Run: `npm run test:calculator`
 

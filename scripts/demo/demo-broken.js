@@ -10,8 +10,8 @@ const path = require('path');
 
 console.log('🐛 Breaking Calculator Implementation (not moving it)...\n');
 
-const goodPath = 'examples/calculator/src/Calculator.js';
-const brokenPath = 'examples/calculator/src/BrokenCalculator.js';
+const goodPath = 'languages/javascript/examples/calculator/src/Calculator.js';
+const brokenPath = 'languages/javascript/examples/calculator/src/BrokenCalculator.js';
 
 // Backup good calculator
 if (fs.existsSync(goodPath)) {

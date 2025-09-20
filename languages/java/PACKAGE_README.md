@@ -15,7 +15,7 @@ Adaptive Tests for Java brings zero-runtime discovery to JVM projects. It mirror
 ## Quick Start
 
 ```bash
-cd packages/adaptive-tests-java
+cd languages/java
 ./mvnw -pl core test     # verify the engine
 ./mvnw -pl cli -am package
 java -jar cli/target/adaptive-tests-java-cli-0.1.0-SNAPSHOT-shaded.jar --help
