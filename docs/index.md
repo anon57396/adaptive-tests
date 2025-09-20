@@ -30,7 +30,6 @@ test('finds my service automatically', async () => {
 
 ### Getting Started
 
-- [Quick Start Guide](QUICK_START.md)
 - [How It Works](HOW_IT_WORKS.md)
 - [Migration Guide](MIGRATION_GUIDE.md)
 - [Best Practices](BEST_PRACTICES.md)
@@ -79,7 +78,7 @@ const Calculator = await discover({ name: 'Calculator' });
 
 - **🔍 Smart Discovery** - Finds classes, functions, and modules by structure
 - **🚀 Zero Configuration** - Works out of the box with Jest
-- **🌍 Multi-Language** - JavaScript, TypeScript, Python, Java, PHP, Ruby, Go, Rust
+- **🌍 Multi-language** - Core JS/TS; others beta/experimental
 - **⚡ Fast** - AST-based parsing with intelligent caching
 - **🛠️ VS Code Extension** - Visual discovery tools and scaffolding
 - **🔄 CI/CD Ready** - GitHub Actions integration
@@ -94,15 +93,17 @@ const Calculator = await discover({ name: 'Calculator' });
 
 | Language | AST Parser | Status |
 |----------|------------|--------|
-| JavaScript | Babel | ✅ Full Support |
-| TypeScript | TypeScript Compiler | ✅ Full Support |
-| Python | Native ast module | ✅ Full Support |
-| Java | JavaParser | ✅ Full Support |
-| PHP | token_get_all / nikic/php-parser | ✅ Full Support |
-| Ruby | Ripper | ✅ Full Support |
-| Go | go/parser | ✅ Full Support |
-| Rust | syn | ✅ Full Support |
-| Wolfram | CodeParse | ✅ Full Support |
+| JavaScript | Babel | ✅ Stable |
+| TypeScript | TypeScript Compiler | ✅ Stable |
+| Python | Native ast module | 🟡 Beta |
+| Java | JavaParser | 🟡 Beta |
+| PHP | token_get_all / nikic/php-parser | 🟡 Beta |
+| Ruby | Ripper | 🧪 Experimental |
+| Go | go/parser (via tree‑sitter bindings) | 🧪 Experimental |
+| Rust | Lezer (rust) | 🧪 Experimental |
+| Wolfram | CodeParse | 🧪 Experimental |
+
+Status legend: Stable = production‑ready; Beta = broadly usable with caveats; Experimental = early support, subject to change.
 
 ## 🤝 Contributing
 

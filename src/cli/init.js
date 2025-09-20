@@ -245,7 +245,8 @@ async function gatherSetupOptions(context) {
   let overwriteConfig = !context.configExists;
   let generateExamples = true;
   let sampleName = 'ExampleService';
-  let enableInvisibleMode = true; // Default to enabled for better DX
+  // Opt-in: invisible mode is experimental and off by default
+  let enableInvisibleMode = false;
 
   if (interactive) {
     const prompter = createPrompter();
@@ -271,8 +272,8 @@ async function gatherSetupOptions(context) {
 
     // Ask about invisible mode
     enableInvisibleMode = await prompter.askYesNo(
-      'Enable invisible mode? (Makes existing tests refactor-safe automatically)',
-      true
+      'Enable invisible mode? (Experimental – JS/TS only, opt-in)',
+      false
     );
 
     if (context.configExists) {

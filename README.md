@@ -40,9 +40,9 @@ If this project helps you, please consider supporting it via the Sponsor button 
 
 ## <a id="ci-cd-integration"></a>🚀 CI/CD Integration
 
-You can run adaptive tests in CI using either the official GitHub Action (if available) or a standard Node.js job.
+Run adaptive tests in CI using the official GitHub Action, or use a simple Node.js job if your org restricts Marketplace actions.
 
-### Option A: Official Action (if available)
+### Option A: Official Action
 
 ```yaml
 - uses: adaptive-tests-action/adaptive-tests@v1
@@ -87,7 +87,7 @@ Experience the power of adaptive testing with our VS Code extension currently in
 - **🎯 Smart Context Menus**: "Scaffold Test" for new files, "Open Test" for files with existing tests
 - **💡 CodeLens Integration**: See test hints directly in your code
 - **📊 Discovery Tree View**: Browse discovery results in the activity bar
-- **🌐 Multi-Language Support**: JavaScript, TypeScript, Python, Java, PHP
+- **🌐 Language Support**: Core JS/TS today; Beta for Python/Java/PHP; others experimental (see docs for status)
 
 ### 🛠️ Development Setup
 
@@ -120,7 +120,7 @@ The extension will be available on the VS Code Marketplace. For now, use the dev
 
 ## Quick Start
 
-### 🎭 New: Invisible Mode (Zero Learning Curve)
+### 🎭 Invisible Mode (Experimental, JS/TS only)
 
 **Broken import? One command fixes it:**
 
@@ -128,7 +128,7 @@ The extension will be available on the VS Code Marketplace. For now, use the dev
 npx adaptive-tests enable-invisible
 ```
 
-Your existing tests now automatically adapt when imports break during refactoring. No code changes. No learning required.
+Your existing tests can automatically adapt when imports break during refactoring. No code changes. Opt‑in only. JS/TS test runners.
 
 **When you see:**
 
@@ -143,7 +143,7 @@ npx adaptive-tests enable-invisible
 npm test  # Tests now pass
 ```
 
-Invisible mode auto-detects your test framework (Jest/Vitest/Mocha) and patches it to use adaptive discovery when `require()` fails. Perfect for vibe coders who want refactor-safe tests without complexity.
+Invisible mode auto-detects your test framework (Jest/Vitest/Mocha) and patches it to use adaptive discovery when `require()` fails. It’s experimental and intended as a convenience; prefer the explicit `discover()` API for new tests.
 
 [📖 Full invisible mode guide →](docs/getting-started-invisible.md)
 
@@ -229,9 +229,9 @@ const engine = getDiscoveryEngine(process.cwd());
 
 Adaptive Tests provides three layers of functionality to match your needs:
 
-### 🎭 Layer 1: Invisible Mode (Zero Learning)
+### 🎭 Layer 1: Invisible Mode (Experimental)
 
-**Perfect for:** Getting started, existing codebases, vibe coders
+**Perfect for:** Quick triage on existing suites (JS/TS). Prefer `discover()` for new tests.
 
 ```bash
 npx adaptive-tests enable-invisible
@@ -455,20 +455,28 @@ The script runs four scenarios:
 
 Traditional CI requires complex dependency tracking to run only affected tests. **Adaptive tests flip this paradigm** — since they're resilient to refactoring, you can run the entire suite without fear of false failures from moved files!
 
-### Our Two-Track Approach
-
-1. **Traditional Tests** → Run only changed tests for quick feedback
-2. **Adaptive Tests** → Run ALL of them (they won't break from refactoring!)
+### Simple CI job
 
 ```yaml
-# In .github/workflows/ci.yml
+steps:
+  - uses: actions/checkout@v4
+  - uses: actions/setup-node@v5
+    with:
+      node-version: '20'
+      cache: 'npm'
+  - run: npm ci
+  - run: npm run test:adaptive
+```
+
+### Optional two-track approach
+
+If you still run traditional tests, keep them fast by selecting changed tests, and run the full adaptive suite for confidence:
+
+```yaml
 jobs:
   traditional-tests:
-    # Quick feedback on direct changes
     run: npx jest --onlyChanged
-
   adaptive-tests:
-    # Comprehensive coverage, resilient to refactoring
     run: npm run test:adaptive
 ```
 
@@ -493,7 +501,7 @@ You don't need complex test selection for adaptive tests because:
 
 ### Getting Started
 
-- [Quick Start Guide](docs/QUICK_START.md)
+- [Quick Start Guide](QUICKSTART.md)
 - [Migration Guide](docs/MIGRATION_GUIDE.md)
 - [Troubleshooting Guide](docs/TROUBLESHOOTING.md)
 - [Common Issues](docs/COMMON_ISSUES.md)
@@ -570,7 +578,7 @@ npm run dev        # Start development mode
 ### Project Health
 
 - ✅ Tests running in CI with coverage
-- ✅ Multi-language support (JS, TS, Python, Java, PHP)
+- ✅ Core: JS/TS; Beta: Python/Java/PHP; Experimental: Go/Rust/Ruby/Wolfram
 - ✅ Codecov reporting and GitHub Actions CI/CD
 
 ## Contributing & Support

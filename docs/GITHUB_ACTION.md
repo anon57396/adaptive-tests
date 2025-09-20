@@ -3,7 +3,7 @@
 [![GitHub Marketplace](https://img.shields.io/badge/Marketplace-Adaptive%20Tests-green?logo=github)](https://github.com/marketplace/actions/adaptive-tests)
 [![Action Status](https://github.com/anon57396/adaptive-tests/workflows/CI/badge.svg)](https://github.com/anon57396/adaptive-tests/actions)
 
-> Note: The official action is maintained in a separate repository. If it is unavailable in your environment or organization, use the manual setup shown below to run adaptive tests in CI.
+Use the official Marketplace action to run adaptive tests in CI. If your organization restricts Marketplace actions, use the manual Node.js job shown below.
 
 ## Quick Start
 

@@ -24,7 +24,7 @@ Generate adaptive test files with incredible flexibility:
 - **File Scaffolding**: Right-click any file to scaffold its individual test
 - **Command Palette**: Use `Adaptive Tests: Scaffold Test` command
 - **Auto-open**: Automatically opens generated test files
-- **Multiple Languages**: Supports JavaScript, TypeScript, PHP, Java, and Python
+- **Language Support**: JS/TS primary. Python/Java/PHP in beta. See main docs for status.
 
 #### 🎯 Smart Test Detection
 

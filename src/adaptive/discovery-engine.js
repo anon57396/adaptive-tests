@@ -513,7 +513,7 @@ class DiscoveryEngine {
       throw new Error(
         'discoverTarget requires a signature object.\n' +
         'Example: { name: "Calculator", type: "class" }\n' +
-        'See docs/QUICK_START.md for examples.'
+        'See QUICKSTART.md for examples.'
       );
     }
 
