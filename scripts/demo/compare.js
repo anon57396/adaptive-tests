@@ -5,7 +5,7 @@
  * Run this to see the difference in real-time
  */
 
-const { execSync } = require('child_process');
+const { spawnSync } = require('child_process');
 const readline = require('readline');
 
 const rl = readline.createInterface({
@@ -13,19 +13,45 @@ const rl = readline.createInterface({
   output: process.stdout
 });
 
-function run(cmd, silent = false) {
-  try {
-    const result = execSync(cmd, {
-      encoding: 'utf8',
-      stdio: silent ? 'pipe' : 'inherit'
-    });
-    return { success: true, output: result };
-  } catch (error) {
+const ALLOWED_COMMANDS = new Set(['npm', 'node']);
+
+function parseCommand(cmd) {
+  return cmd.trim().split(/\s+/).filter(Boolean);
+}
+
+function run(cmd, silent = false, options = {}) {
+  const [command, ...args] = parseCommand(cmd);
+  if (!command || !ALLOWED_COMMANDS.has(command)) {
+    throw new Error(`Command ${command || '<empty>'} is not permitted.`);
+  }
+
+  const result = spawnSync(command, args, {
+    shell: false,
+    encoding: 'utf8',
+    stdio: silent ? 'pipe' : 'inherit',
+    ...options
+  });
+
+  if (result.error) {
     return {
       success: false,
-      output: error.stdout || error.stderr || error.message
+      output: result.error.message
     };
   }
+
+  if (result.status !== 0) {
+    const output = result.stdout || result.stderr || '';
+    return {
+      success: false,
+      output: typeof output === 'string' ? output : output.toString()
+    };
+  }
+
+  const output = result.stdout || '';
+  return {
+    success: true,
+    output: typeof output === 'string' ? output : output.toString()
+  };
 }
 
 function pause() {

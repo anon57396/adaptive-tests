@@ -7,7 +7,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { execSync } = require('child_process');
+const { spawnSync } = require('child_process');
 const readline = require('readline');
 
 const rl = readline.createInterface({
@@ -63,6 +63,22 @@ function question(prompt) {
   return new Promise(resolve => {
     rl.question(prompt, resolve);
   });
+}
+
+const ALLOWED_COMMANDS = new Set(['npm']);
+
+function runCommand(command, args = [], options = {}) {
+  if (!ALLOWED_COMMANDS.has(command)) {
+    throw new Error(`Command ${command} is not permitted.`);
+  }
+
+  const result = spawnSync(command, args, { shell: false, stdio: 'inherit', ...options });
+  if (result.error) {
+    throw result.error;
+  }
+  if (result.status !== 0) {
+    throw new Error(`${command} ${args.join(' ')} exited with code ${result.status}`);
+  }
 }
 
 async function main() {
@@ -133,12 +149,9 @@ async function main() {
   log('\n📦 Installing dependencies...', 'cyan');
 
   try {
-    execSync('npm install', {
-      cwd: projectPath,
-      stdio: 'inherit'
-    });
+    runCommand('npm', ['install'], { cwd: projectPath });
   } catch (error) {
-    log('⚠️  Failed to install dependencies automatically', 'yellow');
+    log(`⚠️  Failed to install dependencies automatically (${error.message})`, 'yellow');
     log('   Please run "npm install" manually', 'yellow');
   }
 

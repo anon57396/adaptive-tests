@@ -68,19 +68,23 @@ function runCommand(command, args = [], description, options = {}) {
   return true;
 }
 
-function checkCommand(command, args, name) {
+function commandExists(command, args = []) {
   if (!ALLOWED_COMMANDS.has(command)) {
     throw new Error(`Command ${command} is not permitted by dev-setup allowlist.`);
   }
 
   const result = spawnSync(command, args, { stdio: 'ignore', shell: false });
-  if (result.error || result.status !== 0) {
-    log(`✗ ${name} not installed`, 'yellow');
-    return false;
+  return !result.error && result.status === 0;
+}
+
+function checkCommand(command, args, name) {
+  if (commandExists(command, args)) {
+    log(`✓ ${name} installed`, 'green');
+    return true;
   }
 
-  log(`✓ ${name} installed`, 'green');
-  return true;
+  log(`✗ ${name} not installed`, 'yellow');
+  return false;
 }
 
 async function main() {
@@ -104,16 +108,21 @@ async function main() {
     { command: 'node', args: ['--version'], name: 'Node.js' }
   ];
 
-  const optionalTools = [
-    { command: 'python3', args: ['--version'], name: 'Python 3', key: 'python' },
-    { command: 'py', args: ['--version'], name: 'Python (Windows launcher)', key: 'python' },
-    { command: 'python', args: ['--version'], name: 'Python', key: 'python' },
-    { command: 'php', args: ['--version'], name: 'PHP', key: 'php' },
-    { command: 'ruby', args: ['--version'], name: 'Ruby', key: 'ruby' },
-    { command: 'go', args: ['version'], name: 'Go', key: 'go' },
-    { command: 'rustc', args: ['--version'], name: 'Rust', key: 'rust' },
-    { command: 'java', args: ['-version'], name: 'Java', key: 'java' },
-    { command: 'mvn', args: ['-version'], name: 'Maven', key: 'maven' }
+  const optionalToolGroups = [
+    {
+      name: 'Python',
+      variants: [
+        { command: 'python3', args: ['--version'], label: 'Python 3' },
+        { command: 'py', args: ['--version'], label: 'Python (Windows launcher)' },
+        { command: 'python', args: ['--version'], label: 'Python' }
+      ]
+    },
+    { name: 'PHP', variants: [{ command: 'php', args: ['--version'], label: 'PHP' }] },
+    { name: 'Ruby', variants: [{ command: 'ruby', args: ['--version'], label: 'Ruby' }] },
+    { name: 'Go', variants: [{ command: 'go', args: ['version'], label: 'Go' }] },
+    { name: 'Rust', variants: [{ command: 'rustc', args: ['--version'], label: 'rustc' }] },
+    { name: 'Java', variants: [{ command: 'java', args: ['-version'], label: 'Java' }] },
+    { name: 'Maven', variants: [{ command: 'mvn', args: ['-version'], label: 'Maven' }] }
   ];
 
   let allRequired = true;
@@ -129,15 +138,17 @@ async function main() {
   }
 
   log('\nOptional language support:', 'bold');
-  const optionalSeen = new Set();
-  for (const tool of optionalTools) {
-    const key = tool.key || tool.name;
-    if (optionalSeen.has(key)) {
-      continue;
+  for (const group of optionalToolGroups) {
+    let available = false;
+    for (const variant of group.variants) {
+      if (commandExists(variant.command, variant.args)) {
+        log(`✓ ${group.name} available via ${variant.label}`, 'green');
+        available = true;
+        break;
+      }
     }
-    const available = checkCommand(tool.command, tool.args, tool.name);
-    if (available) {
-      optionalSeen.add(key);
+    if (!available) {
+      log(`⚠️  ${group.name} tooling not detected (optional)`, 'yellow');
     }
   }
 

@@ -10,7 +10,7 @@
  * - Memory usage
  */
 
-const { execSync } = require('child_process');
+const { spawnSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
@@ -26,6 +26,38 @@ const COLORS = {
 
 function log(message, color = '') {
   console.log(color + message + COLORS.reset);
+}
+
+const ALLOWED_COMMANDS = new Set(['node', 'npm']);
+
+function runCommand(command, args = [], options = {}) {
+  if (!ALLOWED_COMMANDS.has(command)) {
+    throw new Error(`Command ${command} is not permitted.`);
+  }
+
+  const result = spawnSync(command, args, {
+    shell: false,
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+    ...options
+  });
+
+  if (result.error) {
+    return { success: false, output: result.error.message };
+  }
+
+  const stdout = result.stdout || '';
+  const stderr = result.stderr || '';
+  const output = `${stdout}${stderr}`;
+  return { success: result.status === 0, output };
+}
+
+function ensureSuccess(command, args = [], options = {}) {
+  const outcome = runCommand(command, args, options);
+  if (!outcome.success) {
+    throw new Error(`Command ${command} ${args.join(' ')} failed:\n${outcome.output}`);
+  }
+  return outcome.output;
 }
 
 function measureTime(fn) {
@@ -61,8 +93,8 @@ function runBenchmark() {
 
   // Restore original state
   log('🔧 Preparing benchmark environment...', COLORS.yellow);
-  execSync('node restore.js 2>&1', { encoding: 'utf8' });
-  execSync('node restore-broken.js 2>&1', { encoding: 'utf8' });
+  ensureSuccess('node', ['restore.js']);
+  ensureSuccess('node', ['restore-broken.js']);
 
   // Benchmark 1: Normal test execution
   log('\n📊 Test 1: Normal Execution Speed', COLORS.cyan);
@@ -71,11 +103,8 @@ function runBenchmark() {
   // Traditional tests - normal
   const memBefore = getMemoryUsage();
   const tradNormal = measureTime(() => {
-    try {
-      return execSync('npm run test:traditional 2>&1', { encoding: 'utf8' });
-    } catch (e) {
-      return e.stdout || e.message;
-    }
+    const outcome = runCommand('npm', ['run', 'test:traditional']);
+    return outcome.output;
   });
   results.traditional.beforeRefactor = {
     time: tradNormal.ms,
@@ -86,15 +115,12 @@ function runBenchmark() {
   // Adaptive tests - normal (includes discovery)
   const memBeforeAdaptive = getMemoryUsage();
   const adaptNormal = measureTime(() => {
-    try {
-      // Clear cache to measure full discovery
-      if (fs.existsSync('.test-discovery-cache.json')) {
-        fs.unlinkSync('.test-discovery-cache.json');
-      }
-      return execSync('npm run test:adaptive 2>&1', { encoding: 'utf8' });
-    } catch (e) {
-      return e.stdout || e.message;
+    // Clear cache to measure full discovery
+    if (fs.existsSync('.test-discovery-cache.json')) {
+      fs.unlinkSync('.test-discovery-cache.json');
     }
+    const outcome = runCommand('npm', ['run', 'test:adaptive']);
+    return outcome.output;
   });
   results.adaptive.beforeRefactor = {
     time: adaptNormal.ms,
@@ -104,11 +130,8 @@ function runBenchmark() {
 
   // Adaptive tests - cached (second run)
   const adaptCached = measureTime(() => {
-    try {
-      return execSync('npm run test:adaptive 2>&1', { encoding: 'utf8' });
-    } catch (e) {
-      return e.stdout || e.message;
-    }
+    const outcome = runCommand('npm', ['run', 'test:adaptive']);
+    return outcome.output;
   });
 
   results.adaptive.discoveryOverhead = adaptNormal.ms - adaptCached.ms;
@@ -124,15 +147,12 @@ function runBenchmark() {
   log('\n📊 Test 2: After Refactoring', COLORS.cyan);
   log('─'.repeat(40), COLORS.cyan);
 
-  execSync('node refactor.js 2>&1', { encoding: 'utf8' });
+  ensureSuccess('node', ['refactor.js']);
 
   // Traditional tests - after refactor (will fail)
   const tradRefactored = measureTime(() => {
-    try {
-      return execSync('npm run test:traditional 2>&1', { encoding: 'utf8' });
-    } catch (e) {
-      return e.stdout || e.message;
-    }
+    const outcome = runCommand('npm', ['run', 'test:traditional']);
+    return outcome.output;
   });
   results.traditional.afterRefactor = {
     time: tradRefactored.ms,
@@ -142,15 +162,12 @@ function runBenchmark() {
 
   // Adaptive tests - after refactor (will pass)
   const adaptRefactored = measureTime(() => {
-    try {
-      // Clear cache to force re-discovery
-      if (fs.existsSync('.test-discovery-cache.json')) {
-        fs.unlinkSync('.test-discovery-cache.json');
-      }
-      return execSync('npm run test:adaptive 2>&1', { encoding: 'utf8' });
-    } catch (e) {
-      return e.stdout || e.message;
+    // Clear cache to force re-discovery
+    if (fs.existsSync('.test-discovery-cache.json')) {
+      fs.unlinkSync('.test-discovery-cache.json');
     }
+    const outcome = runCommand('npm', ['run', 'test:adaptive']);
+    return outcome.output;
   });
   results.adaptive.afterRefactor = {
     time: adaptRefactored.ms,
@@ -192,7 +209,7 @@ function runBenchmark() {
   log(`  Adaptive: 0s (no fixes needed!)`, COLORS.green);
 
   // Restore state
-  execSync('node restore.js 2>&1', { encoding: 'utf8' });
+  ensureSuccess('node', ['restore.js']);
 
   // Summary
   console.log('\n' + '='.repeat(60));
