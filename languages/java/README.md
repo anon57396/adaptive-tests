@@ -1,688 +1,149 @@
-# Adaptive Tests for Java
+# Java Quick Start
 
-[![Maven Central](https://img.shields.io/maven-central/v/io.adaptivetests/adaptive-tests-java.svg)](https://central.sonatype.com/artifact/io.adaptivetests/adaptive-tests-java)
-[![Coverage](https://img.shields.io/codecov/c/github/anon57396/adaptive-tests?label=coverage)](https://codecov.io/gh/anon57396/adaptive-tests)
+Adaptive Tests now ships with a zero-runtime discovery engine and scaffolding workflow for Java codebases. This guide walks through the supported tooling and recommended setup.
 
-> **AI-ready testing infrastructure for Java** - Tests that survive refactoring without breaking
+## Requirements
 
-When AI agents reshape your Java codebase, traditional imports break. Adaptive Tests uses **zero-runtime discovery** powered by reflection and bytecode analysis to find code by structure, not import paths. Your tests adapt as code evolves.
+- Node.js 18+
+- Java 17+
+- Maven 3.9+ (for building the native Java CLI)
 
-**Stop fixing broken imports.** Move classes, rename packages, refactor layers—adaptive tests still find the code they care about.
+## Scaffolding JUnit Tests from Node.js
 
----
+The Java bridge is integrated into the primary CLI. Given a `.java` source file, the scaffolder analyses the AST and emits a JUnit 5 shell in the appropriate test directory.
 
-## Quick Start
-
-### Maven
-
-```xml
-<dependency>
-    <groupId>io.adaptivetests</groupId>
-    <artifactId>adaptive-tests-java</artifactId>
-    <version>0.1.0</version>
-    <scope>test</scope>
-</dependency>
+```bash
+# From the repository root
+npx adaptive-tests scaffold languages/java/examples/spring-boot/src/main/java/com/example/calculator/Calculator.java
 ```
 
-### Gradle
+By default the generated test lands in `src/test/java` and mirrors the package of the production class. Methods discovered in the source file produce individual `@Test` blocks, seeded with sensible assertion placeholders.
 
-```groovy
-testImplementation 'io.adaptivetests:adaptive-tests-java:0.1.0'
+You can scaffold multiple Java targets at once:
+
+```bash
+npx adaptive-tests scaffold "src/main/java/**/*.java" --all-exports
 ```
 
-### Basic Usage
+CLI flags such as `--output-dir`, `--all-exports`, and `--force` behave the same way they do for JavaScript/TypeScript targets.
+
+## Writing Adaptive Tests with JUnit 5
+
+Subclass `AdaptiveTestBase` from the core package to keep your tests resilient to refactors. The base discovers the target before any assertions run and exposes helpers to load the class, create instances, and hook into discovery events.
 
 ```java
-import io.adaptivetests.java.discovery.JavaDiscoveryEngine;
-import io.adaptivetests.java.discovery.DiscoverySignature;
-import io.adaptivetests.java.discovery.DiscoveryResult;
+import static org.junit.jupiter.api.Assertions.*;
 
-public class UserServiceTest {
-    private JavaDiscoveryEngine engine = new JavaDiscoveryEngine("src/main/java");
+import io.adaptivetests.java.discovery.Signature;
+import io.adaptivetests.java.testing.AdaptiveTestBase;
+import java.util.List;
+import org.junit.jupiter.api.Test;
 
-    @Test
-    public void testUserService() throws Exception {
-        // Discover UserService by signature
-        DiscoverySignature signature = DiscoverySignature.builder()
-            .name("UserService")
-            .type("class")
-            .methods(List.of("findById", "create", "update"))
-            .annotations(List.of("@Service", "@Component"))
-            .build();
-
-        DiscoveryResult result = engine.discover(signature);
-        Class<?> userServiceClass = result.getTargetClass();
-
-        // Test the discovered service
-        Object userService = userServiceClass.getDeclaredConstructor().newInstance();
-        Method findById = userServiceClass.getMethod("findById", Long.class);
-
-        Object user = findById.invoke(userService, 1L);
-        assertNotNull(user);
-    }
-}
-```
-
-### JUnit 5 Integration
-
-```java
-import io.adaptivetests.java.junit.AdaptiveTest;
-import io.adaptivetests.java.junit.DiscoverTarget;
-
-@AdaptiveTest
-public class CalculatorTest {
-
-    @DiscoverTarget(
-        name = "Calculator",
-        methods = {"add", "subtract", "multiply", "divide"}
-    )
-    private Class<?> calculatorClass;
-
-    @Test
-    public void testAddition() throws Exception {
-        Object calculator = calculatorClass.getDeclaredConstructor().newInstance();
-        Method add = calculatorClass.getMethod("add", int.class, int.class);
-
-        int result = (Integer) add.invoke(calculator, 2, 3);
-        assertEquals(5, result);
-    }
-
-    @Test
-    public void testDivisionByZero() {
-        assertThrows(ArithmeticException.class, () -> {
-            Object calculator = calculatorClass.getDeclaredConstructor().newInstance();
-            Method divide = calculatorClass.getMethod("divide", int.class, int.class);
-            divide.invoke(calculator, 5, 0);
-        });
-    }
-}
-```
-
----
-
-## Core API
-
-### `JavaDiscoveryEngine`
-
-Primary engine for finding Java classes by structure:
-
-```java
-import io.adaptivetests.java.discovery.JavaDiscoveryEngine;
-
-// Create engine with default settings
-JavaDiscoveryEngine engine = new JavaDiscoveryEngine();
-
-// Create with custom root path
-JavaDiscoveryEngine engine = new JavaDiscoveryEngine("src/main/java");
-
-// Create with configuration
-DiscoveryConfig config = DiscoveryConfig.builder()
-    .maxDepth(5)
-    .includePatterns(List.of("**/service/**", "**/controller/**"))
-    .excludePatterns(List.of("**/test/**"))
-    .enableCache(true)
-    .build();
-
-JavaDiscoveryEngine engine = new JavaDiscoveryEngine("src", config);
-```
-
-### `DiscoverySignature`
-
-Flexible signature builder for detailed discovery:
-
-```java
-// Simple class discovery
-DiscoverySignature signature = DiscoverySignature.builder()
-    .name("UserService")
-    .build();
-
-// Detailed signature with methods and annotations
-DiscoverySignature signature = DiscoverySignature.builder()
-    .name("UserController")
-    .type("class")
-    .methods(List.of("getUser", "createUser", "updateUser"))
-    .annotations(List.of("@RestController", "@RequestMapping"))
-    .fields(List.of("userService", "validator"))
-    .build();
-
-// Interface discovery
-DiscoverySignature signature = DiscoverySignature.builder()
-    .name("UserRepository")
-    .type("interface")
-    .methods(List.of("findById", "save", "delete"))
-    .extendsFrom(List.of("JpaRepository"))
-    .build();
-
-// Abstract class discovery
-DiscoverySignature signature = DiscoverySignature.builder()
-    .name("BaseEntity")
-    .type("abstract")
-    .methods(List.of("getId", "setId"))
-    .fields(List.of("id", "createdAt"))
-    .build();
-```
-
-### `DiscoveryResult`
-
-Rich result object with detailed information:
-
-```java
-DiscoveryResult result = engine.discover(signature);
-
-// Get the discovered class
-Class<?> targetClass = result.getTargetClass();
-
-// Get discovery metadata
-String className = result.getClassName();
-String packageName = result.getPackageName();
-String sourcePath = result.getSourcePath();
-int score = result.getScore();
-
-// Get available methods
-List<Method> methods = result.getMethods();
-List<Field> fields = result.getFields();
-List<Annotation> annotations = result.getAnnotations();
-
-// Check inheritance
-Class<?> superClass = result.getSuperClass();
-List<Class<?>> interfaces = result.getInterfaces();
-```
-
----
-
-## Framework Integration
-
-### Spring Boot
-
-```java
-@SpringBootTest
-@AdaptiveTest
-public class UserServiceSpringTest {
-
-    @Autowired
-    private ApplicationContext context;
-
-    @DiscoverTarget(
-        name = "UserService",
-        annotations = {"@Service"},
-        methods = {"findById", "save"}
-    )
-    private Class<?> userServiceClass;
-
-    @Test
-    public void testUserServiceInjection() {
-        // Get Spring-managed instance
-        Object userService = context.getBean(userServiceClass);
-        assertNotNull(userService);
-
-        // Test service methods
-        Method findById = ReflectionUtils.findMethod(userServiceClass, "findById", Long.class);
-        Object user = ReflectionUtils.invokeMethod(findById, userService, 1L);
-        assertNotNull(user);
-    }
-}
-```
-
-### TestNG Integration
-
-```java
-import io.adaptivetests.java.testng.AdaptiveTestNG;
-
-public class CalculatorTestNG extends AdaptiveTestNG {
-
+class CalculatorAdaptiveTest extends AdaptiveTestBase {
     @Override
-    public DiscoverySignature getTargetSignature() {
-        return DiscoverySignature.builder()
+    protected Signature signature() {
+        return Signature.builder()
             .name("Calculator")
-            .methods(List.of("add", "subtract"))
+            .methods(List.of("add", "subtract", "multiply", "divide"))
             .build();
     }
 
     @Test
-    public void testAddition() throws Exception {
-        Object calculator = createTargetInstance();
-        Method add = getTargetMethod("add", int.class, int.class);
-
-        int result = (Integer) add.invoke(calculator, 2, 3);
-        Assert.assertEquals(result, 5);
+    void addsNumbers() throws ReflectiveOperationException, NoSuchMethodException {
+        Object calculator = newInstance();
+        var add = targetClass().getMethod("add", double.class, double.class);
+        assertEquals(8.0, (double) add.invoke(calculator, 5.0, 3.0), 0.001);
     }
-}
-```
-
-### Mockito Integration
-
-```java
-@ExtendWith(MockitoExtension.class)
-@AdaptiveTest
-public class UserServiceMockitoTest {
-
-    @Mock
-    private UserRepository userRepository;
-
-    @DiscoverTarget(name = "UserService")
-    private Class<?> userServiceClass;
 
     @Test
-    public void testUserServiceWithMocks() throws Exception {
-        // Create instance with mocked dependencies
-        Constructor<?> constructor = userServiceClass.getConstructor(UserRepository.class);
-        Object userService = constructor.newInstance(userRepository);
-
-        // Setup mock behavior
-        User mockUser = new User(1L, "John Doe");
-        when(userRepository.findById(1L)).thenReturn(mockUser);
-
-        // Test service method
-        Method findById = userServiceClass.getMethod("findById", Long.class);
-        User result = (User) findById.invoke(userService, 1L);
-
-        assertEquals("John Doe", result.getName());
-        verify(userRepository).findById(1L);
+    void dividesSafely() throws ReflectiveOperationException, NoSuchMethodException {
+        Object calculator = newInstance();
+        var divide = targetClass().getMethod("divide", double.class, double.class);
+        assertThrows(ArithmeticException.class, () -> divide.invoke(calculator, 10.0, 0.0));
     }
 }
 ```
 
----
+`AdaptiveTestBase` provides:
 
-## Advanced Discovery
+- `signature()` – required override that defines the discovery signature.
+- `targetClass()` – the discovered `Class<?>` for reflection-based assertions.
+- `newInstance()` – convenience helper that calls the default constructor.
+- `onTargetDiscovered(...)` – optional hook for class-level setup or dependency injection.
 
-### Generic Types
+Override `projectRoot()` or `createEngine()` if your modules live outside the default working directory or require custom configuration overrides.
 
-```java
-// Find repository with generic type
-DiscoverySignature signature = DiscoverySignature.builder()
-    .name("UserRepository")
-    .type("interface")
-    .generics(List.of("User"))
-    .extendsFrom(List.of("JpaRepository"))
-    .build();
+## Discovery Signatures for Java
 
-DiscoveryResult result = engine.discover(signature);
-ParameterizedType genericType = (ParameterizedType) result.getTargetClass().getGenericInterfaces()[0];
-Type[] typeArguments = genericType.getActualTypeArguments();
-```
-
-### Annotation-Based Discovery
+Java discovery signatures support rich metadata:
 
 ```java
-// Find all REST controllers
-DiscoverySignature signature = DiscoverySignature.builder()
+// Discover by class name and method signatures
+DiscoverySignature.builder()
+    .name("UserService")
     .type("class")
-    .annotations(List.of("@RestController"))
+    .methods("createUser", "findUser", "deleteUser")
     .build();
 
-List<DiscoveryResult> controllers = engine.discoverAll(signature);
+// Discover by package and inheritance
+DiscoverySignature.builder()
+    .name("BaseRepository")
+    .type("class")
+    .packageName("com.example.repository")
+    .isAbstract(true)
+    .build();
 
-// Find specific endpoint
-DiscoverySignature endpoint = DiscoverySignature.builder()
-    .name("getUserById")
-    .type("method")
-    .annotations(List.of("@GetMapping"))
-    .parameters(List.of("Long"))
+// Discover by annotations
+DiscoverySignature.builder()
+    .name("ProductController")
+    .type("class")
+    .annotations("@RestController", "@RequestMapping")
     .build();
 ```
 
-### Package-Based Discovery
+## Native Java CLI
 
-```java
-// Find all services in a package
-DiscoverySignature signature = DiscoverySignature.builder()
-    .packageName("com.example.service")
-    .type("class")
-    .annotations(List.of("@Service"))
-    .build();
+A Maven multi-module project lives under `languages/java/` and provides a pure-Java command line for teams that prefer JVM tooling.
 
-// Find classes that implement specific interface
-DiscoverySignature signature = DiscoverySignature.builder()
-    .implementsInterface("PaymentProcessor")
-    .packagePattern("com.example.payments.**")
-    .build();
+```bash
+cd languages/java
+./mvnw -pl core test
+./mvnw -pl cli -am package
+
+# Discover a class by signature
+java -jar cli/target/adaptive-tests-java-cli-0.1.0-SNAPSHOT-shaded.jar   discover --root /path/to/project --name CustomerService --method findActiveUsers
 ```
 
-### Inheritance-Based Discovery
-
-```java
-// Find all entities
-DiscoverySignature signature = DiscoverySignature.builder()
-    .type("class")
-    .extendsFrom(List.of("BaseEntity"))
-    .annotations(List.of("@Entity"))
-    .build();
-
-// Find all DTOs
-DiscoverySignature signature = DiscoverySignature.builder()
-    .type("class")
-    .namePattern(".*DTO$")
-    .build();
-```
-
----
+Both the Node CLI and the Java CLI share the same discovery heuristics and caching logic.
 
 ## Configuration
 
-### Basic Configuration
+Discovery can be tuned via `adaptive-tests.config.json` or `.adaptive-tests-java.json` at the project root:
 
-```java
-DiscoveryConfig config = DiscoveryConfig.builder()
-    .maxDepth(10)
-    .includePatterns(List.of(
-        "src/main/java/**/*.java",
-        "src/test/java/**/*.java"
-    ))
-    .excludePatterns(List.of(
-        "**/target/**",
-        "**/generated/**"
-    ))
-    .enableCache(true)
-    .cacheSize(1000)
-    .build();
-
-JavaDiscoveryEngine engine = new JavaDiscoveryEngine(".", config);
-```
-
-### Advanced Configuration
-
-```java
-DiscoveryConfig config = DiscoveryConfig.builder()
-    // Search settings
-    .maxDepth(8)
-    .followSymlinks(false)
-    .includeTestClasses(false)
-
-    // Pattern matching
-    .includePatterns(List.of("**/service/**", "**/controller/**"))
-    .excludePatterns(List.of("**/test/**", "**/impl/**"))
-
-    // Scoring weights
-    .exactNameWeight(50)
-    .methodMatchWeight(25)
-    .annotationWeight(20)
-    .packageWeight(5)
-
-    // Performance
-    .enableCache(true)
-    .cacheSize(2000)
-    .parallelDiscovery(true)
-    .timeout(Duration.ofSeconds(30))
-
-    // Java-specific
-    .includePrivateMethods(false)
-    .includeStaticMethods(true)
-    .includeAbstractMethods(true)
-    .parseJavadoc(true)
-
-    .build();
-```
-
-### Configuration File
-
-Create `adaptive-tests.properties`:
-
-```properties
-# Discovery settings
-adaptive.discovery.maxDepth=10
-adaptive.discovery.includePatterns=src/main/java/**/*.java,src/test/java/**/*.java
-adaptive.discovery.excludePatterns=**/target/**,**/generated/**
-
-# Scoring weights
-adaptive.scoring.exactNameWeight=50
-adaptive.scoring.methodMatchWeight=25
-adaptive.scoring.annotationWeight=20
-
-# Performance
-adaptive.cache.enabled=true
-adaptive.cache.size=1000
-
-# Java-specific
-adaptive.java.includePrivateMethods=false
-adaptive.java.parseJavadoc=true
-```
-
----
-
-## Build Integration
-
-### Maven Plugin
-
-```xml
-<plugin>
-    <groupId>io.adaptivetests</groupId>
-    <artifactId>adaptive-tests-maven-plugin</artifactId>
-    <version>0.1.0</version>
-    <executions>
-        <execution>
-            <goals>
-                <goal>discover</goal>
-                <goal>generate-tests</goal>
-            </goals>
-        </execution>
-    </executions>
-    <configuration>
-        <sourceDirectory>src/main/java</sourceDirectory>
-        <testDirectory>src/test/java</testDirectory>
-        <includePatterns>
-            <pattern>**/service/**</pattern>
-            <pattern>**/controller/**</pattern>
-        </includePatterns>
-    </configuration>
-</plugin>
-```
-
-### Gradle Plugin
-
-```groovy
-plugins {
-    id 'io.adaptivetests.gradle' version '0.1.0'
-}
-
-adaptiveTests {
-    sourceDir = 'src/main/java'
-    testDir = 'src/test/java'
-    includePatterns = ['**/service/**', '**/controller/**']
-    excludePatterns = ['**/test/**']
-    generateTests = true
+```json
+{
+  "discovery": {
+    "extensions": [".java"],
+    "skipDirectories": [".git", "target", "build"],
+    "skipFiles": ["Test.java", "IT.java"],
+    "cacheFile": ".adaptive-tests-cache.json"
+  }
 }
 ```
 
----
+The configuration mirrors the JavaScript engine — overrides cascade across Node and Java workflows.
 
-## CLI Tools
+## Current Coverage
 
-Build the CLI:
+- Classes, interfaces, enums, and records
+- Method signatures with parameter/annotation metadata
+- Package-aware scoring (prefers `src/main/java`, records annotations, honours inheritance)
+- JUnit 5 scaffolding with automatic placement under `src/test/java`
 
-```bash
-./mvnw -pl cli package
-```
+## Known Limitations
 
-### Discover Classes
+- Nested classes are discoverable, but the scaffolder defaults to top-level types when multiple are present in the same file.
+- Dependency wiring inside generated tests is intentionally minimal; TODO comments highlight where to provide fakes or fixtures.
+- Gradle project autodetection falls back to `src/test/java` if the source lives outside `src/main/java`.
 
-```bash
-java -jar cli/target/adaptive-tests-java-cli.jar discover \
-    --root src/main/java \
-    --name UserService \
-    --methods findById,save,delete
-
-java -jar cli/target/adaptive-tests-java-cli.jar discover \
-    --root src/main/java \
-    --type interface \
-    --annotations @Repository \
-    --json
-```
-
-### Generate Tests
-
-```bash
-java -jar cli/target/adaptive-tests-java-cli.jar generate-test \
-    --class com.example.service.UserService \
-    --framework junit5 \
-    --output src/test/java
-
-java -jar cli/target/adaptive-tests-java-cli.jar generate-test \
-    --package com.example.service \
-    --recursive \
-    --framework testng
-```
-
-### Debug Discovery
-
-```bash
-java -jar cli/target/adaptive-tests-java-cli.jar why \
-    --name UserService \
-    --methods findById,save \
-    --verbose
-
-java -jar cli/target/adaptive-tests-java-cli.jar analyze \
-    --root src/main/java \
-    --show-all-candidates
-```
-
----
-
-## Examples
-
-This package includes complete examples:
-
-### Maven Example
-```bash
-cd examples/maven-project
-mvn test
-```
-
-### Spring Boot Example
-```bash
-cd examples/spring-boot
-./mvnw test
-```
-
-### Gradle Example
-```bash
-cd examples/gradle-project
-./gradlew test
-```
-
----
-
-## Performance
-
-### Benchmarks
-
-- **First discovery**: ~20ms
-- **Cached discovery**: ~2ms
-- **Large codebase (500+ classes)**: ~200ms
-- **Zero runtime overhead** after discovery
-
-### Optimization Tips
-
-1. **Use specific patterns**: Narrow search with include/exclude patterns
-2. **Enable caching**: Reuse discovery results
-3. **Limit search depth**: Set reasonable maxDepth values
-4. **Parallel discovery**: Enable for large codebases
-
-```java
-// Good: Reuse engine
-JavaDiscoveryEngine engine = new JavaDiscoveryEngine();
-Class<?> userService = engine.discover(userSignature).getTargetClass();
-Class<?> orderService = engine.discover(orderSignature).getTargetClass();
-
-// Avoid: Multiple engines
-Class<?> userService = new JavaDiscoveryEngine().discover(userSignature).getTargetClass();
-Class<?> orderService = new JavaDiscoveryEngine().discover(orderSignature).getTargetClass();
-```
-
----
-
-## Troubleshooting
-
-### Common Issues
-
-**ClassNotFoundException after refactoring**
-```java
-// Use discovery instead of direct imports
-// Old:
-// import com.example.service.UserService;
-
-// New:
-DiscoveryResult result = engine.discover(
-    DiscoverySignature.builder().name("UserService").build()
-);
-Class<?> UserService = result.getTargetClass();
-```
-
-**Discovery fails to find class**
-```bash
-# Debug with CLI
-java -jar cli/target/adaptive-tests-java-cli.jar why --name UserService --verbose
-```
-
-**Performance issues**
-```java
-// Optimize with specific patterns
-DiscoveryConfig config = DiscoveryConfig.builder()
-    .includePatterns(List.of("**/service/**"))  // Specific
-    .excludePatterns(List.of("**/test/**", "**/target/**"))
-    .maxDepth(5)  // Reasonable limit
-    .enableCache(true)
-    .build();
-```
-
-**Annotation not recognized**
-```java
-// Ensure full annotation name
-DiscoverySignature signature = DiscoverySignature.builder()
-    .name("UserController")
-    .annotations(List.of("org.springframework.web.bind.annotation.RestController"))
-    .build();
-```
-
----
-
-## Development
-
-### Building from Source
-
-```bash
-git clone https://github.com/anon57396/adaptive-tests.git
-cd adaptive-tests/languages/java
-./mvnw clean install
-```
-
-### Running Tests
-
-```bash
-# All tests
-./mvnw test
-
-# Specific module
-./mvnw -pl core test
-
-# Integration tests
-./mvnw -pl examples test
-
-# With coverage
-./mvnw clean test jacoco:report
-```
-
-### Contributing
-
-We welcome Java-specific contributions! See [CONTRIBUTING.md](../../CONTRIBUTING.md) for guidelines.
-
----
-
-## License
-
-MIT - See [LICENSE](../../LICENSE) for details.
-
----
-
-**Ready to make your Java tests refactoring-proof?**
-
-```xml
-<dependency>
-    <groupId>io.adaptivetests</groupId>
-    <artifactId>adaptive-tests-java</artifactId>
-    <version>0.1.0</version>
-    <scope>test</scope>
-</dependency>
-```
-
-Start with the [Quick Start](#quick-start) guide above!
+We ship the Java bridge as an early preview — feedback and issues are welcome while we drive parity with the mature JavaScript and PHP integrations.

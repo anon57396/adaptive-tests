@@ -457,20 +457,20 @@ pytest tests/
 
 ### FastAPI Service Example
 ```bash
-cd examples/fastapi-service
+cd languages/python/examples/fastapi-service
 pip install -r requirements.txt
 pytest tests/
 ```
 
 ### Django Project Example
 ```bash
-cd examples/django-blog
+cd languages/python/examples/django-blog
 python manage.py test
 ```
 
 ### Data Science Pipeline
 ```bash
-cd examples/data-pipeline
+cd languages/python/examples/data-pipeline
 pytest tests/
 ```
 

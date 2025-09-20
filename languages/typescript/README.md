@@ -1,30 +1,16 @@
-# Adaptive Tests for TypeScript
+# @adaptive-tests/typescript
 
-[![npm version](https://img.shields.io/npm/v/adaptive-tests-typescript.svg)](https://www.npmjs.com/package/adaptive-tests-typescript)
-
-> **TypeScript extension for adaptive-tests** - AI-ready testing that survives refactors
-
-Extends adaptive-tests with full TypeScript support including type-aware discovery, interface matching, and native `.ts`/`.tsx` file parsing.
-
----
+**AI-ready testing infrastructure for TypeScript projects**
 
 ## Installation
 
-Before installing the TypeScript workspace, install the JavaScript workspace (it provides the core discovery engine):
-
 ```bash
-cd ../javascript
-npm install && npm test
-cd ../typescript
+# Install the TypeScript package
+npm install @adaptive-tests/typescript
 
-# Install the core package and TypeScript extension
-npm install --save-dev adaptive-tests adaptive-tests-typescript
-
-# TypeScript dependencies (if not already installed)
-npm install --save-dev typescript ts-node @types/node
+# Peer dependencies (if not already installed)
+npm install --save-dev typescript ts-node
 ```
-
----
 
 ## Quick Start
 

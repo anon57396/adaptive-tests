@@ -605,10 +605,10 @@ async function runInit() {
   console.log();
   log('📚 Documentation: https://github.com/anon57396/adaptive-tests', COLORS.cyan);
   if (setupOptions.enableInvisibleMode) {
-    log('🎭 Invisible mode docs: docs/getting-started-invisible.md', COLORS.cyan);
+    log('🎭 Invisible mode docs: ../../docs/getting-started-invisible.md', COLORS.cyan);
     log('📈 Progressive learning: Invisible → discover() → AdaptiveTest class', COLORS.cyan);
   } else {
-    log('📈 Learn: start with discover(), advance to docs/advanced-patterns.md', COLORS.cyan);
+    log('📈 Learn: start with discover(), advance to ../../docs/advanced-patterns.md', COLORS.cyan);
   }
   log('⭐ Star us on GitHub if this helps!', COLORS.magenta);
   console.log();
