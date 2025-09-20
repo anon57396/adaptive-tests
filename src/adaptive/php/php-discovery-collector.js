@@ -1,28 +1,45 @@
 /**
  * PHP Discovery Collector
  *
- * Extends adaptive-tests discovery to support PHP files using php-parser.
+ * Extends adaptive-tests discovery to support PHP files.
+ * Uses native PHP AST parsing when available, falls back to php-parser.js.
  * Handles PHP namespaces, classes, interfaces, traits, and functions.
  */
 
 const fs = require('fs');
 const path = require('path');
-const PhpParser = require('php-parser');
+const { spawnSync } = require('child_process');
+const { ErrorHandler } = require('../error-handler');
 
-// Initialize PHP parser with PHP 8.2 support
-const parser = new PhpParser({
-  parser: {
-    php8: true,
-    extractDoc: true,
-    suppressErrors: false
-  },
-  ast: {
-    withPositions: true
-  }
-});
+// Try to load php-parser.js as fallback
+let PhpParser = null;
+let jsParser = null;
+
+try {
+  PhpParser = require('php-parser');
+  jsParser = new PhpParser({
+    parser: {
+      php8: true,
+      extractDoc: true,
+      suppressErrors: false
+    },
+    ast: {
+      withPositions: true
+    }
+  });
+} catch (e) {
+  // php-parser not available, will use native PHP bridge
+}
 
 class PHPDiscoveryCollector {
   constructor(config = {}) {
+    this.errorHandler = new ErrorHandler('php-collector');
+    this.astBridgeScript = path.join(__dirname, 'php-ast-bridge.php');
+    this.phpInfo = this.detectPhpExecutable();
+    this.useNativePHP = this.phpInfo.available;
+    this.parseCache = new Map();
+    this.maxCacheSize = 100;
+
     this.config = {
       extensions: ['.php'],
       skipPatterns: [
@@ -38,6 +55,46 @@ class PHPDiscoveryCollector {
       ],
       ...config
     };
+  }
+
+  /**
+   * Detect PHP executable
+   */
+  detectPhpExecutable() {
+    const executables = ['php', 'php8', 'php7', 'php8.2', 'php8.1', 'php8.0', 'php7.4'];
+
+    for (const exe of executables) {
+      try {
+        const result = spawnSync(exe, ['--version'], {
+          encoding: 'utf8',
+          timeout: 2000
+        });
+
+        if (result.status === 0) {
+          const version = this.extractVersion(result.stdout);
+          this.errorHandler.logInfo(`PHP executable found: ${exe} ${version}`);
+          return {
+            available: true,
+            executable: exe,
+            version,
+            hasTokenizer: true // PHP always has tokenizer
+          };
+        }
+      } catch (error) {
+        // Continue checking
+      }
+    }
+
+    this.errorHandler.logWarning('No PHP executable found, using JavaScript parser fallback');
+    return { available: false };
+  }
+
+  /**
+   * Extract PHP version
+   */
+  extractVersion(output) {
+    const match = output?.match(/PHP (\d+\.\d+\.\d+)/);
+    return match ? match[1] : 'unknown';
   }
 
   /**
@@ -61,14 +118,99 @@ class PHPDiscoveryCollector {
   async parseFile(filePath) {
     try {
       const content = await fs.promises.readFile(filePath, 'utf8');
-      const ast = parser.parseCode(content, filePath);
+      const ast = jsParser.parseCode(content, filePath);
 
       return this.extractMetadata(ast, filePath);
     } catch (error) {
       // Return null for files we can't parse
-      if (process.env.DEBUG_DISCOVERY) {
-        console.log(`Failed to parse PHP file ${filePath}:`, error.message);
+      this.errorHandler.logDebug(`Failed to parse PHP file ${filePath}`, { error: error.message });
+      return null;
+    }
+  }
+
+  /**
+   * Transform native PHP metadata to our format
+   */
+  transformNativeMetadata(metadata) {
+    // Native PHP bridge already returns in our format
+    return {
+      namespace: metadata.namespace,
+      uses: metadata.uses || [],
+      classes: metadata.classes || [],
+      interfaces: metadata.interfaces || [],
+      traits: metadata.traits || [],
+      functions: metadata.functions || [],
+      constants: metadata.constants || [],
+      parseMethod: metadata.parser || 'native'
+    };
+  }
+
+  /**
+   * Get cached parse result
+   */
+  getCachedParse(filePath) {
+    try {
+      const stats = fs.statSync(filePath);
+      const cacheKey = `${filePath}:${stats.mtime.getTime()}`;
+      return this.parseCache.get(cacheKey);
+    } catch (error) {
+      return null;
+    }
+  }
+
+  /**
+   * Set cached parse result
+   */
+  setCachedParse(filePath, metadata) {
+    try {
+      const stats = fs.statSync(filePath);
+      const cacheKey = `${filePath}:${stats.mtime.getTime()}`;
+
+      // Limit cache size
+      if (this.parseCache.size >= this.maxCacheSize) {
+        const firstKey = this.parseCache.keys().next().value;
+        this.parseCache.delete(firstKey);
       }
+
+      this.parseCache.set(cacheKey, metadata);
+    } catch (error) {
+      // Ignore cache errors
+    }
+  }
+
+  /**
+   * Basic extraction fallback
+   */
+  basicExtraction(filePath) {
+    try {
+      const content = fs.readFileSync(filePath, 'utf8');
+      const metadata = {
+        namespace: null,
+        classes: [],
+        interfaces: [],
+        traits: [],
+        functions: [],
+        parseMethod: 'regex'
+      };
+
+      // Extract namespace
+      const namespaceMatch = content.match(/namespace\s+([^;]+);/);
+      if (namespaceMatch) {
+        metadata.namespace = namespaceMatch[1];
+      }
+
+      // Extract classes
+      const classMatches = content.matchAll(/class\s+(\w+)/g);
+      for (const match of classMatches) {
+        metadata.classes.push({
+          name: match[1],
+          methods: [],
+          properties: []
+        });
+      }
+
+      return metadata;
+    } catch (error) {
       return null;
     }
   }

@@ -1,5 +1,15 @@
+/**
+ * Ruby Discovery Integration
+ *
+ * Uses native Ruby AST parsing via Ripper when available.
+ * Falls back to regex parsing for environments without Ruby.
+ */
+
 const fs = require('fs');
 const path = require('path');
+const { spawnSync } = require('child_process');
+const { ErrorHandler } = require('../error-handler');
+const { BaseLanguageIntegration } = require('../base-language-integration');
 
 function buildFullName(scopeStack, rawName) {
   if (!rawName) {
@@ -62,12 +72,77 @@ function stripComments(line) {
   return parts.join('');
 }
 
-class RubyDiscoveryIntegration {
+// Collector class with AST support
+class RubyDiscoveryCollector {
   getFileExtension() {
     return '.rb';
   }
 
-  parseFile(filePath) {
+  constructor() {
+    this.errorHandler = new ErrorHandler('ruby-integration');
+    this.astBridgeScript = path.join(__dirname, 'ruby-ast-bridge.rb');
+    this.rubyInfo = this.detectRubyExecutable();
+    this.useNativeRuby = this.rubyInfo.available;
+    this.parseCache = new Map();
+    this.maxCacheSize = 100;
+  }
+
+  /**
+   * Detect Ruby executable
+   */
+  detectRubyExecutable() {
+    const executables = ['ruby', 'ruby3', 'ruby2.7', 'ruby3.0', 'ruby3.1', 'ruby3.2'];
+
+    for (const exe of executables) {
+      try {
+        const result = spawnSync(exe, ['--version'], {
+          encoding: 'utf8',
+          timeout: 2000
+        });
+
+        if (result.status === 0) {
+          const version = this.extractVersion(result.stdout);
+          this.errorHandler.logInfo(`Ruby executable found: ${exe} ${version}`);
+          return {
+            available: true,
+            executable: exe,
+            version,
+            hasRipper: this.checkRipperSupport(exe)
+          };
+        }
+      } catch (error) {
+        // Continue checking
+      }
+    }
+
+    this.errorHandler.logWarning('No Ruby executable found, using regex fallback');
+    return { available: false };
+  }
+
+  /**
+   * Extract Ruby version
+   */
+  extractVersion(output) {
+    const match = output?.match(/ruby (\d+\.\d+\.\d+)/);
+    return match ? match[1] : 'unknown';
+  }
+
+  /**
+   * Check if Ruby has Ripper (AST parser)
+   */
+  checkRipperSupport(exe) {
+    try {
+      const result = spawnSync(exe, ['-e', 'require "ripper"; puts "ok"'], {
+        encoding: 'utf8',
+        timeout: 2000
+      });
+      return result.status === 0 && result.stdout.includes('ok');
+    } catch (error) {
+      return false;
+    }
+  }
+
+  async parseFile(filePath) {
     if (!filePath || typeof filePath !== 'string') {
       return null;
     }
@@ -77,13 +152,131 @@ class RubyDiscoveryIntegration {
       return null;
     }
 
+    // Check cache first
+    const cached = this.getCachedParse(absolutePath);
+    if (cached) {
+      this.errorHandler.logDebug('Using cached parse result', { filePath });
+      return cached;
+    }
+
+    // Try native Ruby AST bridge first if available
+    if (this.useNativeRuby) {
+      const nativeResult = await this.parseWithNativeRuby(absolutePath);
+      if (nativeResult.success) {
+        this.setCachedParse(absolutePath, nativeResult.metadata);
+        return nativeResult.metadata;
+      }
+    }
+
+    // Fallback to regex parsing
+    return this.parseWithRegex(absolutePath);
+  }
+
+  /**
+   * Parse using native Ruby AST bridge
+   */
+  async parseWithNativeRuby(filePath) {
+    return this.errorHandler.safeAsync(
+      async () => {
+        const result = spawnSync(
+          this.rubyInfo.executable,
+          [this.astBridgeScript, filePath],
+          {
+            encoding: 'utf8',
+            timeout: 10000,
+            maxBuffer: 10 * 1024 * 1024
+          }
+        );
+
+        if (result.error || result.status !== 0) {
+          this.errorHandler.logDebug('Native Ruby bridge failed', {
+            error: result.error?.message || result.stderr
+          });
+          return { success: false };
+        }
+
+        const metadata = JSON.parse(result.stdout);
+        if (metadata.error) {
+          this.errorHandler.logDebug('Ruby bridge returned error', { error: metadata.error });
+          return { success: false };
+        }
+
+        return { success: true, metadata: this.transformNativeMetadata(metadata) };
+      },
+      { filePath, operation: 'nativeRubyParse' }
+    );
+  }
+
+  /**
+   * Transform native Ruby metadata to our format
+   */
+  transformNativeMetadata(metadata) {
+    const result = {
+      classes: metadata.classes || [],
+      modules: metadata.modules || [],
+      methods: metadata.methods || [],
+      parseMethod: metadata.parser || 'native'
+    };
+
+    // Enhance with additional info from native parser
+    result.classes.forEach(cls => {
+      if (metadata.attributes) {
+        cls.attributes = metadata.attributes.filter(attr =>
+          attr.class === cls.name
+        );
+      }
+      if (metadata.constants) {
+        cls.constants = metadata.constants.filter(const_ =>
+          const_.class === cls.name
+        );
+      }
+    });
+
+    return result;
+  }
+
+  /**
+   * Get cached parse result
+   */
+  getCachedParse(filePath) {
+    try {
+      const stats = fs.statSync(filePath);
+      const cacheKey = `${filePath}:${stats.mtime.getTime()}`;
+      return this.parseCache.get(cacheKey);
+    } catch (error) {
+      return null;
+    }
+  }
+
+  /**
+   * Set cached parse result
+   */
+  setCachedParse(filePath, metadata) {
+    try {
+      const stats = fs.statSync(filePath);
+      const cacheKey = `${filePath}:${stats.mtime.getTime()}`;
+
+      // Limit cache size
+      if (this.parseCache.size >= this.maxCacheSize) {
+        const firstKey = this.parseCache.keys().next().value;
+        this.parseCache.delete(firstKey);
+      }
+
+      this.parseCache.set(cacheKey, metadata);
+    } catch (error) {
+      // Ignore cache errors
+    }
+  }
+
+  /**
+   * Fallback regex parsing
+   */
+  parseWithRegex(filePath) {
     let content;
     try {
-      content = fs.readFileSync(absolutePath, 'utf8');
+      content = fs.readFileSync(filePath, 'utf8');
     } catch (error) {
-      if (process.env.DEBUG_DISCOVERY) {
-        console.error('[adaptive-tests] Failed to read Ruby file:', error.message);
-      }
+      this.errorHandler.logError('Failed to read Ruby file', { filePath, error: error.message });
       return null;
     }
 
@@ -357,6 +550,35 @@ class RubyDiscoveryIntegration {
   }
 }
 
+// Integration class extending BaseLanguageIntegration
+class RubyDiscoveryIntegration extends BaseLanguageIntegration {
+  constructor(discoveryEngine) {
+    super(discoveryEngine, 'ruby');
+    this.collector = new RubyDiscoveryCollector();
+  }
+
+  getFileExtension() {
+    return '.rb';
+  }
+
+  async parseFile(filePath) {
+    return this.collector.parseFile(filePath);
+  }
+
+  extractCandidates(metadata) {
+    return this.collector.extractCandidates(metadata);
+  }
+
+  buildExports(metadata) {
+    return this.collector.buildExports(metadata);
+  }
+
+  generateTestContent(target, options = {}) {
+    return this.collector.generateTestContent(target, options);
+  }
+}
+
 module.exports = {
-  RubyDiscoveryIntegration
+  RubyDiscoveryIntegration,
+  RubyDiscoveryCollector
 };
