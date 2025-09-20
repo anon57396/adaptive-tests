@@ -293,6 +293,7 @@ jobs:
         if: steps.check_maven.outputs.has_maven == 'true'
         run: |
           # Update versions in all pom.xml files
+          # shellcheck disable=SC2044
           for pom in $(find . -name "pom.xml"); do
             dir=$(dirname "$pom")
             (cd "$dir" && mvn versions:set -DnewVersion="${{ steps.version.outputs.version }}" -DgenerateBackupPoms=false)
@@ -302,6 +303,7 @@ jobs:
         if: steps.check_maven.outputs.has_maven == 'true'
         run: |
           # Build each Maven project
+          # shellcheck disable=SC2044
           for pom in $(find . -name "pom.xml"); do
             dir=$(dirname "$pom")
             echo "Building Maven project in $dir"
@@ -312,6 +314,7 @@ jobs:
         if: steps.check_maven.outputs.has_maven == 'true'
         run: |
           # Deploy each Maven project
+          # shellcheck disable=SC2044
           for pom in $(find . -name "pom.xml"); do
             dir=$(dirname "$pom")
             echo "Deploying Maven project in $dir"
@@ -329,6 +332,7 @@ jobs:
           mkdir -p ~/.m2
           printf '%s\n' '<settings><servers><server><id>github</id><username>'"${GITHUB_ACTOR}"'</username><password>'"${GITHUB_TOKEN}"'</password></server></servers></settings>' > ~/.m2/settings.xml
           # Deploy to GitHub Packages
+          # shellcheck disable=SC2044
           for pom in $(find . -name "pom.xml"); do
             dir=$(dirname "$pom")
             echo "Deploying Maven project to GitHub Packages in $dir"

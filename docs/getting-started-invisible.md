@@ -12,7 +12,7 @@ Your tests now automatically adapt when imports break during refactoring. No lea
 
 When you see this:
 
-```
+```text
 Error: Cannot find module './UserService'
     at require (/your/test/file.js:3:21)
 ```
@@ -54,11 +54,13 @@ npx adaptive-tests enable-invisible --undo
 Invisible mode patches your test runner to automatically discover moved/renamed modules when `require()` fails.
 
 **Before:**
+
 ```javascript
 const UserService = require('./services/UserService'); // ❌ Breaks when you move files
 ```
 
 **After (invisible mode enabled):**
+
 ```javascript
 const UserService = require('./services/UserService'); // ✅ Auto-discovers if moved
 ```
@@ -108,7 +110,7 @@ npx adaptive-tests enable-invisible --escape-pattern="__mocks__"
 
 Copy this for GitHub Copilot, Claude, etc:
 
-```
+```text
 When tests fail with MODULE_NOT_FOUND for relative imports:
 1. Run: npx adaptive-tests enable-invisible
 2. Rerun tests - they should pass

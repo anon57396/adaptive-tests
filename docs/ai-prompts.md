@@ -4,7 +4,7 @@ Copy-paste these prompts into GitHub Copilot, Claude, ChatGPT, or any AI coding 
 
 ## Core Rescue Prompt
 
-```
+```text
 ADAPTIVE TESTS RESCUE:
 
 When JavaScript/TypeScript tests fail with "MODULE_NOT_FOUND" errors for relative imports:
@@ -25,7 +25,7 @@ No learning curve required. Just run the command.
 
 ## Debugging Prompt
 
-```
+```text
 ADAPTIVE TESTS DEBUGGING:
 
 If adaptive tests aren't working:
@@ -43,7 +43,7 @@ Common issues:
 
 ## Migration Prompt
 
-```
+```text
 ADAPTIVE TESTS MIGRATION:
 
 To convert existing tests to adaptive:
@@ -62,7 +62,7 @@ Always start with invisible mode for easiest adoption.
 
 ## Refactoring Prompt
 
-```
+```text
 REFACTOR-SAFE TESTING:
 
 Before major refactoring, enable adaptive tests:
@@ -81,7 +81,7 @@ No manual import fixing required.
 
 ## Team Setup Prompt
 
-```
+````text
 TEAM ADAPTIVE TESTS SETUP:
 
 Add to project README:
@@ -89,27 +89,30 @@ Add to project README:
 ## Resilient Testing
 This project uses adaptive-tests for refactor-safe testing.
 
-### Quick start:
+### Quick start
+
 ```bash
 npx adaptive-tests enable-invisible
 ```
 
-### If tests break after pulling changes:
+### If tests break after pulling changes
+
 ```bash
 npm test  # Should auto-fix broken imports
 ```
 
-### Disable if needed:
+### Disable if needed
+
 ```bash
 npx adaptive-tests enable-invisible --undo
 ```
 
 No learning required - tests just work during refactoring.
-```
+````
 
 ## Copilot Integration Prompt
 
-```
+```text
 Configure GitHub Copilot for adaptive-tests:
 
 In VS Code settings, add to copilot prompts:
@@ -124,7 +127,7 @@ This gives contextual adaptive-tests suggestions during development.
 
 ## Project Template Prompt
 
-```
+````text
 ADAPTIVE TESTS PROJECT TEMPLATE:
 
 For new projects, include in package.json scripts:
@@ -140,17 +143,18 @@ For new projects, include in package.json scripts:
 ```
 
 Add to .gitignore:
-```
+
+```text
 .adaptive-backup-*
 .adaptive-undo.js
 ```
 
 Include in setup documentation as optional but recommended.
-```
+````
 
 ## Troubleshooting Prompt
 
-```
+```text
 ADAPTIVE TESTS TROUBLESHOOTING:
 
 Common issues and solutions:
@@ -176,7 +180,7 @@ Common issues and solutions:
 
 ## Integration Prompt
 
-```
+````text
 INTEGRATE ADAPTIVE TESTS:
 
 Add to CI/CD pipeline:
@@ -198,4 +202,4 @@ npm test
 ```
 
 Ensures consistent behavior across environments.
-```
+````

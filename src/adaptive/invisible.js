@@ -128,9 +128,10 @@ function handleDiscoveryFailure(originalPath, suggestion, error) {
   const scaffoldPath = writeFallbackScaffold(originalPath, suggestion);
   if (scaffoldPath) {
     const relative = path.relative(PROJECT_ROOT, scaffoldPath);
+    const normalized = relative.split(path.sep).join('/');
     console.warn(
-      `⚠️ Adaptive Tests invisible mode could not resolve "${originalPath}". A helper scaffold was created at ${relative}. ` +
-        `You can import it with "require('./${relative.replace(/\\\\/g, '/')}')()" or run "npx adaptive-tests convert" for a full migration. See docs/getting-started-invisible.md.`
+      `⚠️ Adaptive Tests invisible mode could not resolve "${originalPath}". A helper scaffold was created at ${normalized}. ` +
+        `You can import it with "require('./${normalized}')()" or run "npx adaptive-tests convert" for a full migration. See docs/getting-started-invisible.md.`
     );
   } else {
     console.warn(

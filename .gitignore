@@ -88,3 +88,8 @@ temp/
 # Adaptive Tests Cache Files
 .adaptive-tests-cache.json
 **/.adaptive-tests-cache.json
+
+# Invisible Mode Files
+.adaptive-backup-*
+.adaptive-undo.js
+.adaptive-tests/

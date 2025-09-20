@@ -12,6 +12,9 @@ const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
 
+const ADAPTIVE_DIR = path.join(process.cwd(), '.adaptive-tests');
+const MARKER_FILE = path.join(ADAPTIVE_DIR, 'invisible-enabled.json');
+
 const COLORS = {
   reset: '\x1b[0m',
   green: '\x1b[32m',
@@ -23,6 +26,12 @@ const COLORS = {
 
 function log(message, color = 'reset') {
   console.log(`${COLORS[color]}${message}${COLORS.reset}`);
+}
+
+function ensureAdaptiveDir() {
+  if (!fs.existsSync(ADAPTIVE_DIR)) {
+    fs.mkdirSync(ADAPTIVE_DIR, { recursive: true });
+  }
 }
 
 /**
@@ -65,7 +74,7 @@ async function enableInvisibleMode(options = {}) {
   for (const change of strategy.changes) {
     try {
       const result = await applyChange(change, detection);
-      results.push(result);
+      results.push({ ...change, ...result });
       log(`✅ ${change.action}: ${change.file}`, 'green');
     } catch (error) {
       log(`❌ Failed ${change.action}: ${error.message}`, 'red');
@@ -75,6 +84,7 @@ async function enableInvisibleMode(options = {}) {
 
   // Create undo script
   await createUndoScript(results);
+  await writeMarker({ detection, strategy: strategy.name, results });
 
   log('🎉 Invisible mode enabled!', 'green');
   log('🔄 To disable: npx adaptive-tests enable-invisible --undo', 'blue');
@@ -502,6 +512,40 @@ console.log(\`🎉 Invisible mode disabled: \${restored} files restored\`);
   fs.chmodSync(undoPath, '755');
 }
 
+async function writeMarker({ detection, strategy, results }) {
+  try {
+    ensureAdaptiveDir();
+    const marker = {
+      enabledAt: new Date().toISOString(),
+      strategy,
+      framework: detection.framework || null,
+      confidence: detection.confidence || 'unknown',
+      configFiles: detection.configFiles || [],
+      setupFiles: detection.setupFiles || [],
+      testDirs: detection.testDirs || [],
+      results: results.map(result => ({
+        action: result.action,
+        status: result.status || 'unknown',
+        file: result.file || null
+      }))
+    };
+
+    fs.writeFileSync(MARKER_FILE, JSON.stringify(marker, null, 2));
+  } catch (error) {
+    log('[warn] Could not update invisible mode marker: ' + error.message, 'yellow');
+  }
+}
+
+function removeMarker() {
+  try {
+    if (fs.existsSync(MARKER_FILE)) {
+      fs.unlinkSync(MARKER_FILE);
+    }
+  } catch (error) {
+    log('[warn] Could not remove invisible mode marker: ' + error.message, 'yellow');
+  }
+}
+
 /**
  * Disable invisible mode
  */
@@ -525,6 +569,7 @@ async function disableInvisibleMode(options = {}) {
   try {
     execSync(`node ${undoPath}`, { stdio: 'inherit' });
     fs.unlinkSync(undoPath);
+    removeMarker();
     log('✅ Invisible mode disabled', 'green');
     return { success: true };
   } catch (error) {

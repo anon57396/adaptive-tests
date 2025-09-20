@@ -25,6 +25,7 @@ If this project helps you, please consider supporting it via the Sponsor button 
 - [VS Code Extension (Development Alpha)](#vs-code-extension-development-alpha)
 - [Why AI-Powered Teams Choose Adaptive Tests](#why-ai-powered-teams-choose-adaptive-tests)
 - [Quick Start](#quick-start)
+  - [Invisible Mode (Zero Learning Curve)](#-new-invisible-mode-zero-learning-curve)
 - [Framework Templates](#framework-templates)
 - [CLI Helper](#cli-helper)
 - [Validation Flow](#validation-flow)
@@ -117,6 +118,35 @@ The extension will be available on the VS Code Marketplace. For now, use the dev
 ---
 
 ## Quick Start
+
+### 🎭 New: Invisible Mode (Zero Learning Curve)
+
+**Broken import? One command fixes it:**
+
+```bash
+npx adaptive-tests enable-invisible
+```
+
+Your existing tests now automatically adapt when imports break during refactoring. No code changes. No learning required.
+
+**When you see:**
+
+```text
+Error: Cannot find module './UserService'
+```
+
+**Just run:**
+
+```bash
+npx adaptive-tests enable-invisible
+npm test  # Tests now pass
+```
+
+Invisible mode auto-detects your test framework (Jest/Vitest/Mocha) and patches it to use adaptive discovery when `require()` fails. Perfect for vibe coders who want refactor-safe tests without complexity.
+
+[📖 Full invisible mode guide →](docs/getting-started-invisible.md)
+
+---
 
 ### Option 1: Zero-Config with jest-adaptive (New!)
 
