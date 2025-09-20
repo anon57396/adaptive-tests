@@ -1,26 +1,11 @@
-const path = require('path');
-const { AdaptiveTest } = require('../../../../src/test-base');
-const { getDiscoveryEngine } = require('../../../../src/discovery-engine');
-
-class TodoServiceAdaptiveTest extends AdaptiveTest {
-  getTargetSignature() {
-    return {
-      name: 'TodoService',
-      type: 'class',
-      methods: ['addTodo', 'completeTodo', 'getTodos', 'clearCompleted', 'reset'],
-      exports: 'TodoService'
-    };
-  }
-}
-
-const engine = getDiscoveryEngine(path.resolve(__dirname, '../..'));
+const { discover } = require('@adaptive-tests/javascript');
 
 describe('TodoService - Adaptive Tests', () => {
   let TodoService;
   let service;
 
   beforeAll(async () => {
-    TodoService = await engine.discoverTarget({
+    TodoService = await discover({
       name: 'TodoService',
       type: 'class',
       methods: ['addTodo', 'completeTodo', 'getTodos', 'clearCompleted', 'reset'],

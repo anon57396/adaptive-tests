@@ -1,14 +1,11 @@
-const path = require('path');
-const { getDiscoveryEngine } = require('../../../../src/discovery-engine');
-
-const engine = getDiscoveryEngine(path.resolve(__dirname, '../..'));
+const { discover } = require('@adaptive-tests/javascript');
 
 describe('ApiService - Adaptive Tests', () => {
   let ApiService;
   let service;
 
   beforeAll(async () => {
-    ApiService = await engine.discoverTarget({
+    ApiService = await discover({
       name: 'ApiService',
       type: 'class',
       methods: ['getHealth', 'createUser', 'getUser', 'updateUser', 'deleteUser', 'listUsers', 'reset'],
