@@ -20,70 +20,35 @@ const { ErrorHandler } = require('../error-handler');
 class WolframDiscoveryCollector {
   constructor() {
     this.errorHandler = new ErrorHandler('wolfram-collector');
-    this.astBridgeScript = path.join(__dirname, 'wolfram-ast-bridge.wl');
-    this.fallbackBridgeScript = path.join(__dirname, 'wolfram-bridge.wl');
-    this.kernelInfo = this.detectWolframKernel();
-    this.useKernel = this.kernelInfo.available;
+    this.bridgeScript = path.join(__dirname, 'wolfram-bridge.wl');
+    this.useKernel = this.checkWolframKernel();
     this.supportedExtensions = ['.wl', '.m', '.wls', '.nb', '.wlt'];
-    this.parseCache = new Map();
-    this.maxCacheSize = 100;
   }
 
   /**
-   * Detect Wolfram kernel availability and version
+   * Check if Wolfram kernel is available for enhanced parsing
    */
-  detectWolframKernel() {
-    const executables = [
-      { name: 'wolframscript', priority: 1 },
-      { name: 'wolfram', priority: 2 },
-      { name: 'MathKernel', priority: 3 },
-      { name: 'WolframKernel', priority: 4 }
-    ];
+  checkWolframKernel() {
+    const executables = ['wolframscript', 'wolfram', 'MathKernel'];
 
-    for (const { name: exe, priority } of executables) {
-      const result = this.errorHandler.safeSync(
-        () => {
-          const output = spawnSync(exe, ['--version'], {
-            encoding: 'utf8',
-            timeout: 2000
-          });
-          return output;
-        },
-        { executable: exe, operation: 'detectKernel' }
-      );
-
-      if (result.success && result.data?.status === 0) {
-        const version = this.extractVersion(result.data.stdout);
-        this.errorHandler.logInfo(`Wolfram kernel found: ${exe} ${version}`);
-        return {
-          available: true,
-          executable: exe,
-          version,
-          priority,
-          hasCodeParse: this.checkCodeParseSupport(version)
-        };
+    for (const exe of executables) {
+      try {
+        const result = spawnSync(exe, ['--version'], {
+          encoding: 'utf8',
+          timeout: 2000
+        });
+        if (result.status === 0) {
+          this.kernelExecutable = exe;
+          this.errorHandler.logDebug(`Wolfram kernel found: ${exe}`);
+          return true;
+        }
+      } catch (error) {
+        // Continue checking other executables
       }
     }
 
-    this.errorHandler.logWarning('No Wolfram kernel found, using regex parsing fallback');
-    return { available: false };
-  }
-
-  /**
-   * Extract version from Wolfram output
-   */
-  extractVersion(output) {
-    const match = output?.match(/(\d+\.\d+(\.\d+)?)/);
-    return match ? match[1] : 'unknown';
-  }
-
-  /**
-   * Check if CodeParse is supported (Wolfram 11.2+)
-   */
-  checkCodeParseSupport(version) {
-    if (version === 'unknown') return false;
-    const [major, minor] = version.split('.').map(Number);
-    return major > 11 || (major === 11 && minor >= 2);
+    this.errorHandler.logDebug('No Wolfram kernel found, using regex parsing');
+    return false;
   }
 
   shouldScanFile(filePath) {
@@ -136,77 +101,11 @@ class WolframDiscoveryCollector {
    * Parse file using Wolfram kernel for enhanced accuracy
    */
   async parseWithKernel(filePath) {
-    // Check cache first
-    const cached = this.getCachedParse(filePath);
-    if (cached) {
-      this.errorHandler.logDebug('Using cached parse result', { filePath });
-      return { success: true, metadata: cached };
-    }
-
-    // Try AST bridge first (with CodeParse if available)
-    const astResult = await this.parseWithASTBridge(filePath);
-    if (astResult.success) {
-      this.setCachedParse(filePath, astResult.metadata);
-      return astResult;
-    }
-
-    // Fallback to simpler bridge
-    const fallbackResult = await this.parseWithFallbackBridge(filePath);
-    if (fallbackResult.success) {
-      this.setCachedParse(filePath, fallbackResult.metadata);
-      return fallbackResult;
-    }
-
-    return { success: false };
-  }
-
-  /**
-   * Parse using advanced AST bridge
-   */
-  async parseWithASTBridge(filePath) {
     return this.errorHandler.safeAsync(
       async () => {
         const result = spawnSync(
-          this.kernelInfo.executable,
-          [this.astBridgeScript, filePath],
-          {
-            encoding: 'utf8',
-            timeout: 15000,
-            maxBuffer: 20 * 1024 * 1024
-          }
-        );
-
-        if (result.error || result.status !== 0) {
-          const errorDetail = result.stderr || result.error?.message || 'Unknown error';
-          this.errorHandler.logDebug('AST bridge parsing failed', { error: errorDetail });
-          return { success: false };
-        }
-
-        const metadata = JSON.parse(result.stdout);
-        if (metadata.error) {
-          this.errorHandler.logDebug('AST bridge returned error', { error: metadata.error });
-          return { success: false };
-        }
-
-        // Enhance metadata with file info
-        metadata.path = filePath;
-        metadata.parseMethod = metadata.version || 'AST';
-
-        return { success: true, metadata: this.normalizeMetadata(metadata) };
-      },
-      { filePath, operation: 'astBridgeParse' }
-    );
-  }
-
-  /**
-   * Parse using fallback bridge
-   */
-  async parseWithFallbackBridge(filePath) {
-    return this.errorHandler.safeAsync(
-      async () => {
-        const result = spawnSync(
-          this.kernelInfo.executable,
-          [this.fallbackBridgeScript, filePath],
+          this.kernelExecutable,
+          [this.bridgeScript, filePath],
           {
             encoding: 'utf8',
             timeout: 10000,
@@ -215,19 +114,16 @@ class WolframDiscoveryCollector {
         );
 
         if (result.error || result.status !== 0) {
-          this.errorHandler.logDebug('Fallback bridge failed', {
+          this.errorHandler.logWarning('Kernel parsing failed, using fallback', {
             error: result.error?.message || result.stderr
           });
           return { success: false };
         }
 
         const metadata = JSON.parse(result.stdout);
-        metadata.path = filePath;
-        metadata.parseMethod = 'Fallback';
-
-        return { success: true, metadata: this.normalizeMetadata(metadata) };
+        return { success: true, metadata };
       },
-      { filePath, operation: 'fallbackBridgeParse' }
+      { filePath, operation: 'kernelParse' }
     );
   }
 
@@ -679,42 +575,6 @@ class WolframDiscoveryCollector {
    */
   getSupportedExtensions() {
     return this.supportedExtensions;
-  }
-
-  /**
-   * Get cached parse result
-   */
-  getCachedParse(filePath) {
-    const stats = fs.statSync(filePath);
-    const cacheKey = `${filePath}:${stats.mtime.getTime()}`;
-    return this.parseCache.get(cacheKey);
-  }
-
-  /**
-   * Set cached parse result
-   */
-  setCachedParse(filePath, metadata) {
-    try {
-      const stats = fs.statSync(filePath);
-      const cacheKey = `${filePath}:${stats.mtime.getTime()}`;
-
-      // Limit cache size
-      if (this.parseCache.size >= this.maxCacheSize) {
-        const firstKey = this.parseCache.keys().next().value;
-        this.parseCache.delete(firstKey);
-      }
-
-      this.parseCache.set(cacheKey, metadata);
-    } catch (error) {
-      // Ignore cache errors
-    }
-  }
-
-  /**
-   * Clear parse cache
-   */
-  clearCache() {
-    this.parseCache.clear();
   }
 
   /**

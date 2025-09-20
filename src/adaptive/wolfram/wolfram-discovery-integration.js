@@ -46,6 +46,13 @@ class WolframDiscoveryIntegration extends BaseLanguageIntegration {
   }
 
   extractCandidates(metadata) {
+    return this.errorHandler.safeSync(
+      () => this.extractCandidatesImpl(metadata),
+      { language: 'wolfram', operation: 'extractCandidates' }
+    ).data || [];
+  }
+
+  extractCandidatesImpl(metadata) {
     const candidates = [];
 
     // Extract package candidates
