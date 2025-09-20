@@ -9,6 +9,7 @@ This example demonstrates how to progressively adopt Adaptive Tests features, st
 **Scenario:** You have existing tests that break when files move.
 
 **Before (Broken after refactoring):**
+
 ```javascript
 // tests/user.test.js
 const UserService = require('../src/services/UserService'); // ❌ Breaks when moved
@@ -20,6 +21,7 @@ test('should create user', () => {
 ```
 
 **After (Invisible mode enabled):**
+
 ```bash
 npx adaptive-tests enable-invisible
 npm test  # ✅ Now passes even after moving files
@@ -120,19 +122,22 @@ new UserServiceAdaptiveTest();
 
 ## When to Use Each Layer
 
-### Start with Invisible Mode When:
+### Start with Invisible Mode When
+
 - ✅ You have existing tests
 - ✅ You want zero learning curve
 - ✅ You're "vibe coding" and want safety net
 - ✅ You're prototyping or exploring
 
-### Upgrade to Standard API When:
+### Upgrade to Standard API When
+
 - ✅ Writing new tests
 - ✅ You want explicit control
 - ✅ Simple signatures are sufficient
 - ✅ You prefer functional style
 
-### Advance to Class API When:
+### Advance to Class API When
+
 - ✅ You need complex lifecycle hooks
 - ✅ You're building tooling or generators
 - ✅ You want cross-language consistency
@@ -141,6 +146,7 @@ new UserServiceAdaptiveTest();
 ## Migration Path
 
 ### From Invisible → Standard
+
 ```javascript
 // You can mix approaches in the same test file
 const UserService = require('../UserService');  // Still works via invisible mode
@@ -157,6 +163,7 @@ test('mixed approach', async () => {
 ```
 
 ### From Standard → Advanced
+
 ```javascript
 // Start simple
 const UserService = await discover('UserService');
