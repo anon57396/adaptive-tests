@@ -5,11 +5,11 @@
  */
 
 const path = require('path');
-// When using workspaces, this will resolve to the JavaScript package
-const { DiscoveryEngine } = require('../../javascript/src/discovery-engine');
+// Import from JavaScript workspace package
+const { DiscoveryEngine } = require('@adaptive-tests/javascript/src/discovery-engine');
 
 /**
- * @typedef {import('../../javascript/src/discovery-engine').DiscoveryOptions} DiscoveryOptions
+ * @typedef {import('@adaptive-tests/javascript/src/discovery-engine').DiscoveryOptions} DiscoveryOptions
  */
 
 /**

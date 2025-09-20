@@ -221,7 +221,7 @@ npm test -- --onlyChanged
   console.log();
   log('Next steps:', 'bold');
   console.log('  1. Check out .github/DEVELOPMENT.md for development guide');
-  console.log('  2. Explore examples/ directory');
+  console.log('  2. Explore languages/javascript/examples/ directory');
   console.log('  3. Join discussions at https://github.com/anon57396/adaptive-tests/discussions');
   console.log();
   log('Happy coding! 🚀', 'blue');

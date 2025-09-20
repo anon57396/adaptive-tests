@@ -5,7 +5,7 @@
  */
 
 const { DiscoveryEngine, getDiscoveryEngine } = require('./discovery-engine');
-const { TypeScriptDiscoveryEngine, getTypeScriptDiscoveryEngine } = require('../typescript/src/discovery');
+// TypeScript discovery should be imported from @adaptive-tests/typescript package, not here
 const { AdaptiveTest, adaptiveTest } = require('./test-base');
 const { ConfigLoader, DEFAULT_CONFIG } = require('./config-loader');
 const { ScoringEngine } = require('./scoring-engine');
@@ -33,11 +33,9 @@ module.exports = {
   // Core classes
   DiscoveryEngine,
   AdaptiveTest,
-  TypeScriptDiscoveryEngine,
 
   // Convenience functions
   getDiscoveryEngine,
-  getTypeScriptDiscoveryEngine,
   adaptiveTest,
   discover,
 

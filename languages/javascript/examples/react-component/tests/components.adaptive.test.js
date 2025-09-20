@@ -5,7 +5,7 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { getDiscoveryEngine } from '../../../../src/discovery-engine';
+import { getDiscoveryEngine } from '../../../src/discovery-engine';
 
 describe('React Components - Adaptive Discovery', () => {
   let Button, TodoList, UserCard;

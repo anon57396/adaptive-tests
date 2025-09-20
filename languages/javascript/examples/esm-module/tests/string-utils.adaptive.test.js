@@ -3,7 +3,7 @@
  */
 
 import { describe, test, expect, beforeAll } from '@jest/globals';
-import { getDiscoveryEngine } from '../../../../src/index.mjs';
+import { getDiscoveryEngine } from '../../../src/index.mjs';
 
 describe('String Utils - Adaptive Discovery (ESM)', () => {
   let stringUtils;

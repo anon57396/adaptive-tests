@@ -46,7 +46,7 @@ public class ValidateJava {
     private static boolean validateJavaExample() {
         log("\n☕ Java Adaptive Tests Validation\n", BOLD);
 
-        Path examplePath = Paths.get("examples/java");
+        Path examplePath = Paths.get("languages/java/examples/spring-boot");
         if (!Files.exists(examplePath)) {
             log("❌ Java examples not found", RED);
             return false;
@@ -110,7 +110,7 @@ public class ValidateJava {
     private static boolean validatePackageRefactoring() {
         log("\n📦 Java Package Refactoring Validation\n", BOLD);
 
-        Path examplePath = Paths.get("examples/java");
+        Path examplePath = Paths.get("languages/java/examples/spring-boot");
         Path srcDir = examplePath.resolve("src/main/java");
         Path originalPackage = srcDir.resolve("com/example/calculator");
         Path newPackage = srcDir.resolve("com/example/math/operations");

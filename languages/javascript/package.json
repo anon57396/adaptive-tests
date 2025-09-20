@@ -1,13 +1,24 @@
 {
   "name": "@adaptive-tests/javascript",
-  "private": true,
   "version": "0.3.0",
+  "description": "JavaScript core implementation of adaptive-tests",
   "main": "src/index.js",
   "bin": {
     "adaptive-tests": "cli/init.js"
   },
   "scripts": {
-    "test": "../../node_modules/.bin/jest --config ../../package.json",
-    "lint": "../../node_modules/.bin/eslint src/**/*.js"
+    "test": "jest",
+    "lint": "eslint src/"
+  },
+  "dependencies": {
+    "glob": "^11.0.3",
+    "minimist": "^1.2.8"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "eslint": "^8.57.0"
+  },
+  "engines": {
+    "node": ">=16.0.0"
   }
 }

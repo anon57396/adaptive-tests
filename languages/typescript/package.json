@@ -29,6 +29,7 @@
     "ts-node": ">=10.0.0"
   },
   "dependencies": {
+    "@adaptive-tests/javascript": "^0.3.0",
     "@babel/parser": "^7.25.0",
     "tsconfig-paths": "^4.2.0"
   },
