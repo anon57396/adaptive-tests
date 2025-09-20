@@ -11,7 +11,7 @@ describe('Calculator', () => {
   let Calculator;
 
   beforeAll(async () => {
-    // Discover the module using its signature
+    // Discover the module using its signature within the calculator example directory
     Calculator = await discover({
       name: 'Calculator',
       type: 'class',
@@ -25,7 +25,7 @@ describe('Calculator', () => {
         'getHistory',
         'clearHistory'
       ]
-    });
+    }, './examples/calculator');
   });
 
   test('should discover Calculator', () => {

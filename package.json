@@ -92,7 +92,6 @@
       "!src/**/*.d.ts",
       "!src/**/index.js",
       "!src/cli/**",
-      "!src/**/discovery.js",
       "!src/adaptive/test-base.js"
     ],
     "coverageDirectory": "coverage",
