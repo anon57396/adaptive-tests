@@ -84,3 +84,6 @@ tmp/
 temp/
 *.tmp
 *.temp
+examples/typescript/.adaptive-tests-cache.json
+examples/typescript/.adaptive-tests-cache.json
+tests/fixtures/async-await/typescript/.adaptive-tests-cache.json
