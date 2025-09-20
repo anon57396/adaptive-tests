@@ -113,7 +113,7 @@ Use a short, kebab-cased prefix describing the change type:
 
 Prefer Conventional Commits format:
 
-```
+```text
 <type>(<scope>): <short summary>
 
 <body>

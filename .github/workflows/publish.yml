@@ -87,7 +87,7 @@ jobs:
           else
             VERSION="${GITHUB_REF#refs/tags/v}"
           fi
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Install Dependencies
         working-directory: ${{ matrix.package }}
@@ -108,7 +108,7 @@ jobs:
       - name: Update Package Version
         working-directory: ${{ matrix.package }}
         run: |
-          npm version ${{ steps.version.outputs.version }} --no-git-tag-version --allow-same-version
+          npm version "${{ steps.version.outputs.version }}" --no-git-tag-version --allow-same-version
 
       - name: Publish to NPM
         working-directory: ${{ matrix.package }}
@@ -172,7 +172,7 @@ jobs:
           else
             VERSION="${GITHUB_REF#refs/tags/v}"
           fi
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Update Version
         run: |
@@ -193,6 +193,7 @@ jobs:
       - name: Publish to Test PyPI
         if: github.event.inputs.prerelease == 'true'
         run: |
+          # shellcheck disable=SC2086
           twine upload --repository testpypi dist/* --non-interactive
         env:
           TWINE_USERNAME: __token__
@@ -202,6 +203,7 @@ jobs:
       - name: Publish to PyPI
         if: github.event.inputs.prerelease != 'true'
         run: |
+          # shellcheck disable=SC2086
           twine upload dist/* --non-interactive
         env:
           TWINE_USERNAME: __token__
@@ -237,9 +239,9 @@ jobs:
         id: check_maven
         run: |
           if find . -name "pom.xml" -type f | grep -q .; then
-            echo "has_maven=true" >> $GITHUB_OUTPUT
+            echo "has_maven=true" >> "$GITHUB_OUTPUT"
           else
-            echo "has_maven=false" >> $GITHUB_OUTPUT
+            echo "has_maven=false" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Get Version
@@ -251,12 +253,12 @@ jobs:
           else
             VERSION="${GITHUB_REF#refs/tags/v}"
           fi
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Update Maven Version
         if: steps.check_maven.outputs.has_maven == 'true'
         run: |
-          find . -name "pom.xml" -exec mvn versions:set -DnewVersion=${{ steps.version.outputs.version }} -f {} \;
+          find . -name "pom.xml" -exec mvn versions:set -DnewVersion="${{ steps.version.outputs.version }}" -f {} \;
 
       - name: Build with Maven
         if: steps.check_maven.outputs.has_maven == 'true'
@@ -277,9 +279,9 @@ jobs:
         run: |
           # Configure for GitHub Packages
           mkdir -p ~/.m2
-          echo "<settings><servers><server><id>github</id><username>${GITHUB_ACTOR}</username><password>${GITHUB_TOKEN}</password></server></servers></settings>" > ~/.m2/settings.xml
+          printf '%s\n' '<settings><servers><server><id>github</id><username>'"${GITHUB_ACTOR}"'</username><password>'"${GITHUB_TOKEN}"'</password></server></servers></settings>' > ~/.m2/settings.xml
           # Deploy to GitHub Packages
-          find . -name "pom.xml" -execdir mvn deploy -DskipTests -DaltDeploymentRepository=github::default::https://maven.pkg.github.com/${{ github.repository }} \;
+          find . -name "pom.xml" -execdir mvn deploy -DskipTests -DaltDeploymentRepository="github::default::https://maven.pkg.github.com/${{ github.repository }}" \;
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         continue-on-error: true
@@ -308,29 +310,39 @@ jobs:
           else
             VERSION="${GITHUB_REF#refs/tags/v}"
           fi
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Generate Release Notes
         id: notes
         run: |
-          echo "# Release v${{ steps.version.outputs.version }}" > release_notes.md
-          echo "" >> release_notes.md
-          echo "## Packages Published" >> release_notes.md
-          echo "" >> release_notes.md
-          echo "### NPM" >> release_notes.md
-          echo "- [adaptive-tests](https://www.npmjs.com/package/adaptive-tests)" >> release_notes.md
-          echo "- [jest-adaptive](https://www.npmjs.com/package/jest-adaptive)" >> release_notes.md
-          echo "- [vite-plugin-adaptive](https://www.npmjs.com/package/vite-plugin-adaptive)" >> release_notes.md
-          echo "- [webpack-plugin-adaptive](https://www.npmjs.com/package/webpack-plugin-adaptive)" >> release_notes.md
-          echo "" >> release_notes.md
-          echo "### PyPI" >> release_notes.md
-          echo "- [adaptive-tests-py](https://pypi.org/project/adaptive-tests-py/)" >> release_notes.md
-          echo "" >> release_notes.md
-          echo "## Installation" >> release_notes.md
-          echo '```bash' >> release_notes.md
-          echo "npm install adaptive-tests@${{ steps.version.outputs.version }}" >> release_notes.md
-          echo "pip install adaptive-tests-py==${{ steps.version.outputs.version }}" >> release_notes.md
-          echo '```' >> release_notes.md
+          VERSION="${{ steps.version.outputs.version }}" python - <<'PY_NOTES'
+            if True:
+                import os, textwrap
+
+                version = os.environ["VERSION"]
+                content = textwrap.dedent(f"""# Release v{version}
+
+                ## Packages Published
+
+                ### NPM
+                - [adaptive-tests](https://www.npmjs.com/package/adaptive-tests)
+                - [jest-adaptive](https://www.npmjs.com/package/jest-adaptive)
+                - [vite-plugin-adaptive](https://www.npmjs.com/package/vite-plugin-adaptive)
+                - [webpack-plugin-adaptive](https://www.npmjs.com/package/webpack-plugin-adaptive)
+
+                ### PyPI
+                - [adaptive-tests-py](https://pypi.org/project/adaptive-tests-py/)
+
+                ## Installation
+                ```bash
+                npm install adaptive-tests@{version}
+                pip install adaptive-tests-py=={version}
+                ```
+                """)
+
+                with open("release_notes.md", "w", encoding="utf-8") as fh:
+                    fh.write(content)
+          PY_NOTES
 
       - name: Create Release
         uses: softprops/action-gh-release@v2

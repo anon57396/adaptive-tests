@@ -28,7 +28,7 @@ If this project helps you, please consider supporting it via the Sponsor button 
 - [Framework Templates](#framework-templates)
 - [CLI Helper](#cli-helper)
 - [Validation Flow](#validation-flow)
-- [CI/CD Strategy](#cicd-strategy)
+- [CI/CD Strategy](#ci-cd-strategy)
 - [Documentation & Examples](#documentation--examples)
 - [Publishing](#publishing)
 - [For Developers](#for-developers)
@@ -36,7 +36,7 @@ If this project helps you, please consider supporting it via the Sponsor button 
 
 ---
 
-## 🚀 CI/CD Integration
+## <a id="ci-cd-integration"></a>🚀 CI/CD Integration
 
 You can run adaptive tests in CI using either the official GitHub Action (if available) or a standard Node.js job.
 
@@ -74,7 +74,7 @@ steps:
 
 ---
 
-## 🎯 VS Code Extension (Development Alpha)
+## <a id="vs-code-extension-development-alpha"></a>🎯 VS Code Extension (Development Alpha)
 
 Experience the power of adaptive testing with our VS Code extension currently in development:
 
@@ -388,7 +388,7 @@ The script runs four scenarios:
 
 ---
 
-## CI/CD Strategy
+## <a id="ci-cd-strategy"></a>CI/CD Strategy
 
 ### Why Adaptive Tests Excel in CI/CD
 
@@ -482,7 +482,7 @@ When you are ready to publish a new release:
 
 ---
 
-## 🧑‍💻 For Developers
+## <a id="for-developers"></a>🧑‍💻 For Developers
 
 ### Developer Setup
 

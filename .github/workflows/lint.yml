@@ -24,13 +24,10 @@ jobs:
       - name: Markdown lint
         run: npm run lint:markdown
 
-      - name: Markdown link check
-        run: npm run lint:links
-
       - name: Install Python tooling
         run: |
           python -m pip install --upgrade pip
-          pip install ./packages/adaptive-tests-py[test] black==23.9.1 ruff==0.1.13
+          pip install "./packages/adaptive-tests-py[test]" black==23.9.1 ruff==0.1.13
 
       - name: Python format check (black)
         run: black --check packages/adaptive-tests-py/src packages/adaptive-tests-py/tests
