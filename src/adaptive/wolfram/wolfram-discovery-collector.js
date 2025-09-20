@@ -15,7 +15,7 @@
 const fs = require('fs');
 const path = require('path');
 const { ErrorHandler } = require('../error-handler');
-const { runProcessSync } = require('../process-runner');
+const processRunner = require('../process-runner');
 
 class WolframDiscoveryCollector {
   constructor() {
@@ -42,7 +42,7 @@ class WolframDiscoveryCollector {
     for (const { name: exe, priority } of this.kernelExecutables) {
       const result = this.errorHandler.safeSync(
         () => {
-          const execution = runProcessSync(
+          const execution = processRunner.runProcessSync(
             exe,
             ['--version'],
             {
@@ -173,7 +173,7 @@ class WolframDiscoveryCollector {
   async parseWithASTBridge(filePath) {
     return this.errorHandler.safeAsync(
       async () => {
-        const execution = runProcessSync(
+        const execution = processRunner.runProcessSync(
           this.kernelInfo.executable,
           [this.astBridgeScript, filePath],
           {
@@ -217,7 +217,7 @@ class WolframDiscoveryCollector {
   async parseWithFallbackBridge(filePath) {
     return this.errorHandler.safeAsync(
       async () => {
-        const execution = runProcessSync(
+        const execution = processRunner.runProcessSync(
           this.kernelInfo.executable,
           [this.fallbackBridgeScript, filePath],
           {

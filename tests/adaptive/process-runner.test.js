@@ -14,13 +14,13 @@ describe('process-runner', () => {
     );
 
     expect(execution.result.status).toBe(0);
-    expect(execution.result.stdout.trim()).toBe('ok');
+    expect(execution.result.stdout.toString().trim()).toBe('ok');
   });
 
   test('throws when executable not in allowlist', () => {
     expect(() => {
       runProcessSync('/bin/echo', ['hello'], {
-        allowlist: []
+        allowlist: ['python3']
       });
     }).toThrow('Executable');
   });

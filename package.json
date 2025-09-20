@@ -12,6 +12,7 @@
     "dev": "jest --watch",
     "test": "jest",
     "test:coverage": "jest --coverage",
+    "performance": "node scripts/performance-demo.js",
     "test:traditional": "jest --config jest.examples.config.cjs examples/calculator/tests/traditional",
     "test:adaptive": "jest --config jest.examples.config.cjs examples/calculator/tests/adaptive",
     "test:both": "npm run test:traditional && npm run test:adaptive",

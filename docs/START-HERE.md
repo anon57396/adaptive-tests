@@ -1,8 +1,9 @@
 # 🚀 Start Here - Find Your Path
 
-## Who are you? Choose your adventure:
+## Who are you? Choose your adventure
 
 ### 🌊 "I just want my tests to work"
+
 **You're a vibe coder. Tests broke. You want a quick fix.**
 
 ```bash
@@ -14,9 +15,11 @@ Done. Your tests now survive refactoring. [Learn more →](getting-started-invis
 ---
 
 ### ⚡ "I care about performance"
+
 **Every millisecond matters to you.**
 
 **The numbers:**
+
 - First discovery: ~5ms
 - Cached discovery: <1ms
 - No runtime overhead after discovery
@@ -32,6 +35,7 @@ const Calculator = await discover('Calculator');
 ---
 
 ### 🏢 "I need enterprise-grade control"
+
 **You need predictability, audit trails, and escape hatches.**
 
 ```javascript
@@ -47,6 +51,7 @@ const engine = getDiscoveryEngine({
 ```
 
 **Guarantees:**
+
 - Zero runtime side effects
 - Deterministic discovery via AST
 - Full opt-in architecture
@@ -57,6 +62,7 @@ const engine = getDiscoveryEngine({
 ---
 
 ### 👶 "I'm learning to test"
+
 **You're new to testing and want something simple.**
 
 ```javascript
@@ -75,6 +81,7 @@ test('my first adaptive test', async () => {
 ---
 
 ### 🤖 "I'm an AI generating tests"
+
 **You need structured, predictable patterns.**
 
 ```javascript
@@ -99,21 +106,25 @@ class ServiceAdaptiveTest extends AdaptiveTest {
 ---
 
 ### 🤔 "I'm not convinced this is necessary"
+
 **You think this might be overengineering.**
 
 **When you DON'T need adaptive-tests:**
+
 - Small projects with stable structure
 - Tests that don't use imports
 - One-file scripts
 - Projects that never refactor
 
 **When you DO need it:**
+
 - AI agents refactor your code
 - Team members reorganize files
 - You merge branches with moved files
 - You want tests to focus on behavior, not structure
 
 **Try it risk-free:**
+
 ```bash
 # See what would change (dry run)
 npx adaptive-tests enable-invisible --dry-run
@@ -124,7 +135,7 @@ npx adaptive-tests enable-invisible --undo
 
 ---
 
-## Not sure? Answer these:
+## Not sure? Answer these
 
 **Q: Do your tests ever break when you move files?**
 → Yes: Use invisible mode

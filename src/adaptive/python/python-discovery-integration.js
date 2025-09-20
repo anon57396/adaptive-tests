@@ -10,7 +10,7 @@ const path = require('path');
 const fs = require('fs');
 const { BaseLanguageIntegration } = require('../base-language-integration');
 const { ErrorHandler } = require('../error-handler');
-const { runProcessSync } = require('../process-runner');
+const processRunner = require('../process-runner');
 
 const PYTHON_BRIDGE_SCRIPT = `import ast, json, sys
 from pathlib import Path
@@ -117,7 +117,7 @@ class PythonDiscoveryCollector {
     let lastError = null;
 
     for (const executable of this.allowedExecutables) {
-      const execution = runProcessSync(
+      const execution = processRunner.runProcessSync(
         executable,
         ['-c', PYTHON_BRIDGE_SCRIPT, filePath],
         {
@@ -195,7 +195,7 @@ class PythonDiscoveryCollector {
     }
 
     const parseResult = this.errorHandler.safeSync(
-      () => JSON.parse(spawnResult.stdout || '{}'),
+      () => JSON.parse(spawnResult.stdout.toString() || '{}'),
       { filePath: absolutePath, operation: 'parseJSON' }
     );
 
@@ -211,8 +211,27 @@ class PythonDiscoveryCollector {
     const classes = Array.isArray(payload.classes) ? payload.classes : [];
     const functions = Array.isArray(payload.functions) ? payload.functions : [];
 
+    // Build exports array from classes and functions
+    const exports = [];
+    classes.forEach(cls => {
+      exports.push({
+        exportedName: cls.name,
+        type: 'class'
+      });
+    });
+    functions.forEach(fn => {
+      exports.push({
+        exportedName: fn.name,
+        type: 'function'
+      });
+    });
+
+    // Extract module name from file path
+    const moduleName = payload.module || absolutePath.replace(/\.py$/, '').replace(/\//g, '.');
+
     return {
       path: absolutePath,
+      moduleName,
       classes: classes.map(cls => ({
         name: cls.name,
         methods: Array.isArray(cls.methods) ? cls.methods : [],
@@ -223,7 +242,8 @@ class PythonDiscoveryCollector {
         name: fn.name,
         decorators: Array.isArray(fn.decorators) ? fn.decorators : [],
         isAsync: Boolean(fn.isAsync)
-      }))
+      })),
+      exports
     };
   }
 }

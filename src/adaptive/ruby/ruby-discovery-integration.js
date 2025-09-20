@@ -9,7 +9,7 @@ const fs = require('fs');
 const path = require('path');
 const { ErrorHandler } = require('../error-handler');
 const { BaseLanguageIntegration } = require('../base-language-integration');
-const { runProcessSync } = require('../process-runner');
+const processRunner = require('../process-runner');
 
 function buildFullName(scopeStack, rawName) {
   if (!rawName) {
@@ -94,7 +94,7 @@ class RubyDiscoveryCollector {
   detectRubyExecutable() {
     for (const exe of this.rubyExecutables) {
       try {
-        const execution = runProcessSync(
+        const execution = processRunner.runProcessSync(
           exe,
           ['--version'],
           {
@@ -140,7 +140,7 @@ class RubyDiscoveryCollector {
    */
   checkRipperSupport(exe) {
     try {
-      const execution = runProcessSync(
+      const execution = processRunner.runProcessSync(
         exe,
         ['-e', 'require "ripper"; puts "ok"'],
         {
@@ -195,7 +195,7 @@ class RubyDiscoveryCollector {
   async parseWithNativeRuby(filePath) {
     return this.errorHandler.safeAsync(
       async () => {
-        const execution = runProcessSync(
+        const execution = processRunner.runProcessSync(
           this.rubyInfo.executable,
           [this.astBridgeScript, filePath],
           {

@@ -1,5 +1,5 @@
 const path = require('path');
-const { runProcessSync } = require('../process-runner');
+const processRunner = require('../process-runner');
 
 function buildPythonEnv() {
   const current = process.env.PYTHONPATH || '';
@@ -25,7 +25,7 @@ function explainPythonSignature(signatureInput, { root, limit = 5 }) {
     '--json'
   ];
 
-  const execution = runProcessSync(
+  const execution = processRunner.runProcessSync(
     'python3',
     args,
     {

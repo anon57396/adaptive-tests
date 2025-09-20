@@ -9,7 +9,7 @@
 const fs = require('fs');
 const path = require('path');
 const { ErrorHandler } = require('../error-handler');
-const { runProcessSync } = require('../process-runner');
+const processRunner = require('../process-runner');
 
 // Try to load php-parser.js as fallback
 let PhpParser = null;
@@ -64,7 +64,7 @@ class PHPDiscoveryCollector {
   detectPhpExecutable() {
     for (const exe of this.phpExecutables) {
       try {
-        const execution = runProcessSync(
+        const execution = processRunner.runProcessSync(
           exe,
           ['--version'],
           {
