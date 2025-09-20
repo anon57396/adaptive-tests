@@ -5,6 +5,7 @@
 [![npm version](https://img.shields.io/npm/v/adaptive-tests.svg)](https://www.npmjs.com/package/adaptive-tests)
 [![PyPI version](https://img.shields.io/pypi/v/adaptive-tests-py.svg)](https://pypi.org/project/adaptive-tests-py/)
 [![VS Code Extension](https://img.shields.io/badge/VS%20Code-Development%20Alpha-yellow)](extensions/vscode-adaptive-tests/README.md)
+[![GitHub Action](https://img.shields.io/badge/GitHub%20Action-Available-green?logo=github)](https://github.com/marketplace/actions/adaptive-tests)
 
 Documentation: [https://anon57396.github.io/adaptive-tests/](https://anon57396.github.io/adaptive-tests/)
 
@@ -15,6 +16,42 @@ When AI agents rapidly reshape your codebase, traditional tests break constantly
 **Stop wasting AI cycles on import maintenance.** Move files, rename directories, refactor into new layers—adaptive suites still find the code they care about, while traditional suites keep failing with import errors.
 
 If this project helps you, please consider supporting it via the Sponsor button (GitHub Sponsors) or your preferred tip link. Thank you!
+
+---
+
+## 🚀 GitHub Action - One-Line CI/CD Setup
+
+Add adaptive tests to your CI/CD pipeline with **just one line**:
+
+```yaml
+- uses: adaptive-tests-action/adaptive-tests@v1
+```
+
+That's it! The action automatically:
+- ✅ Runs all adaptive tests
+- 🔍 Discovers components in your codebase
+- 📊 Generates coverage reports
+- 💬 Comments results on pull requests
+- 🏗️ Auto-scaffolds tests for new code
+
+### Quick Examples
+
+```yaml
+# Basic usage
+- uses: adaptive-tests-action/adaptive-tests@v1
+
+# With coverage
+- uses: adaptive-tests-action/adaptive-tests@v1
+  with:
+    coverage: true
+
+# Multi-language support
+- uses: adaptive-tests-action/adaptive-tests@v1
+  with:
+    language: python
+```
+
+[See full GitHub Action documentation →](docs/GITHUB_ACTION.md)
 
 ---
 

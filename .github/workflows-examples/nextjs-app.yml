@@ -1,0 +1,67 @@
+# Example workflow for Next.js applications
+name: Next.js App - Adaptive Tests
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  NODE_ENV: test
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    # Run adaptive tests with Next.js specific patterns
+    - name: Run Adaptive Tests
+      uses: adaptive-tests-action/adaptive-tests@v1
+      with:
+        command: test
+        coverage: true
+        test-pattern: |
+          **/*.adaptive.test.{js,jsx,ts,tsx}
+          app/**/__tests__/*.{js,jsx,ts,tsx}
+          pages/**/__tests__/*.{js,jsx,ts,tsx}
+
+    # Discover Next.js specific components
+    - name: Discover Pages & Components
+      uses: adaptive-tests-action/adaptive-tests@v1
+      with:
+        command: discover
+        language: typescript
+        discovery-signature: |
+          {
+            "type": "component",
+            "framework": "nextjs",
+            "patterns": ["getServerSideProps", "getStaticProps", "use client"]
+          }
+
+    # Scaffold tests for new components
+    - name: Auto-scaffold Tests for New Components
+      if: github.event_name == 'pull_request'
+      uses: adaptive-tests-action/adaptive-tests@v1
+      with:
+        command: scaffold
+        language: typescript
+
+    # Validate API routes still exist
+    - name: Validate API Routes
+      uses: adaptive-tests-action/adaptive-tests@v1
+      with:
+        command: validate
+        working-directory: app/api
+        fail-on-missing: true

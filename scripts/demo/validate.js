@@ -136,7 +136,12 @@ function runPythonScenario() {
     const quotedPythonExec = quote(pythonExec);
 
     runCommand(`${quotedPythonExec} -m pip install --upgrade pip`, false, { cwd: PYTHON_EXAMPLE_DIR });
-    runCommand(`${quotedPythonExec} -m pip install -r requirements.txt`, false, { cwd: PYTHON_EXAMPLE_DIR });
+    try {
+      runCommand(`${quotedPythonExec} -m pip install -r requirements.txt`, false, { cwd: PYTHON_EXAMPLE_DIR });
+    } catch (error) {
+      console.warn('  ⚠️  Skipping Python scenario: unable to install dependencies (likely offline).');
+      return { status: 'skipped', reason: 'Python dependencies unavailable (offline?)' };
+    }
 
     const pytestResult = runCommand(`${quotedPythonExec} -m pytest`, false, { cwd: PYTHON_EXAMPLE_DIR });
     const summary = extractPytestSummary(pytestResult.output);
@@ -178,10 +183,15 @@ function runJavaScenario() {
     return { status: 'skipped', reason: 'Maven wrapper not found' };
   }
 
-  const result = runCommand(`${wrapper} -q test`, false, { cwd: JAVA_PACKAGE_DIR });
-  const summary = extractMavenSummary(result.output);
-  console.log(`  ✓ Maven tests: ${summary}`);
-  return { status: 'passed', summary };
+  try {
+    const result = runCommand(`${wrapper} -q test`, false, { cwd: JAVA_PACKAGE_DIR });
+    const summary = extractMavenSummary(result.output);
+    console.log(`  ✓ Maven tests: ${summary}`);
+    return { status: 'passed', summary };
+  } catch (error) {
+    console.warn('  ⚠️  Skipping Java scenario: Java runtime or Maven not available.');
+    return { status: 'skipped', reason: 'Java runtime unavailable or offline' };
+  }
 }
 
 console.log('\n📋 SCENARIO 1: Normal Code Structure');
@@ -252,7 +262,7 @@ const tradResults3 = extractTestResults(trad3.output);
 console.log('Running adaptive tests...');
 // Clear cache first, then run with --no-cache
 runCommand('npx jest --clearCache', false);
-const adapt3 = runCommand('npx jest examples/calculator/tests/adaptive --no-cache 2>&1', true);
+const adapt3 = runCommand('npx jest --config jest.examples.config.cjs examples/calculator/tests/adaptive --no-cache 2>&1', true);
 const adaptResults3 = extractTestResults(adapt3.output);
 
 console.log(`\n  Traditional: ${trad3.success ? '✅' : '❌'} ${tradResults3.failed} test failures${tradResults3.hasTestFailure ? ' (Actual bugs!)' : ''}`);

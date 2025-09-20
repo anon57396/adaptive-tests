@@ -1,0 +1,192 @@
+name: 'Adaptive Tests'
+description: 'Run adaptive tests that survive refactoring - the AI-ready testing framework'
+author: 'Adaptive Tests Team'
+branding:
+  icon: 'check-circle'
+  color: 'green'
+
+inputs:
+  command:
+    description: 'Command to run (test, discover, scaffold, validate)'
+    required: false
+    default: 'test'
+
+  working-directory:
+    description: 'Working directory for the tests'
+    required: false
+    default: '.'
+
+  config-file:
+    description: 'Path to adaptive-tests.config.js'
+    required: false
+    default: 'adaptive-tests.config.js'
+
+  test-pattern:
+    description: 'Test file pattern (for test command)'
+    required: false
+    default: '**/*.adaptive.test.js'
+
+  coverage:
+    description: 'Generate coverage report'
+    required: false
+    default: 'false'
+
+  fail-on-missing:
+    description: 'Fail if discovery targets are not found'
+    required: false
+    default: 'true'
+
+  discovery-signature:
+    description: 'Discovery signature JSON (for discover command)'
+    required: false
+    default: ''
+
+  language:
+    description: 'Language for discovery (javascript, typescript, python, java, go, rust, php, ruby)'
+    required: false
+    default: 'javascript'
+
+  node-version:
+    description: 'Node.js version to use'
+    required: false
+    default: '18'
+
+  install-command:
+    description: 'Package manager install command'
+    required: false
+    default: 'npm ci'
+
+  cache:
+    description: 'Cache node_modules'
+    required: false
+    default: 'true'
+
+outputs:
+  test-results:
+    description: 'Test results in JSON format'
+    value: ${{ steps.run-tests.outputs.results }}
+
+  coverage-report:
+    description: 'Coverage report path'
+    value: ${{ steps.run-tests.outputs.coverage }}
+
+  discovered-components:
+    description: 'Discovered components (for discover command)'
+    value: ${{ steps.run-tests.outputs.components }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ inputs.node-version }}
+        cache: ${{ inputs.cache == 'true' && 'npm' || '' }}
+
+    - name: Install dependencies
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        echo "📦 Installing dependencies..."
+        ${{ inputs.install-command }}
+
+    - name: Install adaptive-tests
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        if [ ! -f "node_modules/adaptive-tests/package.json" ]; then
+          echo "📥 Installing adaptive-tests..."
+          npm install adaptive-tests --save-dev
+        else
+          echo "✅ adaptive-tests already installed"
+        fi
+
+    - name: Run Adaptive Tests
+      id: run-tests
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        echo "🚀 Running adaptive-tests: ${{ inputs.command }}"
+
+        case "${{ inputs.command }}" in
+          test)
+            echo "🧪 Running adaptive tests..."
+            if [ "${{ inputs.coverage }}" == "true" ]; then
+              npx adaptive-tests test "${{ inputs.test-pattern }}" --coverage --json > test-results.json
+              echo "coverage=coverage/lcov.info" >> $GITHUB_OUTPUT
+            else
+              npx adaptive-tests test "${{ inputs.test-pattern }}" --json > test-results.json
+            fi
+            echo "results=$(cat test-results.json)" >> $GITHUB_OUTPUT
+            ;;
+
+          discover)
+            echo "🔍 Running discovery..."
+            if [ -n "${{ inputs.discovery-signature }}" ]; then
+              echo '${{ inputs.discovery-signature }}' > signature.json
+              npx adaptive-tests discover --signature signature.json --language "${{ inputs.language }}" --json > discovery-results.json
+            else
+              npx adaptive-tests discover --language "${{ inputs.language }}" --json > discovery-results.json
+            fi
+            echo "components=$(cat discovery-results.json)" >> $GITHUB_OUTPUT
+            ;;
+
+          scaffold)
+            echo "🏗️ Scaffolding adaptive tests..."
+            npx adaptive-tests scaffold --language "${{ inputs.language }}" --ci
+            ;;
+
+          validate)
+            echo "✅ Validating adaptive tests..."
+            npx adaptive-tests validate --fail-on-missing="${{ inputs.fail-on-missing }}"
+            ;;
+
+          *)
+            echo "❌ Unknown command: ${{ inputs.command }}"
+            exit 1
+            ;;
+        esac
+
+    - name: Upload test results
+      if: inputs.command == 'test' && always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: adaptive-test-results
+        path: |
+          ${{ inputs.working-directory }}/test-results.json
+          ${{ inputs.working-directory }}/coverage/
+        retention-days: 30
+
+    - name: Comment PR with results
+      if: github.event_name == 'pull_request' && inputs.command == 'test'
+      uses: actions/github-script@v7
+      with:
+        github-token: ${{ github.token }}
+        script: |
+          const fs = require('fs');
+          const results = JSON.parse(fs.readFileSync('${{ inputs.working-directory }}/test-results.json', 'utf8'));
+
+          const comment = `## 🧪 Adaptive Tests Results
+
+          **Status:** ${results.success ? '✅ Passed' : '❌ Failed'}
+          **Total Tests:** ${results.total}
+          **Passed:** ${results.passed}
+          **Failed:** ${results.failed}
+          **Duration:** ${results.duration}ms
+
+          ${results.failed > 0 ? '### Failed Tests\n' + results.failures.map(f => `- ${f.name}: ${f.error}`).join('\n') : ''}
+
+          <details>
+          <summary>View detailed results</summary>
+
+          \`\`\`json
+          ${JSON.stringify(results, null, 2)}
+          \`\`\`
+          </details>`;
+
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: comment
+          });

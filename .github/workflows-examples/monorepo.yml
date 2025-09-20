@@ -1,0 +1,95 @@
+# Example workflow for monorepos with multiple languages
+name: Monorepo - Adaptive Tests
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  # Test JavaScript/TypeScript packages
+  test-javascript:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        package:
+          - packages/frontend
+          - packages/backend
+          - packages/shared
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Run Adaptive Tests - ${{ matrix.package }}
+      uses: adaptive-tests-action/adaptive-tests@v1
+      with:
+        command: test
+        working-directory: ${{ matrix.package }}
+        coverage: true
+
+  # Test Python services
+  test-python:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        service:
+          - services/auth
+          - services/api
+          - services/worker
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Run Adaptive Tests - ${{ matrix.service }}
+      uses: adaptive-tests-action/adaptive-tests@v1
+      with:
+        command: test
+        working-directory: ${{ matrix.service }}
+        language: python
+
+  # Test Go microservices
+  test-go:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        service:
+          - services/gateway
+          - services/database
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.21'
+
+    - name: Run Adaptive Tests - ${{ matrix.service }}
+      uses: adaptive-tests-action/adaptive-tests@v1
+      with:
+        command: test
+        working-directory: ${{ matrix.service }}
+        language: go
+
+  # Validate all discoveries across the monorepo
+  validate-all:
+    runs-on: ubuntu-latest
+    needs: [test-javascript, test-python, test-go]
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Validate All Discoveries
+      uses: adaptive-tests-action/adaptive-tests@v1
+      with:
+        command: validate
+        fail-on-missing: true
