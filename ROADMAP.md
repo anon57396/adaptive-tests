@@ -73,6 +73,35 @@ We plan in three tracks. Each item links to an issue once opened.
   - Optional IDE integrations (VS Code panel for Lens/Visualizer) once CLI is stable
   - Python companion: keep “lightweight companion” scope unless parity investment is planned
 
+## 🛡️ Stabilization Phases
+
+_Phase work keeps adaptive-tests production ready while we add new experiences._
+
+- **Phase 1 – Security & Stability**
+  - ✅ Port module caching into `ResultAssembler` with targeted tests
+  - ✅ Harden CLI undo/install flows (shell-free process execution)
+  - 🔄 Audit remaining `child_process` callers & runtime guards
+  - 🔄 Implement TypeScript adaptive scaffolding + test coverage parity
+  - 🔄 Standardize async patterns via `AsyncOperationManager` usage in bridges
+
+- **Phase 2 – Architecture & Performance**
+  - Break discovery engine monolith into focused modules (collector, evaluator, assembler, reporter)
+  - Parallelize language collectors with worker pools + bounded memory caches
+  - Normalize language integration contracts and shared fixtures
+  - Ship performance regression harness (10k/50k file scenarios)
+
+- **Phase 3 – Scaling & UX**
+  - Progressive configuration (starter presets → advanced overrides)
+  - VS Code production extension w/ invisible-mode quick actions
+  - Guided onboarding docs, AI prompt packs, troubleshooting matrix
+  - Discovery cache telemetry + health diagnostics
+
+- **Phase 4 – Advanced Capabilities**
+  - Distributed discovery cache (Redis/backing service option)
+  - Machine-assisted scoring weights and heuristics tuning
+  - Real-time observability (metrics + alert hooks)
+  - Optional ML-driven “pattern learner” promotion to stable channel
+
 ## 🔭 Exploratory Ideas
 
 ### Adaptive Tests Cloud

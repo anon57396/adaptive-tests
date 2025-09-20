@@ -10,14 +10,12 @@
  */
 
 const fs = require('fs');
-const fsPromises = fs.promises;
 const path = require('path');
 const Module = require('module');
 const { ConfigLoader } = require('./config-loader');
 const { analyzeModuleExports: parseModuleExports } = require('./parser');
 const { ScoringEngine } = require('./scoring-engine');
 const { createTsconfigResolver } = require('./tsconfig-resolver');
-const { getLogger } = require('./logger');
 const { AsyncOperationManager } = require('./async-utils');
 const { FileSystemScanner } = require('./file-system-scanner');
 const { CandidateEvaluator } = require('./candidate-evaluator');
@@ -133,15 +131,10 @@ class DiscoveryEngine {
     this.tsconfigResolver = createTsconfigResolver(this.rootPath);
 
     const cacheConfig = this.config.discovery.cache || {};
-    this.cacheLogWarnings = Boolean(cacheConfig.logWarnings);
-    const ttlSeconds = Number(cacheConfig.ttl ?? 0);
-    this.cacheTTLMs = Number.isFinite(ttlSeconds) && ttlSeconds > 0 ? ttlSeconds * 1000 : 0;
 
     // Runtime caches with size limits
     this.discoveryCache = new LRUCache(200); // Limit discovery cache
     this.persistentCache = {};
-    this.cacheLoaded = false;
-    this.cacheLoadPromise = null;
     this.cachedModules = new Set();
     this.moduleVersions = new LRUCache(50); // Limit version cache
     this.MAX_CACHED_MODULES = 100; // Limit cached module paths
@@ -169,13 +162,6 @@ class DiscoveryEngine {
     this.config.discovery.concurrency = normalizedConcurrency;
     this.maxConcurrency = normalizedConcurrency;
 
-    this.syncResultAssemblerCaches = () => {
-      if (this.resultAssembler) {
-        this.resultAssembler.runtimeCache = this.discoveryCache;
-        this.resultAssembler.persistentCache = this.persistentCache;
-      }
-    };
-
     this.candidateEvaluator = new CandidateEvaluator({
       rootPath: this.rootPath,
       config: this.config,
@@ -197,10 +183,14 @@ class DiscoveryEngine {
       ensureTypeScriptSupport: this.ensureTypeScriptSupport.bind(this),
       runtimeCache: this.discoveryCache,
       persistentCache: this.persistentCache,
-      persistCache: this.saveCache.bind(this)
+      cacheConfig: {
+        enabled: cacheConfig.enabled !== false,
+        file: cacheConfig.file || '.adaptive-tests-cache.json',
+        logWarnings: Boolean(cacheConfig.logWarnings),
+        ttl: cacheConfig.ttl,
+        ttlMs: cacheConfig.ttlMs
+      }
     });
-
-    this.syncResultAssemblerCaches();
 
     this.fileSystemScanner = new FileSystemScanner({
       rootPath: this.rootPath,
@@ -237,20 +227,10 @@ class DiscoveryEngine {
   }
 
   async ensureCacheLoaded() {
-    if (!this.config.discovery.cache.enabled) {
-      this.cacheLoaded = true;
+    if (!this.resultAssembler) {
       return;
     }
-
-    if (this.cacheLoaded) {
-      return;
-    }
-
-    if (!this.cacheLoadPromise) {
-      this.cacheLoadPromise = this.loadCache();
-    }
-
-    await this.cacheLoadPromise;
+    await this.resultAssembler.ensureCacheLoaded();
   }
 
   /**
@@ -262,52 +242,16 @@ class DiscoveryEngine {
   async discoverTarget(signature) {
     // Normalize and validate signature
     const normalizedSig = this.normalizeSignature(signature);
-    const cacheKey = this.getCacheKey(normalizedSig);
+    const cacheKey = this.resultAssembler.getCacheKey(normalizedSig);
 
     // Detect caller's file extension from stack
     const callerExtension = this.detectCallerExtension();
 
     await this.ensureCacheLoaded();
 
-    // Check runtime cache first
-    if (this.discoveryCache.has(cacheKey)) {
-      const cached = this.discoveryCache.get(cacheKey);
-      if (this.isCacheEntryExpired(cached)) {
-        this.discoveryCache.delete(cacheKey);
-      } else {
-        try {
-          return this.loadModule(cached, normalizedSig);
-        } catch (error) {
-          this.discoveryCache.delete(cacheKey);
-        }
-      }
-    }
-
-    // Check persistent cache
-    if (this.persistentCache[cacheKey]) {
-      const persistentEntry = this.persistentCache[cacheKey];
-      if (this.isCacheEntryExpired(persistentEntry)) {
-        delete this.persistentCache[cacheKey];
-      } else {
-        try {
-          // Convert relative path back to absolute
-          const cacheEntry = { ...persistentEntry };
-          if (cacheEntry.relativePath) {
-            cacheEntry.path = path.join(this.rootPath, cacheEntry.relativePath);
-          }
-
-          // Validate that the file still exists
-          if (!fs.existsSync(cacheEntry.path)) {
-            delete this.persistentCache[cacheKey];
-          } else {
-            const module = this.loadModule(cacheEntry, normalizedSig);
-            this.discoveryCache.set(cacheKey, cacheEntry);
-            return module;
-          }
-        } catch (error) {
-          delete this.persistentCache[cacheKey];
-        }
-      }
+    const cachedTarget = await this.resultAssembler.tryGetCachedTarget(cacheKey, normalizedSig);
+    if (cachedTarget) {
+      return cachedTarget;
     }
 
     // Perform discovery
@@ -591,51 +535,40 @@ class DiscoveryEngine {
     return normalized;
   }
 
-  /**
-   * Get cache key for signature
-   * @param {DiscoverySignature} signature
-   * @returns {string}
-   */
   getCacheKey(signature) {
-    const keys = Object.keys(signature)
-      .filter(key => key !== 'original' && signature[key] !== undefined)
-      .sort();
-
-    const payload = {};
-    for (const key of keys) {
-      payload[key] = this.serializeCacheValue(signature[key]);
-    }
-
-    return JSON.stringify(payload);
+    return this.resultAssembler.getCacheKey(signature);
   }
 
   serializeCacheValue(value) {
-    if (value === null || value === undefined) {
-      return value;
-    }
+    return this.resultAssembler.serializeCacheValue(value);
+  }
 
-    if (value instanceof RegExp) {
-      return { __type: 'RegExp', source: value.source, flags: value.flags };
+  logCacheWarning(message, error) {
+    if (!this.resultAssembler) {
+      return;
     }
+    this.resultAssembler.logCacheWarning(message, error);
+  }
 
-    if (Array.isArray(value)) {
-      return value.map(item => this.serializeCacheValue(item));
+  isCacheEntryExpired(entry) {
+    if (!this.resultAssembler) {
+      return true;
     }
+    return this.resultAssembler.isCacheEntryExpired(entry);
+  }
 
-    if (typeof value === 'function') {
-      return { __type: 'Function', name: value.name || 'anonymous' };
+  async loadCache() {
+    if (!this.resultAssembler) {
+      return;
     }
+    await this.resultAssembler.ensureCacheLoaded();
+  }
 
-    if (typeof value === 'object') {
-      const sortedKeys = Object.keys(value).sort();
-      const result = {};
-      for (const key of sortedKeys) {
-        result[key] = this.serializeCacheValue(value[key]);
-      }
-      return result;
+  async saveCache() {
+    if (!this.resultAssembler) {
+      return;
     }
-
-    return value;
+    await this.resultAssembler.saveCacheToDisk();
   }
 
   calculateRecencyBonus(mtimeMs) {
@@ -789,120 +722,25 @@ class DiscoveryEngine {
     return suggestion;
   }
 
-  logCacheWarning(message, error) {
-    if (!this.cacheLogWarnings) {
-      return;
-    }
-    const details = error && error.message ? `: ${error.message}` : '';
-    getLogger().warn(`[adaptive-tests] ${message}${details}`);
-  }
-
-  isCacheEntryExpired(entry) {
-    if (!this.cacheTTLMs) {
-      return false;
-    }
-    if (!entry || !entry.timestamp) {
-      return true;
-    }
-    return (Date.now() - entry.timestamp) > this.cacheTTLMs;
-  }
-
   analyzeModuleExports(content, fileName) {
     return parseModuleExports(content, fileName);
-  }
-
-  /**
-   * Load cache from disk
-   */
-  async loadCache() {
-    if (!this.config.discovery.cache.enabled) {
-      this.cacheLoaded = true;
-      return;
-    }
-
-    const cacheFile = path.join(this.rootPath, this.config.discovery.cache.file);
-
-    try {
-      const data = await fsPromises.readFile(cacheFile, 'utf8');
-      const rawCache = JSON.parse(data);
-
-      // Validate and clean cache entries
-      this.persistentCache = {};
-      for (const [key, entry] of Object.entries(rawCache)) {
-        // Skip invalid entries
-        if (!entry || typeof entry !== 'object') continue;
-
-        // Check if entry has required fields
-        if (!entry.relativePath && !entry.path) continue;
-
-        // Convert old absolute path entries to relative
-        if (entry.path && !entry.relativePath) {
-          // Check if it's an absolute path
-          if (path.isAbsolute(entry.path)) {
-            // Skip entries from different machines
-            if (!entry.path.startsWith(this.rootPath)) continue;
-            entry.relativePath = path.relative(this.rootPath, entry.path);
-            delete entry.path;
-          } else {
-            // Already relative, just rename the field
-            entry.relativePath = entry.path;
-            delete entry.path;
-          }
-        }
-
-        // Validate that the file exists and cache entry is fresh
-        const absolutePath = path.join(this.rootPath, entry.relativePath);
-        if (!fs.existsSync(absolutePath)) {
-          continue;
-        }
-        if (this.isCacheEntryExpired(entry)) {
-          continue;
-        }
-        this.persistentCache[key] = entry;
-      }
-    } catch (error) {
-      if (error && error.code !== 'ENOENT') {
-        this.persistentCache = {};
-        this.syncResultAssemblerCaches();
-        this.logCacheWarning(`Failed to load discovery cache from ${cacheFile}`, error);
-      }
-    } finally {
-      this.cacheLoaded = true;
-    }
-  }
-
-  /**
-   * Save cache to disk
-   */
-  async saveCache() {
-    if (!this.config.discovery.cache.enabled) {
-      return;
-    }
-
-    const cacheFile = path.join(this.rootPath, this.config.discovery.cache.file);
-
-    try {
-      await fsPromises.writeFile(cacheFile, JSON.stringify(this.persistentCache, null, 2), 'utf8');
-    } catch (error) {
-      this.logCacheWarning(`Failed to persist discovery cache to ${cacheFile}`, error);
-    }
   }
 
   /**
    * Clear all caches
    */
   async clearCache() {
-    this.discoveryCache.clear();
-    this.persistentCache = {};
-    this.syncResultAssemblerCaches();
+    if (this.resultAssembler) {
+      await this.resultAssembler.clearCaches();
+    } else if (this.discoveryCache && typeof this.discoveryCache.clear === 'function') {
+      this.discoveryCache.clear();
+    }
+
     moduleCache.clear();
     this.cachedModules.forEach(modulePath => {
       delete require.cache[modulePath];
     });
     this.cachedModules.clear();
-    this.cacheLoaded = true;
-    this.cacheLoadPromise = null;
-    await this.saveCache();
   }
 
   /**

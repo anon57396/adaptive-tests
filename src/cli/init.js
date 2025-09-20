@@ -8,7 +8,7 @@
 const fs = require('fs');
 const path = require('path');
 const readline = require('readline');
-const { execSync } = require('child_process');
+const { spawnSync } = require('child_process');
 
 const COLORS = {
   reset: '\x1b[0m',
@@ -66,6 +66,33 @@ function detectPackageManager() {
     add: 'npm install',
     addDev: 'npm install --save-dev'
   };
+}
+
+function runPackageCommand(commandString, packageName) {
+  const sanitized = packageName.trim();
+  if (!sanitized || /[^@\w\-\/]/.test(sanitized)) {
+    throw new Error(`Invalid package name: ${packageName}`);
+  }
+
+  const parts = commandString.split(/\s+/).filter(Boolean);
+  const [command, ...baseArgs] = parts;
+
+  if (!command) {
+    throw new Error(`Unable to parse package manager command: ${commandString}`);
+  }
+
+  const result = spawnSync(command, [...baseArgs, sanitized], {
+    stdio: 'inherit',
+    shell: false
+  });
+
+  if (result.error) {
+    throw result.error;
+  }
+
+  if (result.status !== 0) {
+    throw new Error(`${commandString} ${sanitized} exited with code ${result.status}`);
+  }
 }
 const KNOWN_FRAMEWORKS = ['jest', 'mocha', 'vitest', 'jasmine', 'ava'];
 
@@ -477,7 +504,7 @@ async function runInit() {
     if (!deps['adaptive-tests']) {
       log(`📦 Installing adaptive-tests using ${pm.name}...`, COLORS.blue);
       try {
-        execSync(`${pm.addDev} adaptive-tests`, { stdio: 'inherit' });
+        runPackageCommand(pm.addDev, 'adaptive-tests');
         log('✅ Package installed successfully!', COLORS.green);
       } catch (error) {
         log(`❌ Failed to install package. Please run: ${pm.addDev} adaptive-tests`, COLORS.red);
@@ -490,7 +517,7 @@ async function runInit() {
     if (setupOptions.useTypeScript && !deps['ts-node']) {
       log(`📦 Installing ts-node for TypeScript support using ${pm.name}...`, COLORS.blue);
       try {
-        execSync(`${pm.addDev} ts-node`, { stdio: 'inherit' });
+        runPackageCommand(pm.addDev, 'ts-node');
       } catch (error) {
         log('⚠️  Could not install ts-node. TypeScript discovery may not work.', COLORS.yellow);
       }

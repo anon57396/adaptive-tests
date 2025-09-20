@@ -9,7 +9,6 @@ const fs = require('fs');
 const path = require('path');
 const { parse } = require('@babel/parser');
 const readline = require('readline');
-const { execSync } = require('child_process');
 
 // Use built-in glob from fs if available (Node 18+), otherwise use a simple implementation
 let glob;

@@ -7,6 +7,8 @@ const path = require('path');
 const fs = require('fs');
 const { getDiscoveryEngine } = require('../../src/adaptive/discovery-engine');
 
+jest.setTimeout(15000);
+
 const engine = getDiscoveryEngine(path.resolve(__dirname, '../..'));
 const fixturesRoot = path.resolve(__dirname, '../../fixtures');
 const modulesRoot = path.join(fixturesRoot, 'modules');

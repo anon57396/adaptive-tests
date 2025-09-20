@@ -5,7 +5,7 @@
  * Ensures all dependencies and tools are properly configured
  */
 
-const { execSync } = require('child_process');
+const { spawnSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
@@ -30,27 +30,57 @@ function header(title) {
   console.log();
 }
 
-function run(command, description) {
-  try {
-    log(`▶ ${description}...`, 'yellow');
-    execSync(command, { stdio: 'inherit' });
-    log(`✓ ${description} complete`, 'green');
-    return true;
-  } catch (error) {
-    log(`✗ ${description} failed`, 'red');
+const ALLOWED_COMMANDS = new Set([
+  'npm',
+  'npx',
+  'git',
+  'node',
+  'python',
+  'python3',
+  'py',
+  'php',
+  'ruby',
+  'go',
+  'rustc',
+  'java',
+  'mvn'
+]);
+
+function runCommand(command, args = [], description, options = {}) {
+  if (!ALLOWED_COMMANDS.has(command)) {
+    throw new Error(`Command ${command} is not permitted by dev-setup allowlist.`);
+  }
+
+  log(`▶ ${description}...`, 'yellow');
+  const result = spawnSync(command, args, { stdio: 'inherit', shell: false, ...options });
+
+  if (result.error) {
+    log(`✗ ${description} failed (${result.error.message})`, 'red');
     return false;
   }
+
+  if (result.status !== 0) {
+    log(`✗ ${description} failed (exit code ${result.status})`, 'red');
+    return false;
+  }
+
+  log(`✓ ${description} complete`, 'green');
+  return true;
 }
 
-function checkCommand(command, name) {
-  try {
-    execSync(`which ${command}`, { stdio: 'ignore' });
-    log(`✓ ${name} installed`, 'green');
-    return true;
-  } catch {
+function checkCommand(command, args, name) {
+  if (!ALLOWED_COMMANDS.has(command)) {
+    throw new Error(`Command ${command} is not permitted by dev-setup allowlist.`);
+  }
+
+  const result = spawnSync(command, args, { stdio: 'ignore', shell: false });
+  if (result.error || result.status !== 0) {
     log(`✗ ${name} not installed`, 'yellow');
     return false;
   }
+
+  log(`✓ ${name} installed`, 'green');
+  return true;
 }
 
 async function main() {
@@ -68,25 +98,27 @@ async function main() {
   // Check required tools
   header('🔍 Checking Development Tools');
 
-  const tools = {
-    git: 'Git',
-    npm: 'npm',
-    node: 'Node.js'
-  };
+  const tools = [
+    { command: 'git', args: ['--version'], name: 'Git' },
+    { command: 'npm', args: ['--version'], name: 'npm' },
+    { command: 'node', args: ['--version'], name: 'Node.js' }
+  ];
 
-  const optionalTools = {
-    python3: 'Python 3',
-    php: 'PHP',
-    ruby: 'Ruby',
-    go: 'Go',
-    rustc: 'Rust',
-    java: 'Java',
-    mvn: 'Maven'
-  };
+  const optionalTools = [
+    { command: 'python3', args: ['--version'], name: 'Python 3', key: 'python' },
+    { command: 'py', args: ['--version'], name: 'Python (Windows launcher)', key: 'python' },
+    { command: 'python', args: ['--version'], name: 'Python', key: 'python' },
+    { command: 'php', args: ['--version'], name: 'PHP', key: 'php' },
+    { command: 'ruby', args: ['--version'], name: 'Ruby', key: 'ruby' },
+    { command: 'go', args: ['version'], name: 'Go', key: 'go' },
+    { command: 'rustc', args: ['--version'], name: 'Rust', key: 'rust' },
+    { command: 'java', args: ['-version'], name: 'Java', key: 'java' },
+    { command: 'mvn', args: ['-version'], name: 'Maven', key: 'maven' }
+  ];
 
   let allRequired = true;
-  for (const [cmd, name] of Object.entries(tools)) {
-    if (!checkCommand(cmd, name)) {
+  for (const tool of tools) {
+    if (!checkCommand(tool.command, tool.args, tool.name)) {
       allRequired = false;
     }
   }
@@ -97,14 +129,22 @@ async function main() {
   }
 
   log('\nOptional language support:', 'bold');
-  for (const [cmd, name] of Object.entries(optionalTools)) {
-    checkCommand(cmd, name);
+  const optionalSeen = new Set();
+  for (const tool of optionalTools) {
+    const key = tool.key || tool.name;
+    if (optionalSeen.has(key)) {
+      continue;
+    }
+    const available = checkCommand(tool.command, tool.args, tool.name);
+    if (available) {
+      optionalSeen.add(key);
+    }
   }
 
   // Install dependencies
   header('📦 Installing Dependencies');
 
-  if (!run('npm install', 'Installing npm packages')) {
+  if (!runCommand('npm', ['install'], 'Installing npm packages')) {
     log('Failed to install dependencies. Please check npm errors above.', 'red');
     process.exit(1);
   }
@@ -112,20 +152,20 @@ async function main() {
   // Build packages
   header('🔨 Building Packages');
 
-  run('npm run build:types', 'Building TypeScript types');
-  run('npm run build:plugins', 'Building plugins');
+  runCommand('npm', ['run', 'build:types'], 'Building TypeScript types');
+  runCommand('npm', ['run', 'build:plugins'], 'Building plugins');
 
   // Run tests
   header('🧪 Running Tests');
 
-  if (!run('npm test', 'Running test suite')) {
+  if (!runCommand('npm', ['test'], 'Running test suite')) {
     log('Some tests failed. This is OK for development, but fix before submitting PRs.', 'yellow');
   }
 
   // Run validation
   header('✅ Running Validation');
 
-  if (!run('npm run validate', 'Running validation suite')) {
+  if (!runCommand('npm', ['run', 'validate'], 'Running validation suite')) {
     log('Validation had some issues. Check the output above.', 'yellow');
   }
 

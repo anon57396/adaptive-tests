@@ -10,7 +10,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { execSync } = require('child_process');
+const { spawnSync } = require('child_process');
 
 const ADAPTIVE_DIR = path.join(process.cwd(), '.adaptive-tests');
 const MARKER_FILE = path.join(ADAPTIVE_DIR, 'invisible-enabled.json');
@@ -567,7 +567,14 @@ async function disableInvisibleMode(options = {}) {
   }
 
   try {
-    execSync(`node ${undoPath}`, { stdio: 'inherit' });
+    const result = spawnSync(process.execPath, [undoPath], { stdio: 'inherit', shell: false });
+    if (result.error) {
+      throw result.error;
+    }
+    if (result.status !== 0) {
+      throw new Error(`Undo script exited with code ${result.status}`);
+    }
+
     fs.unlinkSync(undoPath);
     removeMarker();
     log('✅ Invisible mode disabled', 'green');
