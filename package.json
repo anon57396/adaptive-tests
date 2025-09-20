@@ -2,7 +2,7 @@
   "name": "adaptive-tests",
   "version": "0.2.5",
   "description": "AI-ready testing infrastructure that survives refactors without breaking. Built for autonomous development workflows.",
-  "main": "src/adaptive/index.js",
+  "main": "languages/javascript/src/index.js",
   "bin": {
     "adaptive-tests": "src/cli/init.js",
     "create-adaptive-app": "bin/create-adaptive-app"
@@ -145,7 +145,7 @@
     "url": "https://github.com/anon57396/adaptive-tests/issues"
   },
   "homepage": "https://anon57396.github.io/adaptive-tests/",
-  "types": "types/src/adaptive/index.d.ts",
+  "types": "languages/typescript/types/src/adaptive/index.d.ts",
   "sideEffects": false,
   "files": [
     "src",
@@ -170,9 +170,9 @@
   },
   "exports": {
     ".": {
-      "require": "./src/adaptive/index.js",
-      "import": "./src/adaptive/index.mjs",
-      "types": "./types/src/adaptive/index.d.ts"
+      "require": "./languages/javascript/src/index.js",
+      "import": "./languages/javascript/src/index.mjs",
+      "types": "./languages/typescript/types/src/adaptive/index.d.ts"
     },
     "./package.json": "./package.json"
   },

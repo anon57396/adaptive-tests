@@ -4,7 +4,7 @@
 [![Coverage](https://img.shields.io/codecov/c/github/anon57396/adaptive-tests?label=coverage)](https://codecov.io/gh/anon57396/adaptive-tests)
 [![npm version](https://img.shields.io/npm/v/adaptive-tests.svg)](https://www.npmjs.com/package/adaptive-tests)
 [![PyPI version](https://img.shields.io/pypi/v/adaptive-tests-py.svg)](https://pypi.org/project/adaptive-tests-py/)
-[![VS Code Extension](https://img.shields.io/badge/VS%20Code-Development%20Alpha-yellow)](extensions/vscode-adaptive-tests/README.md)
+[![VS Code Extension](https://img.shields.io/badge/VS%20Code-Development%20Alpha-yellow)](tools/vscode-adaptive-tests/README.md)
 [![GitHub Action](https://img.shields.io/badge/GitHub%20Action-Available-green?logo=github)](https://github.com/marketplace/actions/adaptive-tests)
 
 Documentation: [https://anon57396.github.io/adaptive-tests/](https://anon57396.github.io/adaptive-tests/)
@@ -19,22 +19,73 @@ If this project helps you, please consider supporting it via the Sponsor button 
 
 ---
 
+## 🚀 Choose Your Language
+
+Each language implementation is self-contained with examples, documentation, and framework integrations:
+
+### **Production Ready**
+- **[📦 JavaScript/Node.js](./languages/javascript/)** - Core implementation with Jest, Mocha, Vitest support
+- **[📘 TypeScript](./languages/typescript/)** - Type-aware discovery with interface matching
+- **[🐍 Python](./languages/python/)** - Full pytest integration with Django/Flask examples
+- **[☕ Java](./languages/java/)** - Maven/Gradle packages with Spring Boot integration
+
+### **Experimental**
+- **[🐘 PHP](./languages/php/)** - PHPUnit integration, Composer packages *(in development)*
+- **[🐹 Go](./languages/go/)** - Module-aware discovery *(in development)*
+- **[🦀 Rust](./languages/rust/)** - Cargo integration *(in development)*
+- **[💎 Ruby](./languages/ruby/)** - RSpec/Rails support *(in development)*
+- **[🔬 Wolfram](./languages/wolfram/)** - Symbolic computation patterns *(experimental)*
+
+### **Developer Tools**
+- **[🔧 VS Code Extension](./tools/vscode-adaptive-tests/)** - IDE integration *(development alpha)*
+
+---
+
 ## Table of Contents
 
-- [CI/CD Integration](#ci-cd-integration)
-- [VS Code Extension (Development Alpha)](#vs-code-extension-development-alpha)
-- [Why AI-Powered Teams Choose Adaptive Tests](#why-ai-powered-teams-choose-adaptive-tests)
-- [Quick Start](#quick-start)
-  - [Invisible Mode (Zero Learning Curve)](#-new-invisible-mode-zero-learning-curve)
-- [Progressive Learning Path](#progressive-learning-path)
-- [Framework Templates](#framework-templates)
-- [CLI Helper](#cli-helper)
-- [Validation Flow](#validation-flow)
-- [CI/CD Strategy](#ci-cd-strategy)
-- [Documentation & Examples](#documentation--examples)
-- [Publishing](#publishing)
-- [For Developers](#for-developers)
-- [Contributing & Support](#contributing--support)
+- [🚀 Choose Your Language](#-choose-your-language)
+- [⚡ Quick Start Guide](#-quick-start-guide)
+- [🤖 Why AI-Powered Teams Choose Adaptive Tests](#-why-ai-powered-teams-choose-adaptive-tests)
+- [🔧 Developer Tools](#-developer-tools)
+- [📚 Documentation & Resources](#-documentation--resources)
+- [🚀 CI/CD Integration](#-cicd-integration)
+- [🤝 Contributing](#-contributing)
+
+---
+
+## ⚡ Quick Start Guide
+
+**New to Adaptive Tests?** Pick your language and get started in 2 minutes:
+
+### 📦 JavaScript/Node.js
+```bash
+npm install --save-dev adaptive-tests
+```
+→ **[Complete JavaScript Guide](./languages/javascript/README.md)**
+
+### 🐍 Python
+```bash
+pip install adaptive-tests-py
+```
+→ **[Complete Python Guide](./languages/python/README.md)**
+
+### ☕ Java
+```xml
+<dependency>
+    <groupId>io.adaptivetests</groupId>
+    <artifactId>adaptive-tests-java</artifactId>
+    <version>0.1.0</version>
+</dependency>
+```
+→ **[Complete Java Guide](./languages/java/README.md)**
+
+### 📘 TypeScript
+```bash
+npm install --save-dev adaptive-tests adaptive-tests-typescript
+```
+→ **[Complete TypeScript Guide](./languages/typescript/README.md)**
+
+**Other languages?** Check the [experimental implementations](#experimental) above.
 
 ---
 

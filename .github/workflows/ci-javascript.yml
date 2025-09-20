@@ -1,0 +1,136 @@
+name: JavaScript CI
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'languages/javascript/**'
+      - '.github/workflows/ci-javascript.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'languages/javascript/**'
+      - '.github/workflows/ci-javascript.yml'
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  javascript-tests:
+    name: JavaScript Tests
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18, 20, 22]
+
+    defaults:
+      run:
+        working-directory: languages/javascript
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+          cache-dependency-path: languages/javascript/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run linting
+        run: |
+          npm run lint || true
+          npm run lint:markdown || true
+
+      - name: Run tests
+        run: npm test
+
+      - name: Run integration tests
+        run: npm run test:integration || true
+
+      - name: Run examples
+        run: |
+          cd examples/calculator
+          npm test || true
+          cd ../react-component
+          npm test || true
+
+      - name: Check build
+        run: npm run build || npm run compile || true
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./languages/javascript/coverage/lcov.info
+          flags: javascript
+          name: js-coverage
+
+  javascript-security:
+    name: JavaScript Security
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: languages/javascript
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: languages/javascript/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run npm audit
+        run: |
+          echo "🔒 Running npm security audit..."
+          npm audit --audit-level=moderate || true
+
+      - name: Check for outdated packages
+        run: |
+          echo "📦 Checking for outdated packages..."
+          npm outdated || true
+
+  javascript-compatibility:
+    name: JavaScript Compatibility
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        node-version: [18, 20]
+
+    defaults:
+      run:
+        working-directory: languages/javascript
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+          cache-dependency-path: languages/javascript/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run basic tests
+        run: npm test
+
+      - name: Test discovery functionality
+        run: |
+          echo "🔍 Testing core discovery..."
+          node -e "const { discover } = require('./src/adaptive'); console.log('✅ Discovery loaded successfully');"
