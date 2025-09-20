@@ -18,7 +18,9 @@ const { analyzeModuleExports: parseModuleExports } = require('./parser');
 const { ScoringEngine } = require('./scoring-engine');
 const { createTsconfigResolver } = require('./tsconfig-resolver');
 const { getLogger } = require('./logger');
-const { AsyncOperationManager, executeParallel } = require('./async-utils');
+const { AsyncOperationManager } = require('./async-utils');
+const { FileSystemScanner } = require('./file-system-scanner');
+const { CandidateEvaluator } = require('./candidate-evaluator');
 
 /**
  * @typedef {'class' | 'function' | 'object' | 'module'} TargetType
@@ -153,6 +155,31 @@ class DiscoveryEngine {
     const normalizedConcurrency = this.normalizeConcurrency(this.config.discovery?.concurrency);
     this.config.discovery.concurrency = normalizedConcurrency;
     this.maxConcurrency = normalizedConcurrency;
+
+    this.candidateEvaluator = new CandidateEvaluator({
+      rootPath: this.rootPath,
+      config: this.config,
+      scoringEngine: this.scoringEngine,
+      tsconfigResolver: this.tsconfigResolver,
+      allowLooseNameMatch: this.allowLooseNameMatch,
+      looseNamePenalty: this.looseNamePenalty,
+      analyzeModuleExports: this.analyzeModuleExports.bind(this),
+      calculateRecencyBonus: this.calculateRecencyBonus.bind(this),
+      moduleVersions: this.moduleVersions,
+      cachedModules: this.cachedModules,
+      cleanupCachedModules: this.cleanupCachedModules.bind(this),
+      ensureTypeScriptSupport: this.ensureTypeScriptSupport.bind(this)
+    });
+
+    this.fileSystemScanner = new FileSystemScanner({
+      rootPath: this.rootPath,
+      extensions: this.config.discovery.extensions,
+      maxDepth: this.config.discovery.maxDepth,
+      maxConcurrency: this.maxConcurrency,
+      minCandidateScore: this.config.discovery?.scoring?.minCandidateScore ?? 0,
+      evaluateCandidate: this.candidateEvaluator.evaluateCandidate.bind(this.candidateEvaluator),
+      shouldSkipDirectory: this.shouldSkipDirectory.bind(this)
+    });
 
     // Periodically clean up cachedModules to prevent unbounded growth
     this.cleanupCachedModules();
@@ -347,84 +374,26 @@ class DiscoveryEngine {
    * @param {Array} [candidates]
    */
   async collectCandidates(dir, signature, depth = 0, candidates = []) {
-    if (depth > this.config.discovery.maxDepth) {
-      return candidates;
+    if (!this.fileSystemScanner) {
+      throw new Error('FileSystemScanner is not initialized');
     }
 
-    let entries;
-    try {
-      entries = await fsPromises.readdir(dir, { withFileTypes: true });
-    } catch (error) {
-      return candidates;
-    }
+    // Keep scanner options in sync with runtime configuration
+    this.fileSystemScanner.maxConcurrency = this.maxConcurrency;
+    this.fileSystemScanner.minCandidateScore = this.config.discovery?.scoring?.minCandidateScore ?? 0;
+    this.fileSystemScanner.extensions = Array.isArray(this.config.discovery.extensions)
+      ? this.config.discovery.extensions
+      : [];
+    this.fileSystemScanner.maxDepth = Number.isFinite(this.config.discovery.maxDepth)
+      ? this.config.discovery.maxDepth
+      : Infinity;
 
-    const directoryOps = [];
-    const fileOps = [];
-
-    for (const entry of entries) {
-      const fullPath = path.join(dir, entry.name);
-
-      if (entry.isDirectory()) {
-        if (this.shouldSkipDirectory(entry.name)) {
-          continue;
-        }
-        directoryOps.push(() => this.collectCandidates(fullPath, signature, depth + 1, candidates));
-        continue;
-      }
-
-      if (!entry.isFile()) {
-        continue;
-      }
-
-      const ext = path.extname(entry.name);
-      if (!this.config.discovery.extensions.includes(ext)) {
-        continue;
-      }
-
-      const lowerName = entry.name.toLowerCase();
-      if (lowerName.includes('.test.') || lowerName.includes('.spec.')) {
-        continue;
-      }
-
-      if (entry.name.endsWith('.d.ts')) {
-        continue;
-      }
-
-      if (entry.name.endsWith('.backup')) {
-        continue;
-      }
-
-      if (/(?:\s(?:copy|copy\s\d+)|\s\d+)(?=\.[^.]+$)/i.test(entry.name)) {
-        continue;
-      }
-
-      fileOps.push(async () => {
-        const candidate = await this.evaluateCandidate(fullPath, signature);
-        const minScore = this.config.discovery.scoring.minCandidateScore ?? 0;
-        if (candidate && candidate.score > minScore) {
-          candidates.push(candidate);
-        }
-      });
-    }
-
-    const concurrencyOptions = {
-      maxConcurrency: this.maxConcurrency,
-      context: {
-        root: this.rootPath,
-        depth,
-        directory: dir
-      }
-    };
-
-    if (directoryOps.length > 0) {
-      await executeParallel(directoryOps, concurrencyOptions);
-    }
-
-    if (fileOps.length > 0) {
-      await executeParallel(fileOps, concurrencyOptions);
-    }
-
-    return candidates;
+    return this.fileSystemScanner.collect({
+      dir,
+      signature,
+      depth,
+      candidates
+    });
   }
 
   normalizeConcurrency(value) {
@@ -441,286 +410,31 @@ class DiscoveryEngine {
    * @param {DiscoverySignature} signature
    */
   async evaluateCandidate(filePath, signature) {
-    const fileName = path.basename(filePath, path.extname(filePath));
-
-    const nameMatches = this.quickNameCheck(fileName, signature);
-    if (!nameMatches && !this.allowLooseNameMatch) {
-      return null;
-    }
-
-    let content;
-    try {
-      content = await fsPromises.readFile(filePath, 'utf8');
-    } catch (error) {
-      return null;
-    }
-
-    let stats = null;
-    try {
-      stats = await fsPromises.stat(filePath);
-    } catch (error) {
-      stats = null;
-    }
-
-    const candidate = {
-      path: filePath,
-      fileName,
-      content,
-      mtimeMs: stats ? stats.mtimeMs : null,
-      quickNameMatched: nameMatches
-    };
-
-    const relativePath = path.relative(this.rootPath, filePath).split(path.sep).join('/') || path.basename(filePath);
-    candidate.relativePath = relativePath;
-
-    if (this.tsconfigResolver) {
-      try {
-        const aliases = this.tsconfigResolver.getAliasesForFile
-          ? this.tsconfigResolver.getAliasesForFile(filePath)
-          : [];
-        const baseImport = this.tsconfigResolver.getBaseUrlRelativeImport
-          ? this.tsconfigResolver.getBaseUrlRelativeImport(filePath)
-          : null;
-
-        if (aliases && aliases.length > 0) {
-          candidate.tsAliases = aliases;
-        }
-        if (baseImport) {
-          candidate.tsBaseImport = baseImport;
-        }
-      } catch (error) {
-        // ignore resolver errors; aliases remain undefined
-      }
-    }
-
-    try {
-      candidate.metadata = this.analyzeModuleExports(content, fileName);
-    } catch (error) {
-      candidate.metadata = null;
-    }
-
-    let score = this.scoringEngine.calculateScore(candidate, signature, content);
-    const recencyBonus = stats ? this.calculateRecencyBonus(stats.mtimeMs) : 0;
-    if (recencyBonus !== 0) {
-      candidate.scoreBreakdown = candidate.scoreBreakdown || {};
-      candidate.scoreBreakdown.recency = Math.round(recencyBonus);
-      score += recencyBonus;
-    }
-
-    if (!nameMatches && this.allowLooseNameMatch && this.looseNamePenalty) {
-      candidate.scoreBreakdown = candidate.scoreBreakdown || {};
-      candidate.scoreBreakdown.quickName = (candidate.scoreBreakdown.quickName || 0) + this.looseNamePenalty;
-      score += this.looseNamePenalty;
-    }
-
-    const minScore = this.config.discovery.scoring.minCandidateScore ?? 0;
-
-    if (score <= minScore) {
-      return null;
-    }
-
-    candidate.score = score;
-    return candidate;
+    return this.candidateEvaluator.evaluateCandidate(filePath, signature);
   }
 
   isCandidateSafe(candidate) {
-    const security = this.config.discovery.security || {};
-    if (security.allowUnsafeRequires) {
-      return true;
-    }
-
-    const blockedTokens = security.blockedTokens || [
-      'process.exit(',
-      'child_process.exec',
-      'child_process.spawn',
-      'child_process.fork',
-      'fs.rmSync',
-      'fs.rmdirSync',
-      'fs.unlinkSync',
-      'rimraf'
-    ];
-
-    for (const token of blockedTokens) {
-      if (candidate.content && candidate.content.toLowerCase().includes(token.toLowerCase())) {
-        return false;
-      }
-    }
-
-    return true;
+    return this.candidateEvaluator.isCandidateSafe(candidate);
   }
 
   selectExportFromMetadata(candidate, signature) {
-    const metadata = candidate.metadata;
-    if (!metadata || !Array.isArray(metadata.exports)) {
-      return null;
-    }
-
-    const matches = [];
-
-    for (const entry of metadata.exports) {
-      if (this.matchesSignatureMetadata(entry, signature)) {
-        matches.push(entry);
-      }
-    }
-
-    if (matches.length === 0) {
-      return null;
-    }
-
-    return matches[0];
+    return this.candidateEvaluator.selectExportFromMetadata(candidate, signature);
   }
 
   matchesSignatureMetadata(entry, signature) {
-    if (!entry || !entry.info) {
-      return false;
-    }
-
-    const info = entry.info;
-    const methods = new Set(info.methods || []);
-    const properties = new Set(info.properties || []);
-
-    if (signature.type) {
-      const expected = signature.type;
-      if (expected === 'class' && info.kind !== 'class') {
-        return false;
-      }
-      if (expected === 'function' && info.kind !== 'function') {
-        return false;
-      }
-      if (expected === 'object' && info.kind !== 'object') {
-        return false;
-      }
-    }
-
-    if (signature.exports && entry.access && entry.access.type === 'named') {
-      if (signature.exports !== entry.access.name) {
-        return false;
-      }
-    }
-
-    if (signature.name) {
-      const namesToCheck = [];
-      if (entry.access && entry.access.name) {
-        namesToCheck.push(entry.access.name);
-      }
-      if (info.name) {
-        namesToCheck.push(info.name);
-      }
-
-      if (signature.name instanceof RegExp) {
-        const regex = signature.name;
-        if (!namesToCheck.some(name => regex.test(name))) {
-          return false;
-        }
-      } else {
-        const expectedName = String(signature.name);
-        const normalized = namesToCheck.map(name => (name || '').toLowerCase());
-        if (!normalized.includes(expectedName.toLowerCase())) {
-          return false;
-        }
-      }
-    }
-
-    if (signature.methods && signature.methods.length > 0) {
-      for (const method of signature.methods) {
-        if (!methods.has(method)) {
-          return false;
-        }
-      }
-    }
-
-    if (signature.properties && signature.properties.length > 0) {
-      for (const prop of signature.properties) {
-        if (!properties.has(prop)) {
-          return false;
-        }
-      }
-    }
-
-    if (signature.extends) {
-      if (typeof signature.extends === 'string') {
-        if (info.extends !== signature.extends) {
-          return false;
-        }
-      } else if (typeof signature.extends === 'function' && signature.extends.name) {
-        if (info.extends && info.extends !== signature.extends.name) {
-          return false;
-        }
-      }
-    }
-
-    return true;
+    return this.candidateEvaluator.matchesSignatureMetadata(entry, signature);
   }
 
   extractExportByAccess(moduleExports, access) {
-    if (!access || !moduleExports) {
-      return null;
-    }
-
-    switch (access.type) {
-      case 'default':
-        return moduleExports.default;
-      case 'named':
-        return access.name ? moduleExports[access.name] : undefined;
-      case 'direct':
-      default:
-        return moduleExports;
-    }
+    return this.candidateEvaluator.extractExportByAccess(moduleExports, access);
   }
 
   tokenizeName(name) {
-    if (!name) {
-      return [];
-    }
-
-    return name
-      .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
-      .replace(/[^a-zA-Z0-9]+/g, ' ')
-      .toLowerCase()
-      .split(' ')
-      .map(token => token.trim())
-      .filter(Boolean);
+    return this.candidateEvaluator.tokenizeName(name);
   }
 
-  /**
-   * Quick check if file name could match signature
-   * @param {string} fileName
-   * @param {DiscoverySignature} signature
-   */
   quickNameCheck(fileName, signature) {
-    // If no name requirement, accept all
-    if (!signature.name && !signature.exports) {
-      return true;
-    }
-
-    const fileNameLower = fileName.toLowerCase();
-    const content = fileNameLower;
-
-    if (signature.name) {
-      if (signature.name instanceof RegExp) {
-        if (signature.name.test(fileName)) {
-          return true;
-        }
-      } else {
-        const tokens = this.tokenizeName(signature.name);
-        if (tokens.length === 0) {
-          return true;
-        }
-        if (tokens.some(token => content.toLowerCase().includes(token.toLowerCase()))) {
-          return true;
-        }
-      }
-    }
-
-    // Check export match (case-insensitive)
-    if (signature.exports) {
-      const exportLower = signature.exports.toLowerCase();
-      if (content.toLowerCase().includes(exportLower)) {
-        return true;
-      }
-    }
-
-    return false;
+    return this.candidateEvaluator.quickNameCheck(fileName, signature);
   }
 
   /**
@@ -729,86 +443,7 @@ class DiscoveryEngine {
    * @param {DiscoverySignature} signature
    */
   async tryResolveCandidate(candidate, signature) {
-    try {
-      if (!this.isCandidateSafe(candidate)) {
-        return null;
-      }
-
-      const metadataMatch = this.selectExportFromMetadata(candidate, signature);
-      if (candidate.metadata && !metadataMatch) {
-        return null;
-      }
-
-      const resolvedPath = require.resolve(candidate.path);
-      const ext = path.extname(candidate.path);
-      let mtimeMs = null;
-
-      try {
-        const stats = fs.statSync(candidate.path);
-        mtimeMs = stats.mtimeMs;
-      } catch (error) {
-        // Ignore - treat as dynamic module
-      }
-
-      const lastVersion = this.moduleVersions.get(resolvedPath);
-      const initialLoad = lastVersion === undefined;
-      const hasChanged = mtimeMs === null || lastVersion === undefined || lastVersion !== mtimeMs;
-
-      if (ext === '.ts' || ext === '.tsx') {
-        this.ensureTypeScriptSupport();
-        // Only delete from cache if file has changed
-        if (hasChanged) {
-          delete require.cache[resolvedPath];
-        }
-        const moduleExports = require(candidate.path);
-        if (mtimeMs !== null) {
-          this.moduleVersions.set(resolvedPath, mtimeMs);
-        } else {
-          this.moduleVersions.delete(resolvedPath);
-        }
-        this.cachedModules.add(resolvedPath);
-        this.cleanupCachedModules(); // Prevent unbounded growth
-
-        if (metadataMatch) {
-          const target = this.extractExportByAccess(moduleExports, metadataMatch.access);
-          if (target && this.validateTarget(target, signature)) {
-            return { target, access: metadataMatch.access };
-          }
-        }
-
-        return this.resolveTargetFromModule(moduleExports, signature, candidate);
-      }
-
-      // Only delete from cache if file has changed
-      if (hasChanged) {
-        delete require.cache[resolvedPath];
-      }
-
-      if (process.env.DEBUG_DISCOVERY) {
-        console.log('Loading module from candidate:', candidate.path);
-      }
-      const moduleExports = require(candidate.path);
-
-      if (mtimeMs !== null) {
-        this.moduleVersions.set(resolvedPath, mtimeMs);
-      } else {
-        this.moduleVersions.delete(resolvedPath);
-      }
-
-      this.cachedModules.add(resolvedPath);
-      this.cleanupCachedModules(); // Prevent unbounded growth
-
-      if (metadataMatch) {
-        const target = this.extractExportByAccess(moduleExports, metadataMatch.access);
-        if (target && this.validateTarget(target, signature)) {
-          return { target, access: metadataMatch.access };
-        }
-      }
-
-      return this.resolveTargetFromModule(moduleExports, signature, candidate);
-    } catch (error) {
-      return null;
-    }
+    return this.candidateEvaluator.tryResolveCandidate(candidate, signature);
   }
 
   compileFreshModule(modulePath) {
@@ -827,55 +462,7 @@ class DiscoveryEngine {
    * @param {{ path: string }} candidate
    */
   resolveTargetFromModule(moduleExports, signature, candidate) {
-    const results = [];
-
-    // Check default export
-    if (moduleExports && moduleExports.default) {
-      const validated = this.validateTarget(moduleExports.default, signature);
-      if (validated) {
-        results.push({
-          target: moduleExports.default,
-          access: { type: 'default' },
-          score: validated.score
-        });
-      }
-    }
-
-    // Check named exports
-    if (moduleExports && typeof moduleExports === 'object') {
-      for (const [key, value] of Object.entries(moduleExports)) {
-        if (key === 'default') continue;
-
-        const validated = this.validateTarget(value, signature);
-        if (validated) {
-          results.push({
-            target: value,
-            access: { type: 'named', name: key },
-            score: validated.score + (key === signature.exports ? 10 : 0)
-          });
-        }
-      }
-    }
-
-    // Check direct export (function/class)
-    if (typeof moduleExports === 'function') {
-      const validated = this.validateTarget(moduleExports, signature);
-      if (validated) {
-        results.push({
-          target: moduleExports,
-          access: { type: 'direct' },
-          score: validated.score + 5
-        });
-      }
-    }
-
-    // Return best match
-    if (results.length > 0) {
-      results.sort((a, b) => b.score - a.score);
-      return results[0];
-    }
-
-    return null;
+    return this.candidateEvaluator.resolveTargetFromModule(moduleExports, signature, candidate);
   }
 
   /**
@@ -884,224 +471,56 @@ class DiscoveryEngine {
    * @param {DiscoverySignature} signature
    */
   validateTarget(target, signature) {
-    if (!target) {
-      return null;
-    }
-
-    let score = 0;
-
-    // Type validation
-    if (signature.type) {
-      if (!this.validateType(target, signature.type)) {
-        return null;
-      }
-      score += 10;
-    }
-
-    // Name validation
-    if (signature.name) {
-      const targetName = this.getTargetName(target);
-      if (!this.validateName(targetName, signature.name)) {
-        return null;
-      }
-      score += this.scoringEngine.scoreTargetName(targetName, signature);
-    }
-
-    // Method validation
-    if (signature.methods && signature.methods.length > 0) {
-      const methodScore = this.validateMethods(target, signature.methods);
-      if (methodScore === null) {
-        return null;
-      }
-      score += methodScore;
-    }
-
-    // Property validation (NEW!)
-    if (signature.properties && signature.properties.length > 0) {
-      const propScore = this.validateProperties(target, signature.properties);
-      if (propScore === null) {
-        return null;
-      }
-      score += propScore;
-    }
-
-    // Inheritance validation (NEW!)
-    if (signature.extends) {
-      if (!this.validateInheritance(target, signature.extends)) {
-        return null;
-      }
-      score += 20;
-    }
-
-    // Instance validation (NEW!)
-    if (signature.instanceof) {
-      if (!this.validateInstanceOf(target, signature.instanceof)) {
-        return null;
-      }
-      score += 15;
-    }
-
-    return { score };
+    return this.candidateEvaluator.validateTarget(target, signature);
   }
 
   /**
    * Validate type
    */
   validateType(target, expectedType) {
-    switch (expectedType) {
-      case 'class':
-        return typeof target === 'function' && target.prototype;
-      case 'function':
-        return typeof target === 'function';
-      case 'object':
-        return typeof target === 'object' && target !== null;
-      case 'module':
-        return typeof target === 'object' && target !== null;
-      default:
-        return true;
-    }
+    return this.candidateEvaluator.validateType(target, expectedType);
   }
 
   /**
    * Validate name
    */
   validateName(targetName, expectedName) {
-    if (!targetName) return false;
-
-    if (expectedName instanceof RegExp) {
-      return expectedName.test(targetName);
-    }
-
-    return targetName === expectedName;
+    return this.candidateEvaluator.validateName(targetName, expectedName);
   }
 
   /**
    * Validate methods exist
    */
   validateMethods(target, methods) {
-    const methodHost = target.prototype || target;
-
-    for (const method of methods) {
-      if (typeof methodHost[method] !== 'function') {
-        return null;
-      }
-    }
-
-    return methods.length * 5;
+    return this.candidateEvaluator.validateMethods(target, methods);
   }
 
   /**
    * Validate properties exist (NEW!)
    */
   validateProperties(target, properties) {
-    const propHost = target.prototype || target;
-
-    const hasPrototypeProps = properties.every(prop => prop in propHost);
-    if (hasPrototypeProps) {
-      return properties.length * 3;
-    }
-
-    if (typeof target === 'function' && target.length === 0) {
-      try {
-        const instance = new target();
-        const hasInstanceProps = properties.every(prop => prop in instance);
-        if (hasInstanceProps) {
-          return properties.length * 3;
-        }
-      } catch (error) {
-        // Ignore instantiation errors and fall back to failure
-      }
-    }
-
-    return null;
+    return this.candidateEvaluator.validateProperties(target, properties);
   }
 
   /**
    * Validate inheritance chain (NEW!)
    */
   validateInheritance(target, baseClass) {
-    if (typeof target !== 'function') {
-      return false;
-    }
-
-    // Check prototype chain
-    let proto = target.prototype;
-    while (proto) {
-      if (proto.constructor === baseClass) {
-        return true;
-      }
-      proto = Object.getPrototypeOf(proto);
-    }
-
-    // Check static inheritance (ES6 classes)
-    if (baseClass && typeof baseClass === 'function') {
-      return target.prototype instanceof baseClass;
-    }
-
-    // String-based check for when we don't have the actual class
-    if (typeof baseClass === 'string') {
-      let proto = target.prototype;
-      while (proto) {
-        if (proto.constructor && proto.constructor.name === baseClass) {
-          return true;
-        }
-        proto = Object.getPrototypeOf(proto);
-      }
-    }
-
-    return false;
+    return this.candidateEvaluator.validateInheritance(target, baseClass);
   }
 
   /**
    * Validate instanceof (NEW!)
    */
   validateInstanceOf(target, expectedClass) {
-    if (typeof expectedClass === 'function') {
-      if (typeof target === 'function') {
-        return target === expectedClass || target.prototype instanceof expectedClass;
-      }
-      return target instanceof expectedClass;
-    }
-
-    if (typeof expectedClass === 'string') {
-      if (typeof target === 'function') {
-        let proto = target.prototype;
-        while (proto) {
-          if (proto.constructor && proto.constructor.name === expectedClass) {
-            return true;
-          }
-          proto = Object.getPrototypeOf(proto);
-        }
-        return false;
-      }
-
-      let proto = Object.getPrototypeOf(target);
-      while (proto) {
-        if (proto.constructor && proto.constructor.name === expectedClass) {
-          return true;
-        }
-        proto = Object.getPrototypeOf(proto);
-      }
-    }
-
-    return false;
+    return this.candidateEvaluator.validateInstanceOf(target, expectedClass);
   }
 
   /**
    * Get target name
    */
   getTargetName(target) {
-    if (!target) return null;
-
-    // Function/class name
-    if (target.name) return target.name;
-
-    // Constructor name
-    if (target.constructor && target.constructor.name) {
-      return target.constructor.name;
-    }
-
-    return null;
+    return this.candidateEvaluator.getTargetName(target);
   }
 
   /**
