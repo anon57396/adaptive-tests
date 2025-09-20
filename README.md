@@ -26,6 +26,7 @@ If this project helps you, please consider supporting it via the Sponsor button 
 - [Why AI-Powered Teams Choose Adaptive Tests](#why-ai-powered-teams-choose-adaptive-tests)
 - [Quick Start](#quick-start)
   - [Invisible Mode (Zero Learning Curve)](#-new-invisible-mode-zero-learning-curve)
+- [Progressive Learning Path](#progressive-learning-path)
 - [Framework Templates](#framework-templates)
 - [CLI Helper](#cli-helper)
 - [Validation Flow](#validation-flow)
@@ -223,6 +224,31 @@ Need a reusable engine? Grab one from the factory:
 const { getDiscoveryEngine } = require('adaptive-tests');
 const engine = getDiscoveryEngine(process.cwd());
 ```
+
+## Progressive Learning Path
+
+Adaptive Tests provides three layers of functionality to match your needs:
+
+### 🎭 Layer 1: Invisible Mode (Zero Learning)
+**Perfect for:** Getting started, existing codebases, vibe coders
+```bash
+npx adaptive-tests enable-invisible
+# Your tests now auto-adapt when imports break
+```
+
+### 📚 Layer 2: Standard API (Simple & Direct)
+**Perfect for:** 90% of use cases, new tests, direct control
+```javascript
+const UserService = await discover('UserService');
+// Clean, simple, no ceremony
+```
+
+### 🔧 Layer 3: Advanced API (Structured & Powerful)
+**Perfect for:** Tooling, complex scenarios, cross-language teams
+
+For advanced patterns like automated scaffolding, complex lifecycle hooks, and cross-language consistency, see:
+
+**[📖 Advanced Patterns Guide →](docs/advanced-patterns.md)**
 
 ---
 
