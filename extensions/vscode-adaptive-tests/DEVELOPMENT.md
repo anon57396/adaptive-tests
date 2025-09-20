@@ -35,7 +35,7 @@ npm run compile
 
 ## 📁 Project Structure
 
-```
+```text
 vscode-adaptive-tests/
 ├── src/                      # TypeScript source files
 │   ├── extension.ts         # Main extension entry point
@@ -192,7 +192,7 @@ npx vsce publish -p <token>
 }]
 ```
 
-2. Implement handler in `extension.ts`:
+1. Implement handler in `extension.ts`:
 
 ```typescript
 const disposable = vscode.commands.registerCommand(
@@ -205,9 +205,9 @@ context.subscriptions.push(disposable);
 ### Adding to Discovery Lens
 
 1. Update HTML in `DiscoveryLensPanel.ts`
-2. Add styles in `media/style.css`
-3. Handle interactions in `media/script.js`
-4. Process messages in `DiscoveryLensPanel.ts`
+1. Add styles in `media/style.css`
+1. Handle interactions in `media/script.js`
+1. Process messages in `DiscoveryLensPanel.ts`
 
 ## 🔗 Resources
 

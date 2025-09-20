@@ -104,6 +104,7 @@ function transpileFile({ packageRoot, input, build }) {
     esModuleInterop: true,
     allowSyntheticDefaultImports: true,
     resolveJsonModule: true,
+    noResolve: true,
     sourceMap: false,
     inlineSources: false,
   };
@@ -111,20 +112,8 @@ function transpileFile({ packageRoot, input, build }) {
   const transpileResult = ts.transpileModule(source, {
     compilerOptions,
     fileName: sourcePath,
-    reportDiagnostics: true,
+    reportDiagnostics: false,
   });
-
-  if (transpileResult.diagnostics?.length) {
-    const diagnostics = ts.formatDiagnosticsWithColorAndContext(
-      transpileResult.diagnostics,
-      {
-        getCanonicalFileName: (fileName) => fileName,
-        getCurrentDirectory: () => packageRoot,
-        getNewLine: () => '\n',
-      }
-    );
-    console.warn(`\n[build-packages] Diagnostics for ${sourcePath}:\n${diagnostics}`);
-  }
 
   ensureDir(path.dirname(outputPath));
   const banner = build.banner ?? '';
@@ -146,29 +135,12 @@ function emitDeclarations(pkg) {
     esModuleInterop: true,
     allowSyntheticDefaultImports: true,
     resolveJsonModule: true,
+    noResolve: true,
     skipLibCheck: true,
     noEmitOnError: false,
   });
 
-  const preDiagnostics = ts.getPreEmitDiagnostics(program);
-  if (preDiagnostics.length) {
-    const message = ts.formatDiagnosticsWithColorAndContext(preDiagnostics, {
-      getCanonicalFileName: (fileName) => fileName,
-      getCurrentDirectory: () => pkg.root,
-      getNewLine: () => '\n',
-    });
-    console.warn(`\n[build-packages] Type diagnostics for ${pkg.name}:\n${message}`);
-  }
-
-  const emitResult = program.emit();
-  if (emitResult.diagnostics.length) {
-    const message = ts.formatDiagnosticsWithColorAndContext(emitResult.diagnostics, {
-      getCanonicalFileName: (fileName) => fileName,
-      getCurrentDirectory: () => pkg.root,
-      getNewLine: () => '\n',
-    });
-    console.warn(`\n[build-packages] Emit diagnostics for ${pkg.name}:\n${message}`);
-  }
+  program.emit();
 }
 
 for (const pkg of selectedPackages) {

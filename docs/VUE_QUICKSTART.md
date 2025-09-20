@@ -341,7 +341,7 @@ npx adaptive-tests scaffold src/components/TypedComponent.vue --typescript
 
 ## Project Structure
 
-```
+```text
 vue-app/
 ├── src/
 │   ├── components/
@@ -437,40 +437,40 @@ const wrapper = mount(Component, {
 
 1. **Cache component discovery**
 
-```javascript
-const componentCache = new Map();
+   ```javascript
+   const componentCache = new Map();
 
-async function getComponent(name) {
-  if (!componentCache.has(name)) {
-    const component = await discover({ name, type: 'vue-component' });
-    componentCache.set(name, component);
-  }
-  return componentCache.get(name);
-}
-```
+   async function getComponent(name) {
+     if (!componentCache.has(name)) {
+       const component = await discover({ name, type: 'vue-component' });
+       componentCache.set(name, component);
+     }
+     return componentCache.get(name);
+   }
+   ```
 
 2. **Use shallow mount for unit tests**
 
-```javascript
-import { shallowMount } from '@vue/test-utils';
+   ```javascript
+   import { shallowMount } from '@vue/test-utils';
 
-const wrapper = shallowMount(Component); // Faster than mount
-```
+   const wrapper = shallowMount(Component); // Faster than mount
+   ```
 
 3. **Pre-compile templates**
 
-```javascript
-// vue.config.js
-module.exports = {
-  configureWebpack: {
-    resolve: {
-      alias: {
-        'vue$': 'vue/dist/vue.esm-bundler.js'
-      }
-    }
-  }
-};
-```
+   ```javascript
+   // vue.config.js
+   module.exports = {
+     configureWebpack: {
+       resolve: {
+         alias: {
+           'vue$': 'vue/dist/vue.esm-bundler.js'
+         }
+       }
+     }
+   };
+   ```
 
 ## VS Code Integration
 
@@ -488,7 +488,7 @@ module.exports = {
 1. **Try the Vite template**: `cp -r adaptive-tests/templates/vite-adaptive my-app`
 2. **Explore examples**: [Vue Examples](../examples/vue-todo-app)
 3. **Read migration guide**: [Migration Guide](./MIGRATION_GUIDE.md)
-4. **Join community**: [Discord](https://discord.gg/adaptive-tests)
+4. **Join community**: [GitHub Discussions](https://github.com/anon57396/adaptive-tests/discussions)
 
 ## Resources
 

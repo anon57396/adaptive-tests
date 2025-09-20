@@ -1,0 +1,35 @@
+name: Announcements
+description: Share news, updates, and releases
+labels: ["announcement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Share important updates with the community
+        Use this template for release notes, breaking changes, or major updates.
+  - type: input
+    id: title
+    attributes:
+      label: Announcement Title
+      placeholder: "v2.0 Released - Major Performance Improvements"
+    validations:
+      required: true
+  - type: textarea
+    id: content
+    attributes:
+      label: Announcement
+      description: Share your announcement with the community
+    validations:
+      required: true
+  - type: dropdown
+    id: type
+    attributes:
+      label: Type
+      options:
+        - Release
+        - Breaking Change
+        - Feature Update
+        - Security Update
+        - Community Update
+    validations:
+      required: true

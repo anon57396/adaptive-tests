@@ -415,7 +415,7 @@ npx adaptive-tests scaffold --batch src/routes/
 
 ## Project Structure
 
-```
+```text
 express-app/
 ├── src/
 │   ├── app.js           # Main Express app
@@ -557,7 +557,7 @@ jobs:
 1. **Try the template**: `cp -r adaptive-tests/templates/express-adaptive my-api`
 2. **Explore examples**: [Express Examples](../examples/api-service)
 3. **Read best practices**: [API Testing Best Practices](./BEST_PRACTICES.md)
-4. **Join community**: [Discord](https://discord.gg/adaptive-tests)
+4. **Join community**: [GitHub Discussions](https://github.com/anon57396/adaptive-tests/discussions)
 
 ## Resources
 

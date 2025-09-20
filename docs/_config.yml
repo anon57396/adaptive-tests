@@ -1,6 +1,30 @@
-title: Adaptive Tests
-description: AST-driven adaptive testing that survives refactors
 theme: jekyll-theme-cayman
-markdown: kramdown
-plugins: []
+title: Adaptive Tests
+description: Tests that find your code, not your folders
+show_downloads: true
+google_analytics:
 
+# Build settings
+markdown: kramdown
+highlighter: rouge
+
+# Plugin settings
+plugins:
+  - jekyll-seo-tag
+  - jekyll-sitemap
+
+# Navigation
+nav:
+  - title: Quick Start
+    url: /QUICK_START
+  - title: API Reference
+    url: /API_REFERENCE
+  - title: Examples
+    url: https://github.com/anon57396/adaptive-tests/tree/main/examples
+  - title: Discussions
+    url: https://github.com/anon57396/adaptive-tests/discussions
+
+# Social links
+github:
+  username: anon57396
+  repository: adaptive-tests

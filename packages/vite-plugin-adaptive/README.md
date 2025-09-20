@@ -124,7 +124,7 @@ adaptiveTests({
 
 Output:
 
-```
+```text
 [vite-plugin-adaptive] Bundle Size Analysis:
 
   • UserService: 12.5 KB
@@ -214,7 +214,7 @@ adaptiveTests({
 
 Debug output:
 
-```
+```text
 [vite-plugin-adaptive] Found 3 discovery signatures in tests/user.test.ts
 [vite-plugin-adaptive] Using cached discovery for UserService
 [vite-plugin-adaptive] Invalidated discovery cache due to change in src/UserService.ts

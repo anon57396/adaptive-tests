@@ -106,7 +106,7 @@ new AdaptiveTestsPlugin({
 
 Output:
 
-```
+```text
 [webpack-plugin-adaptive] Bundle Size Analysis:
 ══════════════════════════════════════════════════
   • {"name":"UserService","type":"class"}
@@ -252,7 +252,7 @@ new AdaptiveTestsPlugin({
 
 Debug output:
 
-```
+```text
 [webpack-plugin-adaptive] Watch run triggered
 [webpack-plugin-adaptive] Found 3 signatures in src/test.adaptive.js
 [webpack-plugin-adaptive] Optimizing chunk: test-chunk

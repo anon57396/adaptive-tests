@@ -83,7 +83,7 @@ const Component = await discover({
 
 Creates a reusable discovery engine instance.
 
-#### Parameters
+#### Engine Parameters
 
 - `rootPath` (string): Root directory for discovery
 - `config` (Object?): Engine configuration
@@ -93,7 +93,7 @@ Creates a reusable discovery engine instance.
   - `ignore` (string[]?): Patterns to ignore
   - `parallel` (boolean?): Use parallel processing (default: true)
 
-#### Returns
+#### Engine Returns
 
 DiscoveryEngine instance with methods:
 
@@ -173,7 +173,7 @@ Options:
   --show-ast         Display AST analysis
 ```
 
-#### Example
+#### CLI Example
 
 ```bash
 npx adaptive-tests why '{"name":"UserService","type":"class"}'
@@ -622,5 +622,5 @@ Key changes:
 ## Support
 
 - [GitHub Issues](https://github.com/anon57396/adaptive-tests/issues)
-- [Discord Community](https://discord.gg/adaptive-tests)
+- [GitHub Discussions](https://github.com/anon57396/adaptive-tests/discussions)
 - [Stack Overflow](https://stackoverflow.com/questions/tagged/adaptive-tests)

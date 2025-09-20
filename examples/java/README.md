@@ -2,7 +2,7 @@
 
 This directory showcases sample Java components used during development of the adaptive-tests Java bridge.
 
-```
+```text
 .
 ├── src
 │   └── main

@@ -17,7 +17,7 @@ npm run dev
 
 ## 📁 Project Structure
 
-```
+```text
 my-app/
 ├── src/
 │   ├── components/       # React components

@@ -1,6 +1,6 @@
 # GitHub Action for Adaptive Tests
 
-[![GitHub Marketplace](https://img.shields.io/badge/Marketplace-Adaptive%20Tests-green?logo=github)](https://github.com/marketplace/actions/adaptive-tests)
+[![GitHub Marketplace](https://img.shields.io/badge/Marketplace-Coming%20Soon-yellow?logo=github)](https://github.com/anon57396/adaptive-tests)
 [![Action Status](https://github.com/adaptive-tests/adaptive-tests/workflows/CI/badge.svg)](https://github.com/adaptive-tests/adaptive-tests/actions)
 
 ## Quick Start
@@ -357,9 +357,8 @@ MIT - See [LICENSE](LICENSE) for details.
 
 ## Support
 
-- 📧 Email: <support@adaptive-tests.dev>
-- 💬 Discord: [Join our community](https://discord.gg/adaptive-tests)
-- 🐛 Issues: [GitHub Issues](https://github.com/adaptive-tests/adaptive-tests/issues)
+- 🐛 Issues: [GitHub Issues](https://github.com/anon57396/adaptive-tests/issues)
+- 🌐 Repository: [GitHub](https://github.com/anon57396/adaptive-tests)
 
 ---
 

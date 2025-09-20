@@ -1,0 +1,48 @@
+name: Show and Tell
+description: Show off something you've built with Adaptive Tests
+labels: ["showcase", "community"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Share your projects using Adaptive Tests!
+        We love seeing what the community builds. Share your success stories, integrations, or creative uses.
+  - type: input
+    id: title
+    attributes:
+      label: Project Name
+      placeholder: "My Awesome Testing Setup"
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: What did you build?
+      description: Tell us about your project
+      placeholder: "I integrated adaptive tests with our CI/CD pipeline and..."
+    validations:
+      required: true
+  - type: textarea
+    id: code
+    attributes:
+      label: Code Example
+      description: Share a code snippet showing how you use adaptive tests
+      render: javascript
+    validations:
+      required: false
+  - type: input
+    id: link
+    attributes:
+      label: Project Link
+      description: Link to your project (GitHub, blog post, etc.)
+      placeholder: "https://github.com/..."
+    validations:
+      required: false
+  - type: textarea
+    id: results
+    attributes:
+      label: Results
+      description: What improvements did you see?
+      placeholder: "- 50% reduction in test maintenance time..."
+    validations:
+      required: false

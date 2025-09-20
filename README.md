@@ -5,7 +5,7 @@
 [![npm version](https://img.shields.io/npm/v/adaptive-tests.svg)](https://www.npmjs.com/package/adaptive-tests)
 [![PyPI version](https://img.shields.io/pypi/v/adaptive-tests-py.svg)](https://pypi.org/project/adaptive-tests-py/)
 [![VS Code Extension](https://img.shields.io/badge/VS%20Code-Development%20Alpha-yellow)](extensions/vscode-adaptive-tests/README.md)
-[![GitHub Action](https://img.shields.io/badge/GitHub%20Action-Available-green?logo=github)](https://github.com/marketplace/actions/adaptive-tests)
+[![GitHub Action](https://img.shields.io/badge/GitHub%20Action-Coming%20Soon-yellow?logo=github)](https://github.com/anon57396/adaptive-tests)
 
 Documentation: [https://anon57396.github.io/adaptive-tests/](https://anon57396.github.io/adaptive-tests/)
 
@@ -464,10 +464,47 @@ When you are ready to publish a new release:
 
 ---
 
+## 🧑‍💻 For Developers
+
+### Quick Start
+
+```bash
+# Clone and setup
+git clone https://github.com/anon57396/adaptive-tests.git
+cd adaptive-tests
+npm run dev:setup  # Automated developer setup
+
+# Development commands
+npm test           # Run tests
+npm run validate   # Run validation suite
+npm run dev        # Start development mode
+```
+
+### Resources
+
+- **[Development Guide](.github/DEVELOPMENT.md)** - Complete developer documentation
+- **[GitHub Discussions](https://github.com/anon57396/adaptive-tests/discussions)** - Ask questions, share ideas
+- **[Issue Tracker](https://github.com/anon57396/adaptive-tests/issues)** - Report bugs, request features
+- **[Contributing Guide](CONTRIBUTING.md)** - How to contribute
+- **[API Docs](https://anon57396.github.io/adaptive-tests/)** - Full documentation
+
+### Project Health
+
+- ✅ 125+ tests passing
+- ✅ Multi-language support (JS, TS, Python, Java, PHP, Ruby, Go, Rust)
+- ✅ Zero npm vulnerabilities
+- ✅ Automated dependency updates via Dependabot
+- ✅ GitHub Actions CI/CD
+
 ## Contributing & Support
 
-Issues and pull requests are welcome—see [CONTRIBUTING.md](CONTRIBUTING.md). If you
-run into discovery problems, start with `docs/COMMON_ISSUES.md` or reach out in an
-issue with the failing signature plus a minimal reproduction.
+We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+
+**Get Help:**
+
+- 💬 [GitHub Discussions](https://github.com/anon57396/adaptive-tests/discussions) - Community support
+- 🐛 [Issues](https://github.com/anon57396/adaptive-tests/issues) - Bug reports
+- 📚 [Documentation](https://anon57396.github.io/adaptive-tests/) - Complete docs
+- 📖 [Common Issues](docs/COMMON_ISSUES.md) - Troubleshooting
 
 Adaptive Tests is released under the [MIT license](LICENSE).

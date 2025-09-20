@@ -67,7 +67,7 @@ Please read our [Code of Conduct](CODE_OF_CONDUCT.md) before contributing. We ar
 - Add more examples
 - Translate documentation
 - Write blog posts about your experience
-- Create video tutorials
+- Create example projects and demos
 
 ## Guidelines
 

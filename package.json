@@ -8,6 +8,8 @@
     "create-adaptive-app": "bin/create-adaptive-app"
   },
   "scripts": {
+    "dev:setup": "node scripts/dev-setup.js",
+    "dev": "jest --watch",
     "test": "jest",
     "test:coverage": "jest --coverage",
     "test:traditional": "jest --config jest.examples.config.cjs examples/calculator/tests/traditional",

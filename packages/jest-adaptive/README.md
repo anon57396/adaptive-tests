@@ -211,7 +211,7 @@ jest-adaptive includes TypeScript definitions. For the best experience:
 npm install --save-dev @types/jest @types/node
 ```
 
-2. Add to your `tsconfig.json`:
+1. Add to your `tsconfig.json`:
 
 ```json
 {
@@ -221,7 +221,7 @@ npm install --save-dev @types/jest @types/node
 }
 ```
 
-3. Use with full type safety:
+1. Use with full type safety:
 
 ```typescript
 import type { DiscoverySignature } from 'adaptive-tests';

@@ -1,0 +1,45 @@
+name: Q&A
+description: Ask the community for help
+labels: ["question", "help wanted"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Get help from the Adaptive Tests community
+        Before asking, please check:
+        - [Documentation](https://anon57396.github.io/adaptive-tests/)
+        - [Common Issues](https://github.com/anon57396/adaptive-tests/blob/main/docs/COMMON_ISSUES.md)
+        - [Existing discussions](https://github.com/anon57396/adaptive-tests/discussions)
+  - type: input
+    id: title
+    attributes:
+      label: Question
+      placeholder: "How do I test async functions with discover()?"
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: What are you trying to accomplish?
+      placeholder: "I'm trying to test a service that..."
+    validations:
+      required: true
+  - type: textarea
+    id: tried
+    attributes:
+      label: What I've Tried
+      description: What approaches have you attempted?
+      placeholder: |
+        1. I tried using await discover(...)
+        2. I looked at the async examples
+        3. ...
+    validations:
+      required: false
+  - type: input
+    id: version
+    attributes:
+      label: Adaptive Tests Version
+      placeholder: "0.2.4"
+    validations:
+      required: true

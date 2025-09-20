@@ -216,7 +216,7 @@ This extension complements the CLI tools:
 
 ## 🤝 Contributing
 
-We welcome contributions! Please see the main [adaptive-tests repository](https://github.com/your-org/adaptive-tests) for contribution guidelines.
+We welcome contributions! Please see the main [adaptive-tests repository](https://github.com/anon57396/adaptive-tests) for contribution guidelines.
 
 ## 📄 License
 

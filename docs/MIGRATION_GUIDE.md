@@ -59,14 +59,14 @@ npx adaptive-tests scaffold src/utils/validators.js
 npx adaptive-tests scaffold src/components/Button.js
 ```
 
-2. **Move to service layers**:
+1. **Move to service layers**:
 
 ```bash
 npx adaptive-tests scaffold src/services/AuthService.js
 npx adaptive-tests scaffold src/services/DataService.js
 ```
 
-3. **Finish with integration tests**:
+1. **Finish with integration tests**:
 
 ```bash
 npx adaptive-tests scaffold src/api/endpoints.js
@@ -125,7 +125,7 @@ test('handles click', async () => {
 
 ### Express APIs
 
-#### Before (Traditional Test)
+#### Before (Traditional Express Test)
 
 ```javascript
 // tests/userRoutes.test.js
@@ -139,7 +139,7 @@ test('GET /users returns list', async () => {
 });
 ```
 
-#### After (Adaptive Test)
+#### After (Adaptive Express Test)
 
 ```javascript
 // tests/adaptive/userRoutes.test.js
@@ -195,7 +195,7 @@ test('increments count', async () => {
 
 ### Angular Services
 
-#### Before
+#### Before (Traditional Angular Test)
 
 ```typescript
 import { TestBed } from '@angular/core/testing';
@@ -215,7 +215,7 @@ describe('AuthService', () => {
 });
 ```
 
-#### After
+#### After (Adaptive Angular Test)
 
 ```typescript
 import { discover } from 'adaptive-tests';
@@ -387,7 +387,7 @@ enablePersistentCache({
 });
 ```
 
-2. **Limit search scope**:
+1. **Limit search scope**:
 
 ```javascript
 const Component = await discover({
@@ -415,7 +415,7 @@ const Component = await discover({
 
 ## Getting Help
 
-- **Discord**: [Join our community](https://discord.gg/adaptive-tests)
+- **GitHub Discussions**: [Join the discussion](https://github.com/anon57396/adaptive-tests/discussions)
 - **Examples**: See `examples/` directory for complete migrations
 - **Issues**: [GitHub Issues](https://github.com/anon57396/adaptive-tests/issues)
 - **Docs**: [Full documentation](https://anon57396.github.io/adaptive-tests/)

@@ -90,7 +90,7 @@ const symbol = integration.resolveSymbol('Fibonacci', 'MathUtils`Private`');
 
 ### Three-Tier Parsing Strategy
 
-```
+```text
 ┌─────────────────────────────────────┐
 │         AST Bridge (Primary)         │
 │   Uses CodeParse for modern versions │
@@ -142,7 +142,7 @@ const symbol = integration.resolveSymbol('Fibonacci', 'MathUtils`Private`');
 
 ## 🧪 Test Coverage
 
-```
+```text
 WolframDiscoveryCollector
   ✓ File Support (5 tests)
   ✓ Kernel Detection (2 tests)

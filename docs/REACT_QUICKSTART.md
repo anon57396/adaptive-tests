@@ -252,7 +252,7 @@ npx adaptive-tests scaffold src/components/Form.jsx --apply-assertions
 
 Recommended structure for React projects:
 
-```
+```text
 my-react-app/
 ├── src/
 │   ├── components/
@@ -353,9 +353,8 @@ beforeAll(async () => {
 ## Next Steps
 
 1. **Try the template**: `cp -r adaptive-tests/templates/cra-adaptive my-app`
-2. **Watch the demo**: [React + Adaptive Tests Video](https://youtube.com/...)
-3. **Join the community**: [Discord](https://discord.gg/adaptive-tests)
-4. **Read the full docs**: [Complete Documentation](https://anon57396.github.io/adaptive-tests/)
+2. **Join the community**: [GitHub Discussions](https://github.com/anon57396/adaptive-tests/discussions)
+3. **Read the full docs**: [Complete Documentation](https://anon57396.github.io/adaptive-tests/)
 
 ## Example Projects
 

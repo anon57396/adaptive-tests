@@ -23,7 +23,7 @@ This comprehensive guide helps you resolve common issues with adaptive-tests acr
 
 **Symptoms**:
 
-```
+```text
 Error: No candidates found for signature {"name":"MyComponent"}
 ```
 
@@ -36,14 +36,14 @@ Error: No candidates found for signature {"name":"MyComponent"}
 npx adaptive-tests analyze src/components/MyComponent.js
 ```
 
-2. **Use the Discovery Lens to debug**:
+1. **Use the Discovery Lens to debug**:
 
 ```bash
 # See why discovery is failing
 npx adaptive-tests why '{"name":"MyComponent"}' --json
 ```
 
-3. **Verify file is in search path**:
+1. **Verify file is in search path**:
 
 ```javascript
 const Component = await discover({
@@ -54,7 +54,7 @@ const Component = await discover({
 });
 ```
 
-4. **Check for case sensitivity issues**:
+1. **Check for case sensitivity issues**:
 
 ```javascript
 // Wrong - case mismatch
@@ -81,7 +81,7 @@ const Service = await discover({
 });
 ```
 
-2. **Use full path matching**:
+1. **Use full path matching**:
 
 ```javascript
 const Service = await discover({
@@ -105,7 +105,7 @@ enablePersistentCache({
 });
 ```
 
-2. **Limit search scope**:
+1. **Limit search scope**:
 
 ```javascript
 // Don't search node_modules or build directories
@@ -115,7 +115,7 @@ const engine = getDiscoveryEngine(process.cwd(), {
 });
 ```
 
-3. **Use specific file extensions**:
+1. **Use specific file extensions**:
 
 ```javascript
 const Component = await discover({
@@ -144,7 +144,7 @@ const Component = await discover({
 }
 ```
 
-2. **Cache discovery results between runs**:
+1. **Cache discovery results between runs**:
 
 ```javascript
 // jest.config.js
@@ -158,7 +158,7 @@ module.exports = {
 };
 ```
 
-3. **Pre-warm the cache**:
+1. **Pre-warm the cache**:
 
 ```bash
 # Run before tests to build cache
@@ -180,14 +180,14 @@ afterAll(() => {
 });
 ```
 
-2. **Limit cache size**:
+1. **Limit cache size**:
 
 ```javascript
 const { setMaxCacheSize } = require('adaptive-tests');
 setMaxCacheSize(100);  // Max 100 cached modules
 ```
 
-3. **Use worker isolation**:
+1. **Use worker isolation**:
 
 ```json
 // jest.config.js
@@ -262,7 +262,7 @@ mvn clean install
 
 **Solution**: Ensure proper Maven/Gradle structure:
 
-```
+```text
 src/
 ├── main/
 │   └── java/
@@ -340,10 +340,10 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
    - Run: "Developer: Show Extension Logs"
    - Select: "Adaptive Tests"
 
-2. **Reload VS Code window**:
+1. **Reload VS Code window**:
    - Command Palette: "Developer: Reload Window"
 
-3. **Check workspace trust**:
+1. **Check workspace trust**:
    - Ensure workspace is trusted
    - Check: File > Preferences > Settings > Security
 
@@ -357,11 +357,11 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 npm list adaptive-tests
 ```
 
-2. **Check webview developer tools**:
+1. **Check webview developer tools**:
    - Command Palette: "Developer: Open Webview Developer Tools"
    - Check for JavaScript errors
 
-3. **Reset extension state**:
+1. **Reset extension state**:
    - Command Palette: "Adaptive Tests: Reset State"
 
 ### CodeLens not appearing
@@ -378,7 +378,7 @@ npm list adaptive-tests
 }
 ```
 
-2. **Check file type is supported**:
+1. **Check file type is supported**:
    - Supported: .js, .jsx, .ts, .tsx, .java, .php, .py
    - Not supported: .vue, .svelte (yet)
 
@@ -399,13 +399,13 @@ npm list adaptive-tests
     node-version: '18'  # Match local version
 ```
 
-2. **Missing dependencies**:
+1. **Missing dependencies**:
 
 ```yaml
 - run: npm ci  # Use ci instead of install
 ```
 
-3. **File path case sensitivity**:
+1. **File path case sensitivity**:
 
 ```javascript
 // Wrong - works on Windows/Mac, fails on Linux
@@ -527,16 +527,16 @@ Debug categories:
 
 1. **Check existing issues**: [GitHub Issues](https://github.com/anon57396/adaptive-tests/issues)
 
-2. **Ask on Discord**: [Join our community](https://discord.gg/adaptive-tests)
+1. **Ask on GitHub**: [Open a discussion](https://github.com/anon57396/adaptive-tests/discussions)
 
-3. **Provide reproduction**:
+1. **Provide reproduction**:
 
 ```bash
 # Create minimal reproduction
 npx create-adaptive-repro my-issue
 ```
 
-4. **Include debug info**:
+1. **Include debug info**:
 
 ```bash
 npx adaptive-tests debug --system-info > debug.log
@@ -568,11 +568,11 @@ When reporting issues, include:
 ## Prevention Tips
 
 1. **Use TypeScript** for better IDE support and type checking
-2. **Enable linting** to catch issues early
-3. **Add pre-commit hooks** for consistency
-4. **Document your patterns** for team members
-5. **Keep dependencies updated** regularly
-6. **Test on multiple platforms** if deploying broadly
-7. **Use the VS Code extension** for visual debugging
+1. **Enable linting** to catch issues early
+1. **Add pre-commit hooks** for consistency
+1. **Document your patterns** for team members
+1. **Keep dependencies updated** regularly
+1. **Test on multiple platforms** if deploying broadly
+1. **Use the VS Code extension** for visual debugging
 
 Remember: Most issues are related to paths, exports, or configuration. When in doubt, use the Discovery Lens (`npx adaptive-tests why`) to see what the engine sees!

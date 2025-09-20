@@ -47,7 +47,7 @@ With the core product vision largely realized, the project's primary focus now s
 - **Interactive Demo**: Create an interactive demo at adaptive-tests.dev showing a test surviving a massive refactor.
 - **Migration Tool**: `npx adaptive-tests migrate` – an automated codemod to convert traditional tests.
 - **Framework Templates**: Pre-configured setups for Next.js, Vite, CRA, Express with one-line install.
-- **5-Minute Video**: A compelling before/after video showing a 70% reduction in test maintenance.
+- **Interactive Demo**: GitHub Pages demo showing real-time before/after comparison with live code editing.
 
 ### 2. Strategic Positioning
 

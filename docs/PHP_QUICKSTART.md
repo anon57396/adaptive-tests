@@ -204,7 +204,7 @@ $signature = [
 
 Adaptive tests work best with organized directory structures:
 
-```
+```text
 src/
 ├── Calculator/
 │   ├── Calculator.php

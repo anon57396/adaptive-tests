@@ -88,7 +88,7 @@ mvn validate   # Run validation demo
 
 Each template includes:
 
-```
+```text
 template-name/
 ├── src/              # Source code
 │   ├── components/   # UI components (React templates)
@@ -240,6 +240,6 @@ To add a new template:
 
 ## Support
 
-- [Documentation](https://adaptive-tests.dev)
-- [GitHub Issues](https://github.com/adaptive-tests/adaptive-tests/issues)
-- [Discord Community](https://discord.gg/adaptive-tests)
+- [Documentation](https://github.com/anon57396/adaptive-tests)
+- [GitHub Issues](https://github.com/anon57396/adaptive-tests/issues)
+- [Community](https://github.com/anon57396/adaptive-tests/discussions)

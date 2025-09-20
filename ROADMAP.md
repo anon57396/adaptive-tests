@@ -105,9 +105,9 @@ We need help in several areas:
 ### Community Building
 
 - Write blog posts
-- Create video tutorials
-- Give conference talks
-- Help in discussions
+- Create interactive examples
+- Contribute to documentation
+- Help in GitHub discussions
 
 ## 📊 Success Metrics
 

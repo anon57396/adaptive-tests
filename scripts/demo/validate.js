@@ -72,21 +72,45 @@ function quote(value) {
 
 function resolvePythonInterpreter() {
   const candidates = [];
+  const addCandidate = (command, meta = {}) => {
+    candidates.push({
+      command,
+      display: meta.display || command,
+      source: meta.source || 'system',
+      venvPath: meta.venvPath || null,
+    });
+  };
+
   if (process.env.PYTHON && process.env.PYTHON.trim().length > 0) {
-    candidates.push(process.env.PYTHON.trim());
+    const envPython = process.env.PYTHON.trim();
+    addCandidate(envPython, { source: 'env', display: envPython });
   }
+
+  const repoVenvPath = path.join(ROOT_DIR, '.venv');
+  if (fs.existsSync(repoVenvPath)) {
+    const venvPython = pythonExecutablePath(repoVenvPath);
+    if (fs.existsSync(venvPython)) {
+      addCandidate(quote(venvPython), {
+        source: 'repoVenv',
+        display: venvPython,
+        venvPath: repoVenvPath,
+      });
+    }
+  }
+
   if (process.platform === 'win32') {
-    candidates.push('py -3');
-    candidates.push('py');
-    candidates.push('python');
+    addCandidate('py -3');
+    addCandidate('py');
+    addCandidate('python');
   } else {
-    candidates.push('python3');
-    candidates.push('python');
+    addCandidate('python3');
+    addCandidate('python');
   }
+
   for (const candidate of candidates) {
-    if (!candidate) continue;
+    if (!candidate.command) continue;
     try {
-      execSync(`${candidate} --version`, { stdio: 'pipe' });
+      execSync(`${candidate.command} --version`, { stdio: 'pipe' });
       return candidate;
     } catch (error) {
       // Ignore and try next candidate
@@ -114,13 +138,24 @@ function extractPytestSummary(output) {
 }
 
 function runPythonScenario() {
-  const pythonCmd = resolvePythonInterpreter();
-  if (!pythonCmd) {
+  const pythonInterpreter = resolvePythonInterpreter();
+  if (!pythonInterpreter) {
     console.warn('  ⚠️  Skipping Python scenario: no Python interpreter available.');
     return { status: 'skipped', reason: 'Python interpreter not found' };
   }
 
-  console.log(`Using Python interpreter: ${pythonCmd}`);
+  console.log(`Using Python interpreter: ${pythonInterpreter.display}`);
+
+  if (pythonInterpreter.source === 'repoVenv') {
+    try {
+      const pytestResult = runCommand(`${pythonInterpreter.command} -m pytest`, false, { cwd: PYTHON_EXAMPLE_DIR });
+      const summary = extractPytestSummary(pytestResult.output);
+      console.log(`  ✓ Python pytest: ${summary}`);
+      return { status: 'passed', summary };
+    } catch (error) {
+      console.warn('  ⚠️  Repo virtualenv execution failed, falling back to disposable venv.');
+    }
+  }
 
   const venvPath = path.join(PYTHON_EXAMPLE_DIR, PYTHON_VENV_NAME);
   if (fs.existsSync(venvPath)) {
@@ -129,7 +164,7 @@ function runPythonScenario() {
 
   let cleanupNeeded = false;
   try {
-    runCommand(`${pythonCmd} -m venv ${quote(PYTHON_VENV_NAME)}`, false, { cwd: PYTHON_EXAMPLE_DIR });
+    runCommand(`${pythonInterpreter.command} -m venv ${quote(PYTHON_VENV_NAME)}`, false, { cwd: PYTHON_EXAMPLE_DIR });
     cleanupNeeded = true;
 
     const pythonExec = pythonExecutablePath(venvPath);

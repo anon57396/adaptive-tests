@@ -1,0 +1,60 @@
+version: 2
+updates:
+  # JavaScript/npm dependencies
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 10
+    groups:
+      development:
+        patterns:
+          - "@types/*"
+          - "eslint*"
+          - "prettier"
+          - "*lint*"
+      testing:
+        patterns:
+          - "jest*"
+          - "vitest*"
+          - "@testing-library/*"
+    labels:
+      - "dependencies"
+      - "javascript"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+
+  # Python dependencies
+  - package-ecosystem: "pip"
+    directory: "/packages/adaptive-tests-py"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "dependencies"
+      - "python"
+    commit-message:
+      prefix: "chore(python)"
+
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "dependencies"
+      - "github-actions"
+    commit-message:
+      prefix: "ci"
+
+  # VS Code Extension
+  - package-ecosystem: "npm"
+    directory: "/extensions/vscode-adaptive-tests"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "dependencies"
+      - "vscode"
+    commit-message:
+      prefix: "chore(vscode)"

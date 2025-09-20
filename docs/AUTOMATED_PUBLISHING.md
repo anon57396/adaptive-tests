@@ -20,7 +20,7 @@ Go to **Settings → Secrets and variables → Actions** in your GitHub reposito
 
 #### NPM Publishing
 
-```
+```bash
 NPM_TOKEN = <your-npm-automation-token>
 ```
 
@@ -31,7 +31,7 @@ Get from: <https://www.npmjs.com/settings/YOUR_USERNAME/tokens>
 
 #### PyPI Publishing
 
-```
+```bash
 PYPI_TOKEN = <your-pypi-api-token>
 TEST_PYPI_TOKEN = <your-test-pypi-api-token>  # Optional, for pre-releases
 ```
@@ -43,7 +43,7 @@ Get from: <https://pypi.org/manage/account/token/>
 
 #### Maven Publishing (Optional)
 
-```
+```bash
 OSSRH_USERNAME = <your-sonatype-username>
 OSSRH_TOKEN = <your-sonatype-token>
 MAVEN_GPG_PRIVATE_KEY = <your-gpg-private-key>
@@ -152,7 +152,7 @@ Each package:
 - Publishes to npm
 - Publishes to GitHub Packages (optional)
 
-### PyPI Publishing
+#### PyPI Publishing Workflow
 
 1. Updates version in `setup.py` or `pyproject.toml`
 2. Builds wheel and source distributions
@@ -189,13 +189,13 @@ The workflow determines version from (in order):
 
 ### npm Publishing Issues
 
-**Error: 401 Unauthorized**
+#### Error: 401 Unauthorized
 
 - Check `NPM_TOKEN` is valid
 - Ensure token has publish permissions
 - For scoped packages, ensure public access
 
-**Error: 403 Forbidden**
+#### Error: 403 Forbidden
 
 - Package name might be taken
 - You might not have permissions
@@ -203,25 +203,25 @@ The workflow determines version from (in order):
 
 ### PyPI Publishing Issues
 
-**Error: Invalid distribution**
+#### Error: Invalid distribution
 
 - Run `twine check dist/*` locally
 - Ensure `long_description` is valid
 - Check metadata in `setup.py`
 
-**Error: Version already exists**
+#### Error: Version already exists
 
 - PyPI doesn't allow overwriting versions
 - Bump to a new version
 
 ### Maven Publishing Issues
 
-**Error: Unauthorized**
+#### Error: Unauthorized
 
 - Check OSSRH credentials
 - Verify account at <https://s01.oss.sonatype.org/>
 
-**Error: PGP signature failed**
+#### Error: PGP signature failed
 
 - Ensure GPG key is valid
 - Check key isn't expired
@@ -292,7 +292,7 @@ mvn deploy -DaltDeploymentRepository=local::default::file:./target/staging-deplo
 
 Packages are available at:
 
-```
+```text
 https://npm.pkg.github.com/@OWNER/PACKAGE
 ```
 
