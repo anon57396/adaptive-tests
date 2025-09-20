@@ -1,13 +1,11 @@
 /**
  * Candidate Evaluator
  *
- * Handles scoring, validation, and resolution of discovery candidates.
+ * Handles scoring, filtering, and metadata analysis for discovery candidates.
  */
 
-const fs = require('fs');
-const fsPromises = fs.promises;
+const fsPromises = require('fs').promises;
 const path = require('path');
-const Module = require('module');
 
 class CandidateEvaluator {
   constructor(options) {
@@ -20,10 +18,7 @@ class CandidateEvaluator {
       looseNamePenalty,
       analyzeModuleExports,
       calculateRecencyBonus,
-      moduleVersions,
-      cachedModules,
-      cleanupCachedModules,
-      ensureTypeScriptSupport
+      experimentalFeatures
     } = options;
 
     this.rootPath = rootPath;
@@ -34,10 +29,7 @@ class CandidateEvaluator {
     this.looseNamePenalty = looseNamePenalty;
     this.analyzeModuleExports = analyzeModuleExports;
     this.calculateRecencyBonus = calculateRecencyBonus;
-    this.moduleVersions = moduleVersions;
-    this.cachedModules = cachedModules;
-    this.cleanupCachedModules = cleanupCachedModules;
-    this.ensureTypeScriptSupport = ensureTypeScriptSupport;
+    this.experimentalFeatures = experimentalFeatures || {};
   }
 
   async evaluateCandidate(filePath, signature) {
@@ -107,6 +99,16 @@ class CandidateEvaluator {
       score += recencyBonus;
     }
 
+    // EXPERIMENTAL: Apply pattern-based scoring if available
+    if (this.experimentalFeatures?.feedbackCollector) {
+      const patternScore = this.experimentalFeatures.feedbackCollector.getPatternScore(candidate, signature);
+      if (patternScore !== 0) {
+        candidate.scoreBreakdown = candidate.scoreBreakdown || {};
+        candidate.scoreBreakdown.pattern = Math.round(patternScore);
+        score += patternScore;
+      }
+    }
+
     if (!nameMatches && this.allowLooseNameMatch && this.looseNamePenalty) {
       candidate.scoreBreakdown = candidate.scoreBreakdown || {};
       candidate.scoreBreakdown.quickName = (candidate.scoreBreakdown.quickName || 0) + this.looseNamePenalty;
@@ -168,94 +170,6 @@ class CandidateEvaluator {
       .split(' ')
       .map(token => token.trim())
       .filter(Boolean);
-  }
-
-  async tryResolveCandidate(candidate, signature) {
-    try {
-      if (!this.isCandidateSafe(candidate)) {
-        return null;
-      }
-
-      const metadataMatch = this.selectExportFromMetadata(candidate, signature);
-      if (candidate.metadata && !metadataMatch) {
-        return null;
-      }
-
-      const resolvedPath = require.resolve(candidate.path);
-      const ext = path.extname(candidate.path);
-      let mtimeMs = null;
-
-      try {
-        const stats = fs.statSync(candidate.path);
-        mtimeMs = stats.mtimeMs;
-      } catch (error) {
-        // Ignore - treat as dynamic module
-      }
-
-      const lastVersion = this.moduleVersions.get(resolvedPath);
-      const initialLoad = lastVersion === undefined;
-      const hasChanged = mtimeMs === null || lastVersion === undefined || lastVersion !== mtimeMs;
-
-      if (ext === '.ts' || ext === '.tsx') {
-        this.ensureTypeScriptSupport();
-        if (hasChanged) {
-          delete require.cache[resolvedPath];
-        }
-        const moduleExports = require(candidate.path);
-        if (mtimeMs !== null) {
-          this.moduleVersions.set(resolvedPath, mtimeMs);
-        } else {
-          this.moduleVersions.delete(resolvedPath);
-        }
-        this.cachedModules.add(resolvedPath);
-        this.cleanupCachedModules();
-
-        if (metadataMatch) {
-          const target = this.extractExportByAccess(moduleExports, metadataMatch.access);
-          if (target && this.validateTarget(target, signature)) {
-            return { target, access: metadataMatch.access };
-          }
-        }
-
-        return this.resolveTargetFromModule(moduleExports, signature, candidate);
-      }
-
-      if (hasChanged) {
-        delete require.cache[resolvedPath];
-      }
-
-      if (process.env.DEBUG_DISCOVERY) {
-        console.log('Loading module from candidate:', candidate.path);
-      }
-      const moduleExports = require(candidate.path);
-
-      if (mtimeMs !== null) {
-        this.moduleVersions.set(resolvedPath, mtimeMs);
-      } else {
-        this.moduleVersions.delete(resolvedPath);
-      }
-
-      this.cachedModules.add(resolvedPath);
-      this.cleanupCachedModules();
-
-      if (metadataMatch) {
-        const target = this.extractExportByAccess(moduleExports, metadataMatch.access);
-        if (target && this.validateTarget(target, signature)) {
-          return { target, access: metadataMatch.access };
-        }
-      }
-
-      if (initialLoad && typeof moduleExports === 'function' && moduleExports.prototype && moduleExports.prototype.constructor) {
-        return {
-          target: moduleExports,
-          access: { type: 'direct' }
-        };
-      }
-
-      return this.resolveTargetFromModule(moduleExports, signature, candidate);
-    } catch (error) {
-      return null;
-    }
   }
 
   isCandidateSafe(candidate) {

@@ -1,6 +1,15 @@
 const parser = require('@babel/parser');
 const crypto = require('crypto');
 
+// Import experimental edge case normalizer if available
+let EdgeCaseNormalizer;
+try {
+  const experimental = require('./experimental/pattern-learner');
+  EdgeCaseNormalizer = experimental.EdgeCaseNormalizer;
+} catch (error) {
+  // Experimental features not available
+}
+
 // AST cache to avoid re-parsing the same content
 const AST_CACHE = new Map();
 const MAX_CACHE_SIZE = 100;
@@ -205,8 +214,20 @@ function analyzeModuleExports(content, fileName) {
   }
 
   let ast;
+  let normalizedContent = content;
+
+  // EXPERIMENTAL: Try edge case normalization if available
+  if (EdgeCaseNormalizer && EdgeCaseNormalizer.needsNormalization(content)) {
+    try {
+      normalizedContent = EdgeCaseNormalizer.normalize(content, 'javascript');
+    } catch (normError) {
+      // Fall back to original content
+      normalizedContent = content;
+    }
+  }
+
   try {
-    ast = parser.parse(content, {
+    ast = parser.parse(normalizedContent, {
       sourceType: 'unambiguous',
       plugins: PARSER_PLUGINS
     });

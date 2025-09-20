@@ -21,6 +21,7 @@ const { getLogger } = require('./logger');
 const { AsyncOperationManager } = require('./async-utils');
 const { FileSystemScanner } = require('./file-system-scanner');
 const { CandidateEvaluator } = require('./candidate-evaluator');
+const { ResultAssembler } = require('./result-assembler');
 
 /**
  * @typedef {'class' | 'function' | 'object' | 'module'} TargetType
@@ -146,6 +147,18 @@ class DiscoveryEngine {
     this.MAX_CACHED_MODULES = 100; // Limit cached module paths
 
     // Async operation manager for consistent patterns
+
+    // EXPERIMENTAL: Pattern learning system (opt-in only)
+    this.experimentalFeatures = {};
+    if (config.experimental?.patternLearning) {
+      try {
+        const { FeedbackCollector } = require('./experimental/pattern-learner');
+        this.experimentalFeatures.feedbackCollector = new FeedbackCollector(this.rootPath);
+        console.debug('[Discovery Engine] Experimental pattern learning enabled');
+      } catch (error) {
+        console.warn('[Discovery Engine] Failed to load experimental features:', error.message);
+      }
+    }
     this.asyncManager = new AsyncOperationManager({
       timeout: this.config.discovery?.timeout || 15000,
       retries: this.config.discovery?.retries || 1
@@ -156,6 +169,13 @@ class DiscoveryEngine {
     this.config.discovery.concurrency = normalizedConcurrency;
     this.maxConcurrency = normalizedConcurrency;
 
+    this.syncResultAssemblerCaches = () => {
+      if (this.resultAssembler) {
+        this.resultAssembler.runtimeCache = this.discoveryCache;
+        this.resultAssembler.persistentCache = this.persistentCache;
+      }
+    };
+
     this.candidateEvaluator = new CandidateEvaluator({
       rootPath: this.rootPath,
       config: this.config,
@@ -165,11 +185,22 @@ class DiscoveryEngine {
       looseNamePenalty: this.looseNamePenalty,
       analyzeModuleExports: this.analyzeModuleExports.bind(this),
       calculateRecencyBonus: this.calculateRecencyBonus.bind(this),
+      experimentalFeatures: this.experimentalFeatures
+    });
+
+    this.resultAssembler = new ResultAssembler({
+      rootPath: this.rootPath,
+      candidateEvaluator: this.candidateEvaluator,
       moduleVersions: this.moduleVersions,
       cachedModules: this.cachedModules,
       cleanupCachedModules: this.cleanupCachedModules.bind(this),
-      ensureTypeScriptSupport: this.ensureTypeScriptSupport.bind(this)
+      ensureTypeScriptSupport: this.ensureTypeScriptSupport.bind(this),
+      runtimeCache: this.discoveryCache,
+      persistentCache: this.persistentCache,
+      persistCache: this.saveCache.bind(this)
     });
+
+    this.syncResultAssemblerCaches();
 
     this.fileSystemScanner = new FileSystemScanner({
       rootPath: this.rootPath,
@@ -339,25 +370,17 @@ class DiscoveryEngine {
       if (successfulResult) {
         const { candidate, resolved } = successfulResult;
 
-        // Cache the metadata only (not the actual module/target)
-        const cacheEntry = {
-          path: candidate.path,
-          access: resolved.access,
-          score: candidate.score,
-          timestamp: Date.now(),
-          mtimeMs: candidate.mtimeMs ?? null
-        };
+        await this.resultAssembler.storeResolution(cacheKey, candidate, resolved);
 
-        this.discoveryCache.set(cacheKey, cacheEntry);
-
-        this.persistentCache[cacheKey] = {
-          relativePath: path.relative(this.rootPath, candidate.path),
-          access: resolved.access,
-          score: candidate.score,
-          timestamp: cacheEntry.timestamp,
-          mtimeMs: cacheEntry.mtimeMs
-        };
-        await this.saveCache();
+        // EXPERIMENTAL: Record discovery for pattern learning
+        if (this.experimentalFeatures?.feedbackCollector) {
+          // Fire and forget - don't block discovery
+          this.experimentalFeatures.feedbackCollector
+            .recordDiscovery(normalizedSig, candidate, candidates)
+            .catch(error => {
+              console.debug('[Pattern Learning] Failed to record discovery:', error.message);
+            });
+        }
 
         return resolved.target;
       }
@@ -443,7 +466,7 @@ class DiscoveryEngine {
    * @param {DiscoverySignature} signature
    */
   async tryResolveCandidate(candidate, signature) {
-    return this.candidateEvaluator.tryResolveCandidate(candidate, signature);
+    return this.resultAssembler.resolveCandidate(candidate, signature);
   }
 
   compileFreshModule(modulePath) {
@@ -648,52 +671,7 @@ class DiscoveryEngine {
    * @param {DiscoverySignature} signature
    */
   loadModule(cacheEntry, signature) {
-    const resolvedPath = require.resolve(cacheEntry.path);
-
-    // Check if module has changed since last load
-    const mtimeMs = this.getFileMtime(resolvedPath);
-    const lastVersion = this.moduleVersions.get(resolvedPath);
-    const hasChanged = mtimeMs === null || lastVersion === undefined || lastVersion !== mtimeMs;
-
-    // Only clear require.cache if file has actually changed
-    if (hasChanged) {
-      delete require.cache[resolvedPath];
-      if (mtimeMs !== null) {
-        this.moduleVersions.set(resolvedPath, mtimeMs);
-      }
-    }
-
-    const ext = path.extname(cacheEntry.path);
-
-    if (ext === '.ts' || ext === '.tsx') {
-      this.ensureTypeScriptSupport();
-    }
-
-    const moduleExports = require(cacheEntry.path);
-    if (process.env.DEBUG_DISCOVERY) {
-      console.log('Loading module from cache entry:', cacheEntry.path);
-    }
-
-    let target = moduleExports;
-
-    switch (cacheEntry.access.type) {
-      case 'default':
-        target = moduleExports.default;
-        break;
-      case 'named':
-        target = moduleExports[cacheEntry.access.name];
-        break;
-      case 'direct':
-        target = moduleExports;
-        break;
-    }
-
-    const validated = this.validateTarget(target, signature);
-    if (!validated) {
-      throw new Error('Cached target no longer matches signature');
-    }
-
-    return target;
+    return this.resultAssembler.loadModule(cacheEntry, signature);
   }
 
   /**
@@ -885,6 +863,7 @@ class DiscoveryEngine {
     } catch (error) {
       if (error && error.code !== 'ENOENT') {
         this.persistentCache = {};
+        this.syncResultAssemblerCaches();
         this.logCacheWarning(`Failed to load discovery cache from ${cacheFile}`, error);
       }
     } finally {
@@ -915,6 +894,7 @@ class DiscoveryEngine {
   async clearCache() {
     this.discoveryCache.clear();
     this.persistentCache = {};
+    this.syncResultAssemblerCaches();
     moduleCache.clear();
     this.cachedModules.forEach(modulePath => {
       delete require.cache[modulePath];

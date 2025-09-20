@@ -33,6 +33,9 @@ experience sane for humans and bots alike:
 1. **Never delete, revert, or rewrite someone else's work-in-progress.** If a file
    already has uncommitted edits, assume they are intentional. Do not stage reverts
    or remove paths from the working tree unless explicitly instructed.
+2. **Do not touch untracked paths without approval.** If `git status` shows
+   untracked files or directories (e.g. local prototypes), leave them alone and
+   escalate to a human maintainer.
 2. **Stay scoped.** Limit edits to the files relevant to your assigned task. Avoid
    opportunistic "drive-by" cleanups that could interfere with parallel efforts.
 3. **Surface conflicts, don't resolve silently.** When you detect contradictory
@@ -40,6 +43,11 @@ experience sane for humans and bots alike:
    undoing other agents' changes.
 4. **Document assumptions in the final summary** so other agents (and humans)
    understand what you touched and what you deliberately left alone.
+
+### Safety Alert — 2025-09-20
+> Codex AI accidentally deleted the untracked directory `src/adaptive/enhanced/`,
+> causing a loss of work for another contributor. Do not remove or rename
+> untracked files. When in doubt, stop and ask.
 
 ## Useful Commands
 
