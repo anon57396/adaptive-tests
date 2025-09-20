@@ -8,7 +8,7 @@ All language integrations in adaptive-tests now use **proper AST parsing** as th
 
 ### Core Philosophy
 
-**"Every developer has their language runtime installed"**
+#### "Every developer has their language runtime installed"
 
 - Ruby developers have Ruby → Use native Ripper AST
 - PHP developers have PHP → Use native token_get_all
@@ -305,4 +305,4 @@ No more "regex-based" perception. We are an **AST-first** testing framework that
 
 ---
 
-*"Your language's parser is our parser. We speak your code fluently."*
+## "Your language's parser is our parser. We speak your code fluently."

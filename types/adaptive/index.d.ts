@@ -19,7 +19,7 @@ import { adaptiveTest } from "./test-base";
  * @param {string} [rootPath=process.cwd()] - The root directory to scan from.
  * @returns {Promise<T>} A promise that resolves with the discovered target.
  */
-export function discover<T>(signature: DiscoverySignature, rootPath?: string): Promise<T>;
+export function discover<T = unknown>(signature: DiscoverySignature, rootPath?: string): Promise<T>;
 import { ConfigLoader } from "./config-loader";
 import { ScoringEngine } from "./scoring-engine";
 import { DEFAULT_CONFIG } from "./config-loader";

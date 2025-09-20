@@ -20,6 +20,20 @@ const { createTsconfigResolver } = require('./tsconfig-resolver');
 const { getLogger } = require('./logger');
 const { AsyncOperationManager, executeParallel } = require('./async-utils');
 
+/**
+ * @typedef {'class' | 'function' | 'object' | 'module'} TargetType
+ *
+ * @typedef {Object} DiscoverySignature
+ * @property {string | RegExp} [name]
+ * @property {TargetType} [type]
+ * @property {string} [exports]
+ * @property {string[]} [methods]
+ * @property {string[]} [properties]
+ * @property {string | Function} [extends]
+ * @property {string | Function} [instanceof]
+ * @property {string} [language]
+ */
+
 // Cache for module requirements with size limit
 const MAX_MODULE_CACHE_SIZE = 100;
 
@@ -176,6 +190,9 @@ class DiscoveryEngine {
 
   /**
    * Discover a target module/class/function
+   * @template T
+   * @param {DiscoverySignature} signature
+   * @returns {Promise<T>}
    */
   async discoverTarget(signature) {
     // Normalize and validate signature
@@ -289,6 +306,10 @@ class DiscoveryEngine {
 
   /**
    * Collect all candidates matching the signature
+   * @param {string} dir
+   * @param {DiscoverySignature} signature
+   * @param {number} [depth]
+   * @param {Array} [candidates]
    */
   async collectCandidates(dir, signature, depth = 0, candidates = []) {
     if (depth > this.config.discovery.maxDepth) {
@@ -381,6 +402,8 @@ class DiscoveryEngine {
 
   /**
    * Evaluate a file as a potential candidate
+   * @param {string} filePath
+   * @param {DiscoverySignature} signature
    */
   async evaluateCandidate(filePath, signature) {
     const fileName = path.basename(filePath, path.extname(filePath));
@@ -618,6 +641,8 @@ class DiscoveryEngine {
 
   /**
    * Quick check if file name could match signature
+   * @param {string} fileName
+   * @param {DiscoverySignature} signature
    */
   quickNameCheck(fileName, signature) {
     // If no name requirement, accept all
@@ -657,6 +682,8 @@ class DiscoveryEngine {
 
   /**
    * Try to resolve a candidate by loading and validating it
+   * @param {{ path: string, score: number, metadata?: any }} candidate
+   * @param {DiscoverySignature} signature
    */
   async tryResolveCandidate(candidate, signature) {
     try {
@@ -748,6 +775,9 @@ class DiscoveryEngine {
 
   /**
    * Resolve target from module exports
+   * @param {any} moduleExports
+   * @param {DiscoverySignature} signature
+   * @param {{ path: string }} candidate
    */
   resolveTargetFromModule(moduleExports, signature, candidate) {
     const results = [];
@@ -803,6 +833,8 @@ class DiscoveryEngine {
 
   /**
    * Validate that a target matches the signature requirements
+   * @param {any} target
+   * @param {DiscoverySignature} signature
    */
   validateTarget(target, signature) {
     if (!target) {
@@ -1040,6 +1072,8 @@ class DiscoveryEngine {
 
   /**
    * Normalize signature
+   * @param {DiscoverySignature} signature
+   * @returns {DiscoverySignature}
    */
   normalizeSignature(signature) {
     if (!signature || typeof signature !== 'object') {
@@ -1070,6 +1104,8 @@ class DiscoveryEngine {
 
   /**
    * Get cache key for signature
+   * @param {DiscoverySignature} signature
+   * @returns {string}
    */
   getCacheKey(signature) {
     const keys = Object.keys(signature)
@@ -1142,6 +1178,8 @@ class DiscoveryEngine {
 
   /**
    * Load module from cache entry
+   * @param {{ path: string }} cacheEntry
+   * @param {DiscoverySignature} signature
    */
   loadModule(cacheEntry, signature) {
     const resolvedPath = require.resolve(cacheEntry.path);
@@ -1185,6 +1223,8 @@ class DiscoveryEngine {
 
   /**
    * Create discovery error with helpful message
+   * @param {DiscoverySignature} signature
+   * @param {Array} [candidates]
    */
   createDiscoveryError(signature, candidates = []) {
     const sig = {
