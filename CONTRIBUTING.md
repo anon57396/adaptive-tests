@@ -83,6 +83,7 @@ Before submitting a PR:
 ```bash
 npm run validate
 npm test
+npm run check:binaries
 ```
 
 This ensures:
@@ -90,6 +91,7 @@ This ensures:
 - Tests pass with working code
 - Tests survive refactoring
 - Tests fail on actual bugs
+- No platform-specific Go binaries are accidentally committed
 
 ## License
 

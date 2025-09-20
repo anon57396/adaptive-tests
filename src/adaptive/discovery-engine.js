@@ -128,6 +128,11 @@ class DiscoveryEngine {
       retries: this.config.discovery?.retries || 1
     });
 
+    // Normalize concurrency for candidate collection
+    const normalizedConcurrency = this.normalizeConcurrency(this.config.discovery?.concurrency);
+    this.config.discovery.concurrency = normalizedConcurrency;
+    this.maxConcurrency = normalizedConcurrency;
+
     // Periodically clean up cachedModules to prevent unbounded growth
     this.cleanupCachedModules();
   }
@@ -297,8 +302,8 @@ class DiscoveryEngine {
       return candidates;
     }
 
-    const directoryTasks = [];
-    const fileTasks = [];
+    const directoryOps = [];
+    const fileOps = [];
 
     for (const entry of entries) {
       const fullPath = path.join(dir, entry.name);
@@ -307,7 +312,7 @@ class DiscoveryEngine {
         if (this.shouldSkipDirectory(entry.name)) {
           continue;
         }
-        directoryTasks.push(this.collectCandidates(fullPath, signature, depth + 1, candidates));
+        directoryOps.push(() => this.collectCandidates(fullPath, signature, depth + 1, candidates));
         continue;
       }
 
@@ -337,24 +342,41 @@ class DiscoveryEngine {
         continue;
       }
 
-      fileTasks.push((async () => {
+      fileOps.push(async () => {
         const candidate = await this.evaluateCandidate(fullPath, signature);
         const minScore = this.config.discovery.scoring.minCandidateScore ?? 0;
         if (candidate && candidate.score > minScore) {
           candidates.push(candidate);
         }
-      })());
+      });
     }
 
-    if (directoryTasks.length > 0) {
-      await Promise.allSettled(directoryTasks);
+    const concurrencyOptions = {
+      maxConcurrency: this.maxConcurrency,
+      context: {
+        root: this.rootPath,
+        depth,
+        directory: dir
+      }
+    };
+
+    if (directoryOps.length > 0) {
+      await executeParallel(directoryOps, concurrencyOptions);
     }
 
-    if (fileTasks.length > 0) {
-      await Promise.allSettled(fileTasks);
+    if (fileOps.length > 0) {
+      await executeParallel(fileOps, concurrencyOptions);
     }
 
     return candidates;
+  }
+
+  normalizeConcurrency(value) {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed) || parsed < 1) {
+      return 8;
+    }
+    return Math.floor(parsed);
   }
 
   /**

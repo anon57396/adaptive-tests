@@ -1,0 +1,12 @@
+{
+  "{\"exports\":\"AsyncWorker\",\"methods\":[\"compute\",\"entries\"],\"name\":\"AsyncWorker\",\"properties\":[\"queueTask\"],\"type\":\"class\"}": {
+    "relativePath": "src/services/AsyncWorker.ts",
+    "access": {
+      "type": "named",
+      "name": "AsyncWorker"
+    },
+    "score": 66,
+    "timestamp": 1758328728301,
+    "mtimeMs": 1758324054947.5022
+  }
+}

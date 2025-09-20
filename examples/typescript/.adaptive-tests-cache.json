@@ -1,0 +1,12 @@
+{
+  "{\"exports\":\"Calculator\",\"methods\":[\"add\",\"divide\",\"multiply\",\"subtract\"],\"name\":\"Calculator\",\"type\":\"class\"}": {
+    "relativePath": "src/Calculator.ts",
+    "access": {
+      "type": "named",
+      "name": "Calculator"
+    },
+    "score": 136,
+    "timestamp": 1758328728340,
+    "mtimeMs": 1758306856981.841
+  }
+}

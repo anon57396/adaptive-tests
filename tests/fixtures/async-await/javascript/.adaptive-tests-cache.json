@@ -1,0 +1,12 @@
+{
+  "{\"exports\":\"loadAsyncService\",\"name\":\"loadAsyncService\",\"type\":\"function\"}": {
+    "relativePath": "AsyncService.js",
+    "access": {
+      "type": "named",
+      "name": "loadAsyncService"
+    },
+    "score": -54,
+    "timestamp": 1758328727890,
+    "mtimeMs": 1758324331681.447
+  }
+}

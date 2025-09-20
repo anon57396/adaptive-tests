@@ -20,130 +20,6 @@ const {
   LANGUAGE_EXTENSIONS
 } = require('./enhanced-config-schema');
 
-const DEFAULT_CONFIG = {
-  discovery: {
-    // File extensions to consider
-    extensions: ['.js', '.cjs', '.mjs', '.ts', '.tsx'],
-
-    // Maximum directory depth to scan
-    maxDepth: 10,
-
-    // Directories to skip
-    skipDirectories: ['node_modules', '.git', '.svn', '.hg', 'coverage', 'dist', 'build', 'scripts'],
-
-    // Scoring configuration
-    scoring: {
-      minCandidateScore: -100,
-      recency: {
-        maxBonus: 0,
-        halfLifeHours: 6
-      },
-
-      // Path scoring
-      paths: {
-        positive: {
-          '/src/': 12,
-          '/app/': 6,
-          '/lib/': 4,
-          '/core/': 4
-        },
-        negative: {
-          '/__tests__/': -50,
-          '/__mocks__/': -45,
-          '/tests/': -40,
-          '/test/': -35,
-          '/spec/': -35,
-          '/mock': -30,
-          '/mocks/': -30,
-          '/fake': -25,
-          '/stub': -25,
-          '/fixture': -15,
-          '/fixtures/': -15,
-          '/temp/': -15,
-          '/tmp/': -15,
-          '/sandbox/': -15,
-          '/deprecated/': -20,
-          '/broken': -60
-        }
-      },
-
-      // File name scoring
-      fileName: {
-        exactMatch: 45,
-        caseInsensitive: 30,
-        partialMatch: 8,
-        regexMatch: 12
-      },
-
-      // Extension scoring
-      extensions: {
-        '.ts': 18,
-        '.tsx': 18,
-        '.mjs': 6,
-        '.cjs': 4,
-        '.js': 0
-      },
-
-      // Type hints in file content
-      typeHints: {
-        'class': 15,
-        'function': 12,
-        'module': 10
-      },
-
-      // Method mention scoring
-      methods: {
-        perMention: 3,
-        maxMentions: 5
-      },
-
-      // Export hint scoring
-      exports: {
-        moduleExports: 30,
-        namedExport: 30,
-        defaultExport: 30
-      },
-
-      // Name mention scoring
-      names: {
-        perMention: 2,
-        maxMentions: 5
-      },
-
-      // Target name match scoring
-      target: {
-        exactName: 35
-      },
-
-      // Custom scoring functions
-      custom: []
-    },
-
-    // Caching configuration
-    cache: {
-      enabled: true,
-      file: '.test-discovery-cache.json',
-      ttl: 24 * 60 * 60, // 24 hour TTL by default
-      logWarnings: false
-    },
-
-    // Security configuration
-    security: {
-      allowUnsafeRequires: true,
-      blockedTokens: [
-        'process.exit(',
-        'child_process.exec',
-        'child_process.spawn',
-        'child_process.fork',
-        'fs.rmSync',
-        'fs.rmdirSync',
-        'fs.unlinkSync',
-        'rimraf'
-      ]
-    }
-  }
-};
-
 class ConfigLoader {
   constructor(rootPath = process.cwd()) {
     this.rootPath = rootPath;
@@ -163,10 +39,7 @@ class ConfigLoader {
     }
 
     // Start with enhanced default schema
-    let config = this.deepClone(ENHANCED_CONFIG_SCHEMA);
-
-    // Backward compatibility: merge old default config for missing sections
-    config = this.deepMerge(config, this.deepClone(DEFAULT_CONFIG));
+    let config = this.validator.mergeWithDefaults({});
 
     // Load from package.json
     const packageConfig = this.loadFromPackageJson();
@@ -378,7 +251,8 @@ class ConfigLoader {
    * Get the default configuration
    */
   static getDefaultConfig() {
-    return DEFAULT_CONFIG;
+    const loader = new ConfigLoader();
+    return loader.deepClone(ENHANCED_CONFIG_SCHEMA);
   }
 
   /**
@@ -397,8 +271,10 @@ class ConfigLoader {
       for (const language of detectedLanguages) {
         if (!config.discovery.languages[language]) {
           // Use default language config from enhanced schema
-          config.discovery.languages[language] =
-            ENHANCED_CONFIG_SCHEMA.discovery.languages[language] || { enabled: true };
+          const defaultLanguageConfig = ENHANCED_CONFIG_SCHEMA.discovery.languages[language];
+          config.discovery.languages[language] = defaultLanguageConfig
+            ? this.deepClone(defaultLanguageConfig)
+            : { enabled: true };
         }
       }
 
@@ -578,4 +454,4 @@ class ConfigLoader {
   }
 }
 
-module.exports = { ConfigLoader, DEFAULT_CONFIG };
+module.exports = { ConfigLoader, DEFAULT_CONFIG: ConfigLoader.getDefaultConfig() };

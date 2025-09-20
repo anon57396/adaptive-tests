@@ -61,10 +61,98 @@ const ENHANCED_CONFIG_SCHEMA = {
     // Global discovery settings
     extensions: ['.js', '.ts', '.tsx', '.jsx', '.java', '.py', '.rs', '.go', '.php', '.rb'],
     maxDepth: 10,
+    concurrency: 8,
     skipDirectories: [
       'node_modules', '.git', 'coverage', 'dist', 'build', 'target',
       '__tests__', '__pycache__', '.next', '.nuxt', 'deps'
     ],
+    cache: {
+      enabled: true,
+      file: '.adaptive-tests-cache.json',
+      ttl: 24 * 60 * 60,
+      logWarnings: false
+    },
+    scoring: {
+      minCandidateScore: -100,
+      recency: {
+        maxBonus: 0,
+        halfLifeHours: 6
+      },
+      paths: {
+        positive: {
+          '/src/': 12,
+          '/app/': 6,
+          '/lib/': 4,
+          '/core/': 4
+        },
+        negative: {
+          '/__tests__/': -50,
+          '/__mocks__/': -45,
+          '/tests/': -40,
+          '/test/': -35,
+          '/spec/': -35,
+          '/mock': -30,
+          '/mocks/': -30,
+          '/fake': -25,
+          '/stub': -25,
+          '/fixture': -15,
+          '/fixtures/': -15,
+          '/temp/': -15,
+          '/tmp/': -15,
+          '/sandbox/': -15,
+          '/deprecated/': -20,
+          '/broken': -60
+        }
+      },
+      fileName: {
+        exactMatch: 45,
+        caseInsensitive: 30,
+        partialMatch: 8,
+        regexMatch: 12
+      },
+      extensions: {
+        '.ts': 18,
+        '.tsx': 18,
+        '.mjs': 6,
+        '.cjs': 4,
+        '.js': 0
+      },
+      typeHints: {
+        class: 15,
+        function: 12,
+        module: 10
+      },
+      methods: {
+        perMention: 3,
+        maxMentions: 5
+      },
+      exports: {
+        moduleExports: 30,
+        namedExport: 30,
+        defaultExport: 30
+      },
+      names: {
+        perMention: 2,
+        maxMentions: 5
+      },
+      target: {
+        exactName: 35
+      },
+      custom: []
+    },
+    security: {
+      allowUnsafeRequires: true,
+      blockedTokens: [
+        'process.exit(',
+        'child_process.exec',
+        'child_process.spawn',
+        'child_process.fork',
+        'fs.rmSync',
+        'fs.rmdirSync',
+        'fs.unlinkSync',
+        'rimraf'
+      ]
+    },
 
     // Language-specific discovery settings
     languages: {
@@ -357,26 +445,6 @@ const ENHANCED_CONFIG_SCHEMA = {
     custom: []
   },
 
-  // Cache configuration
-  cache: {
-    enabled: true,
-    file: '.adaptive-tests-cache.json',
-    ttl: null,
-
-    // Language-specific cache settings
-    languages: {
-      // Can override cache settings per language
-      java: {
-        ttl: 3600000, // 1 hour for Java due to compilation cost
-        file: '.adaptive-tests-java-cache.json'
-      },
-      rust: {
-        ttl: 7200000, // 2 hours for Rust due to compilation cost
-        file: '.adaptive-tests-rust-cache.json'
-      }
-    }
-  },
-
   // Test generation configuration
   testGeneration: {
     enabled: true,
@@ -457,6 +525,25 @@ class ConfigSchemaValidator {
 
     if (discovery.skipDirectories && !Array.isArray(discovery.skipDirectories)) {
       errors.push('discovery.skipDirectories must be an array');
+    }
+
+    if (discovery.concurrency !== undefined) {
+      const value = Number(discovery.concurrency);
+      if (!Number.isFinite(value) || value < 1) {
+        errors.push('discovery.concurrency must be a positive number');
+      }
+    }
+
+    if (discovery.cache) {
+      if (typeof discovery.cache !== 'object') {
+        errors.push('discovery.cache must be an object');
+      } else if ('enabled' in discovery.cache && typeof discovery.cache.enabled !== 'boolean') {
+        errors.push('discovery.cache.enabled must be a boolean');
+      }
+    }
+
+    if (discovery.scoring && typeof discovery.scoring !== 'object') {
+      errors.push('discovery.scoring must be an object');
     }
 
     return errors;

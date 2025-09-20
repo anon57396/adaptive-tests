@@ -33,7 +33,9 @@
     "benchmark": "node scripts/demo/benchmark.js",
     "docs:api": "typedoc",
     "build:types": "tsc",
-    "prepublishOnly": "npm run build:types && npm run test && npm run validate && npm run lint:markdown && npm run lint:links",
+    "check:binaries": "node scripts/check-binaries.js",
+    "prepublishOnly": "npm run build:types && npm run test && npm run validate && npm run lint:markdown && npm run lint:links && npm run check:binaries",
+    "posttest": "npm run check:binaries",
     "release": "./scripts/release.sh",
     "release:patch": "./scripts/release.sh patch",
     "release:minor": "./scripts/release.sh minor",
@@ -171,7 +173,6 @@
     "php-parser": "^3.2.5",
     "tree-sitter": "^0.25.0",
     "tree-sitter-go": "^0.25.0",
-    "tsconfig-paths": "^4.2.0",
-    "web-tree-sitter": "^0.25.9"
+    "tsconfig-paths": "^4.2.0"
   }
 }

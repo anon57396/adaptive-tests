@@ -6,7 +6,7 @@
  * bridge script for AST extraction and provides pytest scaffolding helpers.
  */
 
-const { spawnSync } = require('child_process');
+const childProcess = require('child_process');
 const path = require('path');
 const fs = require('fs');
 const { BaseLanguageIntegration } = require('../base-language-integration');
@@ -105,6 +105,30 @@ class PythonDiscoveryCollector {
     return typeof filePath === 'string' && filePath.endsWith('.py');
   }
 
+  runPythonBridge(filePath) {
+    const options = {
+      encoding: 'utf8',
+      env: this.pythonEnv,
+      timeout: 5000,
+      maxBuffer: 1024 * 1024
+    };
+
+    let lastError = null;
+
+    for (const executable of ['python3', 'python']) {
+      const result = childProcess.spawnSync(executable, ['-c', PYTHON_BRIDGE_SCRIPT, filePath], options);
+      if (result.error && result.error.code === 'ENOENT') {
+        lastError = result.error;
+        continue;
+      }
+      return { executable, result };
+    }
+
+    const error = lastError || new Error('Python interpreter not found');
+    error.code = error.code || 'COMMAND_NOT_FOUND';
+    throw error;
+  }
+
   async parseFile(filePath) {
     if (!filePath || typeof filePath !== 'string') {
       this.errorHandler.logWarning('Invalid file path provided', { filePath });
@@ -125,20 +149,19 @@ class PythonDiscoveryCollector {
       );
     }
 
+    let bridgeExecution = null;
     const result = this.errorHandler.safeSync(
-      () => spawnSync('python3', ['-c', PYTHON_BRIDGE_SCRIPT, absolutePath], {
-        encoding: 'utf8',
-        env: this.pythonEnv,
-        timeout: 5000,
-        maxBuffer: 1024 * 1024
-      }),
+      () => {
+        bridgeExecution = this.runPythonBridge(absolutePath);
+        return bridgeExecution.result;
+      },
       { filePath: absolutePath, operation: 'spawnPython' }
     );
 
     if (!result.success) {
       return this.errorHandler.handleProcessError(
         new Error(result.message),
-        'python3',
+        bridgeExecution?.executable || 'python3',
         absolutePath
       );
     }
@@ -151,7 +174,7 @@ class PythonDiscoveryCollector {
 
       return this.errorHandler.handleProcessError(
         spawnResult.error || new Error(reason),
-        'python3',
+        bridgeExecution?.executable || 'python3',
         absolutePath
       );
     }
