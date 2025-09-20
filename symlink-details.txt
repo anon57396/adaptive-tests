@@ -1,0 +1,10 @@
+./types -> languages/typescript/types
+./examples -> languages/javascript/examples
+./templates -> languages/javascript/templates
+./packages/adaptive-tests-py -> ../languages/python
+./packages/adaptive-tests-java -> ../languages/java
+./packages/webpack-plugin-adaptive -> ../languages/javascript/plugins/webpack-plugin-adaptive
+./packages/jest-adaptive -> ../languages/javascript/plugins/jest-adaptive
+./packages/vite-plugin-adaptive -> ../languages/javascript/plugins/vite-plugin-adaptive
+./src/cli -> ../languages/javascript/cli
+./src/adaptive -> ../languages/javascript/src

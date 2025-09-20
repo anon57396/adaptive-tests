@@ -1,13 +1,13 @@
 {
-  "timestamp": "2025-09-20T14:19:15.896Z",
-  "totalPassed": 38,
+  "timestamp": "2025-09-20T14:46:09.414Z",
+  "totalPassed": 36,
   "totalChecks": 47,
-  "successRate": 80.9,
+  "successRate": 76.6,
   "details": {
     "structure": 12,
-    "javascript": 4,
+    "javascript": 3,
     "typescript": 4,
-    "python": 5,
+    "python": 4,
     "java": 5,
     "experimental": 5,
     "tools": 3,
