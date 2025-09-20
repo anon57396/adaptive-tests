@@ -1,5 +1,5 @@
 const path = require('path');
-const { DiscoveryEngine } = require('../../languages/javascript/src/discovery-engine');
+const { DiscoveryEngine } = require('../../src/discovery-engine');
 
 const FIXTURE_ROOT = path.resolve(__dirname, '../fixtures/tsconfig-alias');
 

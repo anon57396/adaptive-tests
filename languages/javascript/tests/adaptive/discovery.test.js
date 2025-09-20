@@ -2,8 +2,8 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 
-const { getDiscoveryEngine, DiscoveryEngine } = require('../../languages/javascript/src/discovery-engine');
-const { getTypeScriptDiscoveryEngine } = require('../../languages/javascript/src/typescript/discovery');
+const { getDiscoveryEngine, DiscoveryEngine } = require('../../src/discovery-engine');
+const { getTypeScriptDiscoveryEngine } = require('../../src/typescript/discovery');
 
 const repoRoot = path.resolve(__dirname, '..', '..');
 

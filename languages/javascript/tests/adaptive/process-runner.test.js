@@ -1,5 +1,5 @@
 const path = require('path');
-const { runProcessSync } = require('../../languages/javascript/src/process-runner');
+const { runProcessSync } = require('../../src/process-runner');
 
 describe('process-runner', () => {
   test('runs a simple node command when executable is allowlisted', () => {

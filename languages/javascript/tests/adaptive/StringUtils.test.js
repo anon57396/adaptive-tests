@@ -5,7 +5,7 @@
  */
 
 const path = require('path');
-const { getDiscoveryEngine } = require('../../languages/javascript/src/discovery-engine');
+const { getDiscoveryEngine } = require('../../src/discovery-engine');
 
 // Create discovery engine starting from project root
 const engine = getDiscoveryEngine(path.resolve(__dirname, '../..'));

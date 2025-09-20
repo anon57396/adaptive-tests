@@ -1,5 +1,5 @@
 const path = require('path');
-const { getDiscoveryEngine } = require('adaptive-tests');
+const { getDiscoveryEngine } = require('../../src/index');
 
 describe('execute – adaptive discovery', () => {
   const fixtureRoot = path.join(__dirname, '../fixtures/async-await/javascript');

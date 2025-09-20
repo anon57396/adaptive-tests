@@ -2,7 +2,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 
-const { DiscoveryEngine } = require('../../languages/javascript/src/discovery-engine');
+const { DiscoveryEngine } = require('../../src/discovery-engine');
 
 jest.setTimeout(30000);
 

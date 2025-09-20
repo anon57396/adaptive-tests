@@ -9,7 +9,7 @@
  */
 
 const path = require('path');
-const { DiscoveryEngine } = require('../../languages/javascript/src/discovery-engine');
+const { DiscoveryEngine } = require('../../src/discovery-engine');
 
 describe('Discovery Engine 2.0 - New Features Showcase', () => {
   let engine;

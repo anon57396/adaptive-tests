@@ -1,4 +1,4 @@
-const { getDiscoveryEngine } = require('adaptive-tests');
+const { getDiscoveryEngine } = require('../../src/index');
 
 const expectedMethodNames = [
   'detectCallerExtension',

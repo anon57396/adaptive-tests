@@ -1,4 +1,4 @@
-const { discover } = require('adaptive-tests');
+const { discover } = require('@adaptive-tests/javascript');
 
 /**
  * Adaptive Tests for Calculator
@@ -25,7 +25,7 @@ describe('Calculator', () => {
         'getHistory',
         'clearHistory'
       ]
-    }, './languages/javascript/examples/calculator');
+    }, '.');
   });
 
   test('should discover Calculator', () => {

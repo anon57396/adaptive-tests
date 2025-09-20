@@ -1,7 +1,7 @@
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const { ResultAssembler } = require('../../languages/javascript/src/result-assembler');
+const { ResultAssembler } = require('../../src/result-assembler');
 
 function makeModuleFile(dir, name = 'example-module.js') {
   const filePath = path.join(dir, name);

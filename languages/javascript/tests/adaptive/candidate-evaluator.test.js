@@ -1,5 +1,5 @@
 const path = require('path');
-const { CandidateEvaluator } = require('../../languages/javascript/src/candidate-evaluator');
+const { CandidateEvaluator } = require('../../src/candidate-evaluator');
 
 const fixturesDir = path.join(__dirname, '..', 'fixtures', 'candidate-evaluator');
 const samplePath = path.join(fixturesDir, 'SampleService.js');

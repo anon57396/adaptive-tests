@@ -1,8 +1,11 @@
 module.exports = {
   testEnvironment: 'node',
-  roots: ['<rootDir>/examples', '<rootDir>/plugins', '<rootDir>/tests'],
+  roots: ['<rootDir>/examples', '<rootDir>/tests'],
   testMatch: ['**/*.test.js'],
-  moduleFileExtensions: ['js', 'json'],
+  moduleFileExtensions: ['js', 'jsx', 'json'],
+  transform: {
+    '^.+\\.(js|jsx)$': 'babel-jest'
+  },
   collectCoverageFrom: [
     'src/**/*.js',
     '!src/**/*.test.js',
@@ -11,5 +14,10 @@ module.exports = {
   coverageDirectory: 'coverage',
   clearMocks: true,
   resetMocks: true,
-  restoreMocks: true
+  restoreMocks: true,
+  // Disable Haste to avoid module collision issues
+  haste: {
+    enableSymlinks: false,
+    throwOnModuleCollision: false
+  }
 };
